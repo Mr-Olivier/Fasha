@@ -6,13 +6,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import rw.kazilink.security.JwtService;
 
 /**
- * The only two endpoints that don't require a JWT (see
- * SecurityConfig: "/api/auth/**" is permitAll). Every other controller
- * we add from here on will require a valid Authorization header.
+ * register/login are the only two endpoints that don't require a JWT (see
+ * SecurityConfig). logout DOES require one - it needs a real token to
+ * revoke - so it's authenticated like every other controller from here on.
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -29,5 +31,12 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String authorizationHeader) {
+        String token = JwtService.extractBearerToken(authorizationHeader);
+        authService.logout(token);
+        return ResponseEntity.noContent().build();
     }
 }

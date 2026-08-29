@@ -1,0 +1,53 @@
+# -----------------------------------------------------------------------------
+# Main application configuration.
+#
+# Beginner note: values written as ${VAR_NAME:default} read an environment
+# variable called VAR_NAME, and fall back to the text after the colon if that
+# variable isn't set. This is how we keep passwords and secrets OUT of git
+# (see backend/.env.example for the variables you should set locally).
+# -----------------------------------------------------------------------------
+
+spring:
+  application:
+    name: kazilink-backend
+
+  datasource:
+    # Port 5433, not 5432: our docker-compose Postgres is mapped there to
+    # avoid clashing with any native PostgreSQL already installed on the
+    # machine. Override with DB_PORT if your setup differs.
+    url: jdbc:postgresql://localhost:${DB_PORT:5433}/kazilink
+    username: ${DB_USERNAME:kazilink}
+    password: ${DB_PASSWORD:kazilink}
+
+  jpa:
+    hibernate:
+      # IMPORTANT: we never let Hibernate create/alter tables automatically.
+      # Flyway (below) is the single source of truth for the database schema,
+      # via versioned SQL files in src/main/resources/db/migration.
+      # "validate" just double-checks our Java entities match that schema.
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  # 8081, not the default 8080: something else on this machine already
+  # holds 8080. Override with SERVER_PORT if you need a different one.
+  port: ${SERVER_PORT:8081}
+
+# Custom settings for our own code (read via @ConfigurationProperties or @Value).
+app:
+  jwt:
+    # A long random string used to sign JWTs. NEVER commit a real one -
+    # always override this with the JWT_SECRET environment variable.
+    secret: ${JWT_SECRET:dev-only-secret-change-me-please-make-me-long-and-random}
+    expiration-ms: 86400000 # 24 hours, in milliseconds
+
+logging:
+  level:
+    rw.kazilink: DEBUG

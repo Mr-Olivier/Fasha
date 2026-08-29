@@ -27,6 +27,7 @@
 16. [Working with Claude on This Project](#16-working-with-claude-on-this-project)
 17. [Learning Objectives](#17-learning-objectives)
 18. [Definition of Done](#18-definition-of-done)
+19. [Getting Started (Local Development)](#19-getting-started-local-development)
 
 ---
 
@@ -489,4 +490,63 @@ If a piece of generated code can't be explained, stop and learn that concept bef
 
 ---
 
-*Repository layout: `mobile/` (Flutter) and `backend/` (Spring Boot) are scaffolded and ready for Day 1 of the roadmap above.*
+## 19. Getting Started (Local Development)
+
+### Prerequisites
+
+| Tool | Used for |
+|---|---|
+| Flutter SDK (3.29+) | `mobile/` |
+| JDK 21 | `backend/` |
+| Maven (or use the bundled `./mvnw`) | building/running the backend |
+| Docker Desktop | local PostgreSQL |
+
+### 1. Start PostgreSQL
+
+```bash
+docker compose up -d
+```
+
+> **Port note:** the container is mapped to **host port `5433`**, not the Postgres default `5432` — this avoids clashing with a native PostgreSQL install some machines already have running as a service. If your machine has no such conflict, feel free to change it back to `5432:5432` in `docker-compose.yml` (and `DB_PORT` below).
+
+### 2. Configure the backend
+
+```bash
+cp backend/.env.example backend/.env
+# then edit backend/.env if you changed any defaults
+```
+
+`backend/.env` is git-ignored — it's where `DB_USERNAME`, `DB_PASSWORD`, `DB_PORT`, and `JWT_SECRET` live locally. `application.yml` reads them via `${VAR_NAME:default}` placeholders, so sensible defaults exist even if you skip this step.
+
+### 3. Run the backend
+
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+
+The API starts on **`http://localhost:8081`** (not `8080` — same reasoning as the DB port: something else may already be using it on your machine; change `SERVER_PORT` if yours is free). On first boot you should see `Started BackendApplication` in the logs. Since no endpoints exist yet, hitting `http://localhost:8081/` returns `401 Unauthorized` — that's Spring Security correctly locking down everything by default, not a bug.
+
+### 4. Run the Flutter app
+
+```bash
+cd mobile
+flutter pub get
+flutter run
+```
+
+Pick any available device when prompted (Chrome, Windows desktop, or an Android emulator once one is configured). You should see a "Project setup complete" placeholder screen — this gets replaced by the real splash/login screen in the Authentication feature.
+
+### Everyday commands
+
+| Command | What it does |
+|---|---|
+| `docker compose down` | stop the database (keeps its data) |
+| `docker compose down -v` | stop the database **and delete all data** |
+| `cd backend && ./mvnw test` | run backend tests |
+| `cd mobile && flutter test` | run Flutter tests |
+| `cd mobile && flutter analyze` | lint the Flutter codebase |
+
+---
+
+*Repository layout: `mobile/` (Flutter) and `backend/` (Spring Boot) are scaffolded, dependency-installed, and verified to boot end-to-end. Ready for Feature 2 (Authentication) in the roadmap above.*

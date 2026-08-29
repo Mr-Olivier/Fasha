@@ -1,0 +1,36 @@
+# Local development database only.
+#
+# Start it with:   docker compose up -d
+# Stop it with:    docker compose down
+# Wipe all data:   docker compose down -v
+#
+# The backend (backend/src/main/resources/application.yml) connects to this
+# using the same username/password/database name defined below.
+#
+# NOTE: mapped to host port 5433, not the default 5432, because this machine
+# already runs a separate native PostgreSQL service on 5432. If your machine
+# doesn't have that conflict, feel free to change it back to "5432:5432" -
+# just also update DB_PORT in backend/.env.example / application.yml.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kazilink-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kazilink
+      POSTGRES_USER: kazilink
+      POSTGRES_PASSWORD: kazilink
+    ports:
+      - "5433:5432"
+    volumes:
+      - kazilink_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kazilink -d kazilink"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  kazilink_pgdata:
+    # Named volume so your data survives "docker compose down" (but not "-v").

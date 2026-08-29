@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 
 void main() {
@@ -12,12 +13,18 @@ void main() {
   );
 }
 
-class KaziLinkApp extends StatelessWidget {
+/// ConsumerWidget (not StatelessWidget) because we need `ref` to read
+/// appRouterProvider - GoRouter itself is built from Riverpod state (see
+/// app_router.dart), so the widget that hands it to MaterialApp.router
+/// has to be Riverpod-aware too.
+class KaziLinkApp extends ConsumerWidget {
   const KaziLinkApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider);
+
+    return MaterialApp.router(
       title: 'KaziLink Rwanda',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
@@ -26,32 +33,7 @@ class KaziLinkApp extends StatelessWidget {
       // Letting the user override this (and persisting the choice) is a
       // later feature - see the roadmap's "Theme, polish" day.
       themeMode: ThemeMode.system,
-      home: const _SetupCheckScreen(),
-    );
-  }
-}
-
-/// Temporary placeholder home screen.
-///
-/// This exists only to prove the app boots end-to-end with our theme wired
-/// in. It will be replaced by GoRouter + the real splash/login screen in the
-/// Authentication feature - see README.md section 21, Feature 2.
-class _SetupCheckScreen extends StatelessWidget {
-  const _SetupCheckScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('KaziLink Rwanda')),
-      body: const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(
-            'Project setup complete.\nAuthentication screens come next.',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ),
+      routerConfig: router,
     );
   }
 }

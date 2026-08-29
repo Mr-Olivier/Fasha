@@ -1,6 +1,6 @@
 package rw.kazilink.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +20,10 @@ import java.io.IOException;
  * makes that case a proper 401 with our normal ApiError JSON shape, so the
  * Flutter app can tell "please log in" (401) apart from "you don't have
  * permission" (403, see RestAccessDeniedHandler) and react differently.
+ *
+ * Note the import above: Spring Boot 4 moved to Jackson 3, which renamed
+ * its Java package from "com.fasterxml.jackson" to "tools.jackson" - easy
+ * to trip over if you're used to older Spring Boot/Jackson 2 tutorials.
  */
 @Component
 @RequiredArgsConstructor

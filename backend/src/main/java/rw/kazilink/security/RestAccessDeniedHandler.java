@@ -1,6 +1,6 @@
 package rw.kazilink.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper; // Jackson 3 (Spring Boot 4) - not com.fasterxml.jackson
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

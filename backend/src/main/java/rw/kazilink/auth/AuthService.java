@@ -5,10 +5,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rw.kazilink.security.JwtService;
+import rw.kazilink.security.RevokedToken;
+import rw.kazilink.security.RevokedTokenRepository;
 import rw.kazilink.user.Role;
 import rw.kazilink.user.User;
 import rw.kazilink.user.UserRepository;
 import rw.kazilink.user.UserStatus;
+
+import java.time.Instant;
+import java.util.UUID;
 
 /**
  * All the business rules for registering and logging in live here. The
@@ -22,6 +27,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RevokedTokenRepository revokedTokenRepository;
 
     /**
      * {@code @Transactional}: if anything after userRepository.save() threw
@@ -65,6 +71,20 @@ public class AuthService {
 
         String token = jwtService.generateToken(user.getId(), user.getRole().name());
         return toAuthResponse(user, token);
+    }
+
+    /**
+     * By the time this runs, JwtAuthenticationFilter has already verified
+     * `token` is well-formed and correctly signed (SecurityConfig requires
+     * authentication for this endpoint) - we don't re-validate that here,
+     * just record its jti as revoked so JwtAuthenticationFilter rejects
+     * this exact token on any future request, even though it hasn't
+     * naturally expired yet.
+     */
+    public void logout(String token) {
+        UUID jti = jwtService.extractJti(token);
+        Instant expiresAt = jwtService.extractExpiration(token);
+        revokedTokenRepository.save(new RevokedToken(jti, expiresAt));
     }
 
     private AuthResponse toAuthResponse(User user, String token) {

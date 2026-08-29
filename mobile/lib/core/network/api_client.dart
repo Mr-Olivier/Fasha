@@ -5,7 +5,7 @@ import '../../features/auth/data/auth_session_storage.dart';
 
 /// Builds the single Dio instance the whole app makes API calls through.
 ///
-/// Every request automatically gets "Authorization: Bearer <token>" added
+/// Every request automatically gets an "Authorization: Bearer" header added
 /// (when a session exists) via the interceptor below - individual API
 /// classes (AuthApi, and every future *Api class) never have to think
 /// about auth headers themselves.

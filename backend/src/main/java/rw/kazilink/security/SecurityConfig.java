@@ -27,6 +27,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+    private final RestAccessDeniedHandler restAccessDeniedHandler;
 
     /**
      * BCrypt is a one-way hash designed to be deliberately slow, so
@@ -50,6 +52,14 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest().authenticated()
+                )
+                // Without these, a missing/invalid token and an insufficient
+                // role would both fall back to Spring Security's default
+                // (an empty-body 403 for both) - see each handler's own
+                // Javadoc for why we tell them apart.
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(restAuthenticationEntryPoint)
+                        .accessDeniedHandler(restAccessDeniedHandler)
                 )
                 // Run our JWT check before Spring's own filter (which we never
                 // use, since we have no username/password login FORM).

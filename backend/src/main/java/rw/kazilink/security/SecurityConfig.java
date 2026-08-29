@@ -79,7 +79,11 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        // Only register/login are public. Logout deliberately
+                        // is NOT listed here - it needs a real, valid token to
+                        // revoke, so it falls under anyRequest().authenticated()
+                        // below like every other endpoint.
+                        .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
                         .anyRequest().authenticated()
                 )
                 // Without these, a missing/invalid token and an insufficient

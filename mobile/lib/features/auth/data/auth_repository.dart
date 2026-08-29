@@ -48,7 +48,24 @@ class AuthRepository {
     }
   }
 
-  Future<void> logout() => _storage.clear();
+  /// Logs out both server-side (revokes the token, so it stops working
+  /// immediately instead of just sitting valid until it expires) and
+  /// locally (clears the cached session so the app itself forgets you).
+  ///
+  /// The API call is best-effort: if it fails (no internet, server down),
+  /// we still clear local storage. A user tapping "log out" expects to be
+  /// logged out of THIS APP regardless of network state - the token simply
+  /// stays valid server-side until its normal expiry in that edge case,
+  /// which is an acceptable trade-off rather than trapping the user in a
+  /// "can't log out" state.
+  Future<void> logout() async {
+    try {
+      await _api.logout();
+    } on DioException {
+      // Deliberately ignored - see doc comment above.
+    }
+    await _storage.clear();
+  }
 
   /// Called once when the app starts, so a previously logged-in user
   /// doesn't have to log in again every time they reopen the app.

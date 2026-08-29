@@ -1,5 +1,7 @@
 package rw.kazilink.common;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -7,6 +9,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
 
@@ -17,10 +20,13 @@ import java.util.List;
  * try/catch in every controller method.
  *
  * Spring picks the most specific matching handler for whatever exception
- * was thrown, so the order of the methods below doesn't matter.
+ * was thrown (NoResourceFoundException before the generic Exception
+ * catch-all, for example), so the order of the methods below doesn't matter.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /** Thrown deliberately by our own service layer, e.g. EmailAlreadyExistsException. */
     @ExceptionHandler(ApplicationException.class)
@@ -47,9 +53,28 @@ public class GlobalExceptionHandler {
                         "Request body is malformed or contains an invalid value."));
     }
 
-    /** Catch-all: an unexpected bug should never leak a raw stack trace to the client. */
+    /**
+     * Thrown when no controller matches the requested path (a genuine
+     * "URL doesn't exist", e.g. a typo or an endpoint we haven't built yet)
+     * AND it doesn't match a static resource either. Without this handler,
+     * it would fall through to the generic 500 below - a wrong-but-common
+     * mistake, since a missing ROUTE isn't a server BUG.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNotFound(NoResourceFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiError.of(HttpStatus.NOT_FOUND.value(), "Not Found", "No such endpoint."));
+    }
+
+    /**
+     * Catch-all: an unexpected bug should never leak a raw stack trace to
+     * the client - but it MUST be logged, or a real bug becomes invisible
+     * on the server too. (This bit us during development: this handler
+     * originally had no logging, so an unrelated bug printed nothing at all.)
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleUnexpected(Exception ex) {
+        log.error("Unhandled exception", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiError.of(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal Server Error",
                         "Something went wrong. Please try again."));

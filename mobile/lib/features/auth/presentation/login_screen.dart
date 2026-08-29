@@ -8,8 +8,8 @@ import 'auth_controller.dart';
 /// ConsumerStatefulWidget: a StatefulWidget that can also read/watch
 /// Riverpod providers (via `ref`, available on its State class). We need
 /// State here because a login form has its own local, ephemeral data - the
-/// GlobalKey<FormState> and the two TextEditingControllers - that has
-/// nothing to do with app-wide state and shouldn't live in a provider.
+/// form key and the two TextEditingControllers - that has nothing to do
+/// with app-wide state and shouldn't live in a provider.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 

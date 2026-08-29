@@ -8,11 +8,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import rw.kazilink.security.JwtService;
+import rw.kazilink.security.RevokedToken;
+import rw.kazilink.security.RevokedTokenRepository;
 import rw.kazilink.user.Role;
 import rw.kazilink.user.User;
 import rw.kazilink.user.UserRepository;
 import rw.kazilink.user.UserStatus;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -43,6 +47,9 @@ class AuthServiceTest {
 
     @Mock
     private JwtService jwtService;
+
+    @Mock
+    private RevokedTokenRepository revokedTokenRepository;
 
     @InjectMocks
     private AuthService authService;
@@ -132,6 +139,21 @@ class AuthServiceTest {
         AuthResponse response = authService.login(new LoginRequest("alice@example.com", "password123"));
 
         assertThat(response.token()).isEqualTo("fake-jwt-token");
+    }
+
+    @Test
+    void logout_revokesTheTokensJti() {
+        UUID jti = UUID.randomUUID();
+        Instant expiresAt = Instant.now().plusSeconds(3600);
+        when(jwtService.extractJti("some-jwt")).thenReturn(jti);
+        when(jwtService.extractExpiration("some-jwt")).thenReturn(expiresAt);
+
+        authService.logout("some-jwt");
+
+        var captor = org.mockito.ArgumentCaptor.forClass(RevokedToken.class);
+        verify(revokedTokenRepository).save(captor.capture());
+        assertThat(captor.getValue().getJti()).isEqualTo(jti);
+        assertThat(captor.getValue().getExpiresAt()).isEqualTo(expiresAt);
     }
 
     private void verifyUserWasSavedWithHash(String expectedHash) {

@@ -36,10 +36,19 @@ public class JwtService {
         return Keys.hmacShaKeyFor(properties.secret().getBytes(StandardCharsets.UTF_8));
     }
 
-    /** Issues a new token for the given user, valid for app.jwt.expiration-ms. */
+    /**
+     * Issues a new token for the given user, valid for app.jwt.expiration-ms.
+     *
+     * Every token gets its own random "jti" (JWT ID) claim. It has no
+     * meaning on its own - it exists purely so POST /api/auth/logout has
+     * something specific to record as revoked (see RevokedToken):
+     * "this one token" rather than "this user", since a user's OTHER
+     * active tokens (a second device, say) should keep working.
+     */
     public String generateToken(UUID userId, String role) {
         Instant now = Instant.now();
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(userId.toString())
                 .claim("role", role)
                 .issuedAt(Date.from(now))
@@ -67,5 +76,27 @@ public class JwtService {
 
     public String extractRole(String token) {
         return parseClaims(token).get("role", String.class);
+    }
+
+    public UUID extractJti(String token) {
+        return UUID.fromString(parseClaims(token).getId());
+    }
+
+    public Instant extractExpiration(String token) {
+        return parseClaims(token).getExpiration().toInstant();
+    }
+
+    private static final String BEARER_PREFIX = "Bearer ";
+
+    /**
+     * Pulls the raw token out of an "Authorization: Bearer <token>" header.
+     * Shared by JwtAuthenticationFilter and AuthController.logout() so both
+     * agree on the exact same header format, in exactly one place.
+     */
+    public static String extractBearerToken(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
+            return null;
+        }
+        return authorizationHeader.substring(BEARER_PREFIX.length());
     }
 }

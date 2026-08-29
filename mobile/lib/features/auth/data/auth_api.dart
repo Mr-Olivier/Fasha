@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import '../domain/auth_user.dart';
 import '../domain/user_role.dart';
 
-/// Raw HTTP calls to POST /api/auth/register and /api/auth/login.
+/// Raw HTTP calls to POST /api/auth/register, /login, and /logout.
 ///
 /// This class only knows how to talk to those two endpoints - it doesn't
 /// catch errors or touch storage. AuthRepository is the layer that adds
@@ -41,4 +41,9 @@ class AuthApi {
     );
     return AuthUser.fromJson(response.data!);
   }
+
+  /// No body, no return value - the "Authorization: Bearer" header is
+  /// enough for the backend to know which token to revoke (added
+  /// automatically by ApiClient's interceptor, same as every other call).
+  Future<void> logout() => _dio.post<void>('/auth/logout');
 }

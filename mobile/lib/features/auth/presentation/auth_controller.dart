@@ -34,7 +34,7 @@ final authRepositoryProvider = Provider<AuthRepository>(
 
 /// The app's single source of truth for "who is logged in right now".
 ///
-/// AsyncNotifier<AuthUser?> means our state is always one of three things:
+/// AsyncNotifier of AuthUser? means our state is always one of these:
 ///  - AsyncLoading: we don't know yet (checking storage, or a request is in flight)
 ///  - AsyncData(null): logged out
 ///  - AsyncData(user): logged in as `user`

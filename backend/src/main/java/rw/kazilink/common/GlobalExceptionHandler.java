@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -64,6 +65,28 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleNotFound(NoResourceFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiError.of(HttpStatus.NOT_FOUND.value(), "Not Found", "No such endpoint."));
+    }
+
+    /**
+     * Thrown by @PreAuthorize (e.g. ProviderProfileController requiring
+     * hasRole('PROVIDER')) when the caller's role doesn't match.
+     *
+     * You'd expect this to be handled by RestAccessDeniedHandler instead
+     * (registered on SecurityConfig's exceptionHandling) - but @PreAuthorize
+     * is method-level security, enforced by an AOP proxy around the
+     * controller bean. That means the exception is thrown DURING Spring
+     * MVC's handler invocation, which this @RestControllerAdvice intercepts
+     * first - it never reaches the servlet-filter level where
+     * RestAccessDeniedHandler lives. Without this handler, it fell through
+     * to the generic 500 below (this was a real bug caught by manual
+     * testing: a CUSTOMER hitting a PROVIDER-only endpoint got a 500
+     * instead of a 403).
+     */
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ApiError> handleAuthorizationDenied(AuthorizationDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiError.of(HttpStatus.FORBIDDEN.value(), "Forbidden",
+                        "You do not have permission to access this resource."));
     }
 
     /**

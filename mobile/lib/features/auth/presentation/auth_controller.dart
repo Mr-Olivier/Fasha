@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../core/network/api_client.dart';
 import '../data/auth_api.dart';
@@ -13,19 +12,14 @@ import '../domain/user_role.dart';
 // on from the provider above it. Riverpod only creates each object once
 // and reuses it everywhere it's read - this is what makes AuthRepository
 // a genuine singleton without a manual service locator or global variable.
-
-final _secureStorageProvider = Provider<FlutterSecureStorage>((ref) => const FlutterSecureStorage());
-
-final authSessionStorageProvider = Provider<AuthSessionStorage>(
-  (ref) => AuthSessionStorage(ref.watch(_secureStorageProvider)),
-);
-
-final _apiClientProvider = Provider<ApiClient>(
-  (ref) => ApiClient(ref.watch(authSessionStorageProvider)),
-);
+//
+// authSessionStorageProvider lives in auth_session_storage.dart and
+// apiClientProvider lives in api_client.dart (colocated with the classes
+// they build) - every other feature's *Api class reuses apiClientProvider
+// too, so the whole app shares one Dio instance and one auth interceptor.
 
 final authApiProvider = Provider<AuthApi>(
-  (ref) => AuthApi(ref.watch(_apiClientProvider).dio),
+  (ref) => AuthApi(ref.watch(apiClientProvider).dio),
 );
 
 final authRepositoryProvider = Provider<AuthRepository>(

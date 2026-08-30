@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -84,6 +85,11 @@ public class SecurityConfig {
                         // revoke, so it falls under anyRequest().authenticated()
                         // below like every other endpoint.
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                        // Categories are only ever read here (admin management is
+                        // Feature 9) - scoped to GET specifically, so a future
+                        // admin-only POST/PUT on the same path doesn't
+                        // accidentally inherit this permitAll.
+                        .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
                         .anyRequest().authenticated()
                 )
                 // Without these, a missing/invalid token and an insufficient

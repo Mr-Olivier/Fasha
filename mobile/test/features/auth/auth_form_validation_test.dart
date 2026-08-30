@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:kazilink_rwanda/features/auth/data/auth_session_storage.dart';
 import 'package:kazilink_rwanda/features/auth/domain/auth_user.dart';
-import 'package:kazilink_rwanda/features/auth/presentation/auth_controller.dart';
 import 'package:kazilink_rwanda/features/auth/presentation/login_screen.dart';
 import 'package:kazilink_rwanda/features/auth/presentation/register_screen.dart';
 

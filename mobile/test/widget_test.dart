@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:kazilink_rwanda/features/auth/data/auth_session_storage.dart';
 import 'package:kazilink_rwanda/features/auth/domain/auth_user.dart';
-import 'package:kazilink_rwanda/features/auth/presentation/auth_controller.dart';
 import 'package:kazilink_rwanda/main.dart';
 
 /// See the matching fake in test/features/auth/auth_form_validation_test.dart

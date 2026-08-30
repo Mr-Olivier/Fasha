@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/data/auth_session_storage.dart';
 
@@ -39,3 +40,10 @@ class ApiClient {
     return 'http://localhost:8081/api';
   }
 }
+
+/// Shared by every feature's *Api class, so the whole app makes requests
+/// through the same Dio instance (and therefore the same auth interceptor)
+/// instead of each feature quietly building its own.
+final apiClientProvider = Provider<ApiClient>(
+  (ref) => ApiClient(ref.watch(authSessionStorageProvider)),
+);

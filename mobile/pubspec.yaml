@@ -41,6 +41,7 @@ dependencies:
   dio: ^5.7.0                # HTTP client (interceptors for JWT, logging, retries)
   flutter_secure_storage: ^9.2.2 # encrypted storage for the JWT auth token
   shared_preferences: ^2.3.3 # simple key-value storage (e.g. saved theme mode)
+  google_fonts: ^6.2.1       # Plus Jakarta Sans, per the "Kigali Green" design system
 
 dev_dependencies:
   flutter_test:

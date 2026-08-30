@@ -47,6 +47,11 @@ class HomeScreen extends ConsumerWidget {
                       onPressed: () => context.push('/provider-profile'),
                       child: const Text('Manage my profile'),
                     ),
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: () => context.push('/my-services'),
+                      child: const Text('My services'),
+                    ),
                   ],
                 ],
               ),

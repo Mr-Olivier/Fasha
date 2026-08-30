@@ -6,11 +6,13 @@ import '../../features/auth/presentation/auth_controller.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/providers/presentation/provider_profile_screen.dart';
 import '../../features/services/domain/service_listing.dart';
 import '../../features/services/presentation/my_services_screen.dart';
 import '../../features/services/presentation/service_form_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
+import 'app_shell.dart';
 
 /// Bridges Riverpod state to GoRouter's `refreshListenable`.
 ///
@@ -52,7 +54,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
-      GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(routes: [GoRoute(path: '/home', builder: (context, state) => const HomeScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen())]),
+        ],
+      ),
       GoRoute(path: '/provider-profile', builder: (context, state) => const ProviderProfileScreen()),
       GoRoute(path: '/my-services', builder: (context, state) => const MyServicesScreen()),
       GoRoute(

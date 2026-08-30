@@ -23,16 +23,10 @@ class HomeScreen extends ConsumerWidget {
     final user = ref.watch(authControllerProvider).valueOrNull;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('KaziLink Rwanda'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Log out',
-            onPressed: () => ref.read(authControllerProvider.notifier).logout(),
-          ),
-        ],
-      ),
+      // Logging out lives in the Profile tab now (see AppShell) - matching
+      // Instagram/Facebook, account actions belong in a Profile tab, not
+      // scattered as an icon on every other screen's app bar.
+      appBar: AppBar(title: const Text('KaziLink Rwanda')),
       body: switch (user) {
         null => const Center(child: Text('No user logged in.')),
         AuthUser(role: UserRole.provider) => const _ProviderHome(),

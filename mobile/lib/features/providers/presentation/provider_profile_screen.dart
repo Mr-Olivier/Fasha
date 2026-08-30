@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/theme/status_colors.dart';
 import '../domain/provider_profile.dart';
 import '../domain/verification_status.dart';
 import 'provider_profile_controller.dart';
@@ -131,9 +132,9 @@ class _VerificationBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (status) {
-      VerificationStatus.pending => ('Pending review', Colors.orange),
-      VerificationStatus.approved => ('Approved', Colors.green),
-      VerificationStatus.rejected => ('Rejected', Colors.red),
+      VerificationStatus.pending => ('Pending review', StatusColors.pending(context)),
+      VerificationStatus.approved => ('Approved', StatusColors.positive(context)),
+      VerificationStatus.rejected => ('Rejected', StatusColors.negative(context)),
     };
 
     return Align(

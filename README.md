@@ -420,13 +420,13 @@ Built as **vertical slices**: for each feature, backend → API test → Flutter
 
 ## 15. Development Checklist
 
-- [ ] Repo initialized, `mobile/` and `backend/` scaffolded
-- [ ] Docker Compose running PostgreSQL locally
-- [ ] Spring Boot project builds and connects to DB
-- [ ] Flutter project builds on a device/emulator
-- [ ] JWT auth working end-to-end (register → login → authenticated request)
-- [ ] Role-based access enforced and tested
-- [ ] Provider profile CRUD working
+- [x] Repo initialized, `mobile/` and `backend/` scaffolded
+- [x] Docker Compose running PostgreSQL locally
+- [x] Spring Boot project builds and connects to DB
+- [x] Flutter project builds on a device/emulator
+- [x] JWT auth working end-to-end (register → login → authenticated request)
+- [x] Role-based access enforced and tested
+- [x] Provider profile CRUD working
 - [ ] Category + service CRUD working
 - [ ] Search/filter working
 - [ ] Booking workflow enforced server-side and reflected in Flutter
@@ -435,8 +435,8 @@ Built as **vertical slices**: for each feature, backend → API test → Flutter
 - [ ] Light/dark/system theme implemented and persisted
 - [ ] Loading/success/empty/error states on every API-backed screen
 - [ ] Seed data loaded (providers, categories, services, bookings, reviews)
-- [ ] Key backend tests passing (auth, booking rules, authorization)
-- [ ] Key Flutter tests passing (state logic, form validation)
+- [x] Key backend tests passing (auth, booking rules, authorization)
+- [x] Key Flutter tests passing (state logic, form validation)
 - [ ] App deployed / backend hosted
 - [ ] README finalized, architecture explainable in an interview
 

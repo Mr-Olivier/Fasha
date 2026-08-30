@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../../auth/domain/user_role.dart';
 import '../../auth/presentation/auth_controller.dart';
 
@@ -34,26 +35,39 @@ class HomeScreen extends ConsumerWidget {
       body: Center(
         child: user == null
             ? const Text('No user logged in.')
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Welcome, ${user.name}', style: Theme.of(context).textTheme.headlineSmall),
-                  const SizedBox(height: 8),
-                  Text(user.email),
-                  Text('Role: ${user.role.name}'),
-                  if (user.role == UserRole.provider) ...[
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: () => context.push('/provider-profile'),
-                      child: const Text('Manage my profile'),
+            : Padding(
+                // The design system's buttons fill all available width
+                // (see AppTheme's minimumSize) - without this padding
+                // they'd stretch all the way to the screen edges, unlike
+                // every other screen which already wraps its content this
+                // way.
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Welcome, ${user.name}',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall,
                     ),
-                    const SizedBox(height: 12),
-                    OutlinedButton(
-                      onPressed: () => context.push('/my-services'),
-                      child: const Text('My services'),
-                    ),
+                    const SizedBox(height: 8),
+                    Text(user.email, textAlign: TextAlign.center),
+                    Text('Role: ${user.role.name}', textAlign: TextAlign.center),
+                    if (user.role == UserRole.provider) ...[
+                      const SizedBox(height: 24),
+                      FilledButton(
+                        onPressed: () => context.push('/provider-profile'),
+                        child: const Text('Manage my profile'),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton(
+                        onPressed: () => context.push('/my-services'),
+                        child: const Text('My services'),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
       ),
     );

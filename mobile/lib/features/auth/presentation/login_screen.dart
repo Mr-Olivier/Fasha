@@ -9,8 +9,9 @@ import 'auth_controller.dart';
 /// ConsumerStatefulWidget: a StatefulWidget that can also read/watch
 /// Riverpod providers (via `ref`, available on its State class). We need
 /// State here because a login form has its own local, ephemeral data - the
-/// form key and the two TextEditingControllers - that has nothing to do
-/// with app-wide state and shouldn't live in a provider.
+/// form key, the two TextEditingControllers, and whether the password is
+/// currently shown or hidden - that has nothing to do with app-wide state
+/// and shouldn't live in a provider.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -22,6 +23,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -43,10 +45,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
   }
 
+  // The design references a real password-reset flow, which the backend
+  // doesn't have yet (there's no /api/auth/forgot-password endpoint). We
+  // still show the link - it's a normal, expected part of a login screen -
+  // but it's an honest stub rather than a fake reset form: it tells the
+  // user plainly that this isn't built yet instead of pretending to work.
+  void _showForgotPasswordStub() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Password reset isn\'t available yet.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final isLoading = authState.isLoading;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     // Show a SnackBar exactly once per new error, instead of on every
     // rebuild - ref.listen (as opposed to ref.watch) is Riverpod's way of
@@ -60,54 +75,76 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Log in')),
-      body: Padding(
-        padding: const EdgeInsets.all(AppSpacing.gutter),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('KaziLink Rwanda', style: Theme.of(context).textTheme.headlineSmall, textAlign: TextAlign.center),
-              const SizedBox(height: 32),
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) return 'Email is required';
-                  if (!value.contains('@')) return 'Enter a valid email';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Password'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Password is required';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: isLoading ? null : _submit,
-                child: isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Log in'),
-              ),
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: isLoading ? null : () => context.go('/register'),
-                child: const Text("Don't have an account? Register"),
-              ),
-            ],
+      // No AppBar here on purpose - the design's login screen is a plain,
+      // chrome-less page; the big "Welcome back" heading below does the
+      // job an app bar title normally would.
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.gutter),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Welcome back', style: textTheme.headlineMedium),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Log in to manage your bookings',
+                  style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
+                ),
+                const SizedBox(height: 32),
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) return 'Email is required';
+                    if (!value.contains('@')) return 'Enter a valid email';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    suffixIcon: TextButton(
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      child: Text(_obscurePassword ? 'Show' : 'Hide'),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Password is required';
+                    return null;
+                  },
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: isLoading ? null : _showForgotPasswordStub,
+                    child: const Text('Forgot password?'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: isLoading ? null : _submit,
+                  child: isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Log in'),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: isLoading ? null : () => context.go('/register'),
+                  child: const Text("Don't have an account? Register"),
+                ),
+              ],
+            ),
           ),
         ),
       ),

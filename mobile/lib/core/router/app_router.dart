@@ -7,6 +7,9 @@ import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/providers/presentation/provider_profile_screen.dart';
+import '../../features/services/domain/service_listing.dart';
+import '../../features/services/presentation/my_services_screen.dart';
+import '../../features/services/presentation/service_form_screen.dart';
 
 /// Bridges Riverpod state to GoRouter's `refreshListenable`.
 ///
@@ -49,6 +52,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
       GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
       GoRoute(path: '/provider-profile', builder: (context, state) => const ProviderProfileScreen()),
+      GoRoute(path: '/my-services', builder: (context, state) => const MyServicesScreen()),
+      GoRoute(
+        path: '/my-services/form',
+        // `extra` carries the ServiceListing being edited, or null when
+        // adding a new one - see ServiceFormScreen's doc comment for why.
+        builder: (context, state) => ServiceFormScreen(existing: state.extra as ServiceListing?),
+      ),
     ],
   );
 });

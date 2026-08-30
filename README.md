@@ -427,7 +427,7 @@ Built as **vertical slices**: for each feature, backend → API test → Flutter
 - [x] JWT auth working end-to-end (register → login → authenticated request)
 - [x] Role-based access enforced and tested
 - [x] Provider profile CRUD working
-- [ ] Category + service CRUD working
+- [x] Category + service CRUD working
 - [ ] Search/filter working
 - [ ] Booking workflow enforced server-side and reflected in Flutter
 - [ ] Reviews working and tied to completed bookings

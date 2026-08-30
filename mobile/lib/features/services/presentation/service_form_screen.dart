@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/theme/app_theme.dart';
 import '../domain/service_listing.dart';
 import 'category_controller.dart';
 import 'service_listing_controller.dart';
@@ -93,7 +94,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(isEditing ? 'Edit service' : 'Add service')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.gutter),
         child: Form(
           key: _formKey,
           child: Column(

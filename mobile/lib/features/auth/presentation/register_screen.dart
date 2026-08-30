@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/theme/app_theme.dart';
 import '../domain/user_role.dart';
 import 'auth_controller.dart';
 
@@ -63,7 +64,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Create account')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.gutter),
         child: Form(
           key: _formKey,
           child: Column(

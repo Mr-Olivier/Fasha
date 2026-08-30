@@ -36,7 +36,14 @@ public class ProviderProfileService {
         profile.setLocation(request.location());
         profile.setProfileImageUrl(request.profileImageUrl());
 
-        providerProfileRepository.save(profile);
+        // saveAndFlush, not save: the @PreUpdate callback on ProviderProfile
+        // that bumps updatedAt only actually runs when Hibernate flushes to
+        // the database - plain save() just queues the write for later
+        // (normally at transaction commit). Without the explicit flush here,
+        // toResponse() below would read updatedAt's STALE in-memory value
+        // (this bit us during manual testing: the response showed the old
+        // timestamp even though the correct new one was already in Postgres).
+        providerProfileRepository.saveAndFlush(profile);
         return toResponse(profile);
     }
 

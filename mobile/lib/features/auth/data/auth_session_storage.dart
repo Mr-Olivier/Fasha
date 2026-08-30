@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../domain/auth_user.dart';
@@ -37,3 +38,11 @@ class AuthSessionStorage {
     return _storage.delete(key: _sessionKey);
   }
 }
+
+// Colocated with the class they build: any feature that needs a Dio client
+// or the session storage imports THIS file, not auth's presentation layer.
+final _secureStorageProvider = Provider<FlutterSecureStorage>((ref) => const FlutterSecureStorage());
+
+final authSessionStorageProvider = Provider<AuthSessionStorage>(
+  (ref) => AuthSessionStorage(ref.watch(_secureStorageProvider)),
+);

@@ -60,9 +60,19 @@ class AppTheme {
           seedColor: _primary,
           brightness: Brightness.dark,
         ).copyWith(
-          // Everything else (a lighter, dark-mode-appropriate primary/secondary,
-          // onSurface, etc.) comes from fromSeed's own algorithm - we only pin
-          // the one token the design spec actually gave us for dark mode.
+          // We deliberately do NOT pin `primary` here: #0B6B4F is dark
+          // enough that it would barely read against an already-dark
+          // background, so we let fromSeed's own dark-mode algorithm pick
+          // a lighter, legible tint of it instead. Amber has no such
+          // problem - it's light enough to work unmodified on both
+          // backgrounds - so unlike primary, we DO pin secondary here (this
+          // was a real bug during visual QA: leaving it unpinned meant the
+          // "pending" status badge silently stopped being amber in dark
+          // mode, using a green-tinted colour instead).
+          secondary: _secondary,
+          onSecondary: _onSurfaceLight,
+          secondaryContainer: Color.lerp(_secondary, Colors.black, 0.55),
+          onSecondaryContainer: _secondary,
           surface: _primaryDark,
         ),
       );

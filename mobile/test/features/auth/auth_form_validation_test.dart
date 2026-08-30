@@ -70,10 +70,18 @@ void main() {
     testWidgets('shows an error for a password shorter than 8 characters', (tester) async {
       await _pumpScreen(tester, const RegisterScreen());
 
-      // Field order in RegisterScreen: name, email, phone, password.
+      // Step 1 (role choice) - Customer is pre-selected, so Continue moves
+      // straight to step 2 without picking anything.
+      await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
+      await tester.pumpAndSettle();
+
+      // Step 2 (details) field order: name, phone, email, password.
       await tester.enterText(find.byType(TextFormField).at(0), 'Alice Uwase');
-      await tester.enterText(find.byType(TextFormField).at(1), 'alice@example.com');
+      await tester.enterText(find.byType(TextFormField).at(2), 'alice@example.com');
       await tester.enterText(find.byType(TextFormField).at(3), 'short');
+      // The submit button stays disabled until Terms is checked.
+      await tester.tap(find.byType(CheckboxListTile));
+      await tester.pump();
       await tester.tap(find.widgetWithText(FilledButton, 'Create account'));
       await tester.pump();
 

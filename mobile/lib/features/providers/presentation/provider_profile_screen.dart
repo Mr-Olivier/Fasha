@@ -3,10 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/theme/status_colors.dart';
 import '../domain/provider_profile.dart';
-import '../domain/verification_status.dart';
 import 'provider_profile_controller.dart';
+import 'verification_badge.dart';
 
 class ProviderProfileScreen extends ConsumerStatefulWidget {
   const ProviderProfileScreen({super.key});
@@ -87,7 +86,7 @@ class _ProviderProfileScreenState extends ConsumerState<ProviderProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (profile != null) _VerificationBadge(status: profile.verificationStatus),
+                    if (profile != null) VerificationBadge(status: profile.verificationStatus),
                     if (profile != null) const SizedBox(height: 16),
                     TextFormField(
                       controller: _businessNameController,
@@ -121,31 +120,6 @@ class _ProviderProfileScreenState extends ConsumerState<ProviderProfileScreen> {
                 ),
               ),
             ),
-    );
-  }
-}
-
-class _VerificationBadge extends StatelessWidget {
-  const _VerificationBadge({required this.status});
-
-  final VerificationStatus status;
-
-  @override
-  Widget build(BuildContext context) {
-    final (label, color) = switch (status) {
-      VerificationStatus.pending => ('Pending review', StatusColors.pending(context)),
-      VerificationStatus.approved => ('Approved', StatusColors.positive(context)),
-      VerificationStatus.rejected => ('Rejected', StatusColors.negative(context)),
-    };
-
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Chip(
-        label: Text(label),
-        backgroundColor: color.withValues(alpha: 0.15),
-        labelStyle: TextStyle(color: color),
-        side: BorderSide(color: color),
-      ),
     );
   }
 }

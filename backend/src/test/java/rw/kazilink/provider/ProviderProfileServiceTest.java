@@ -58,7 +58,7 @@ class ProviderProfileServiceTest {
         assertThat(response.verificationStatus()).isEqualTo(VerificationStatus.PENDING);
 
         var captor = ArgumentCaptor.forClass(ProviderProfile.class);
-        verify(providerProfileRepository).save(captor.capture());
+        verify(providerProfileRepository).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getUserId()).isEqualTo(userId);
     }
 
@@ -72,7 +72,7 @@ class ProviderProfileServiceTest {
         providerProfileService.upsertMyProfile(userId, request);
 
         var captor = ArgumentCaptor.forClass(ProviderProfile.class);
-        verify(providerProfileRepository).save(captor.capture());
+        verify(providerProfileRepository).saveAndFlush(captor.capture());
         // Same object identity as `existing`, not a freshly constructed one.
         assertThat(captor.getValue()).isSameAs(existing);
         assertThat(captor.getValue().getBusinessName()).isEqualTo("New Name");

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/status_colors.dart';
 import '../domain/provider_profile.dart';
 import '../domain/verification_status.dart';
@@ -80,7 +81,7 @@ class _ProviderProfileScreenState extends ConsumerState<ProviderProfileScreen> {
       body: state.isLoading && !_controllersPrefilled
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(AppSpacing.gutter),
               child: Form(
                 key: _formKey,
                 child: Column(

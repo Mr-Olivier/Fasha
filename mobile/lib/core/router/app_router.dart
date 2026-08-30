@@ -10,6 +10,7 @@ import '../../features/providers/presentation/provider_profile_screen.dart';
 import '../../features/services/domain/service_listing.dart';
 import '../../features/services/presentation/my_services_screen.dart';
 import '../../features/services/presentation/service_form_screen.dart';
+import '../../features/splash/presentation/splash_screen.dart';
 
 /// Bridges Riverpod state to GoRouter's `refreshListenable`.
 ///
@@ -30,24 +31,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = _AuthRefreshNotifier(ref);
 
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/splash',
     refreshListenable: refreshNotifier,
     redirect: (context, state) {
       final authState = ref.read(authControllerProvider);
+      final isOnSplash = state.matchedLocation == '/splash';
 
       // Still restoring the session from storage (see AuthController.build) -
-      // don't redirect anywhere yet, or we'd bounce a logged-in user to
-      // /login for a split second before we actually know.
-      if (authState.isLoading) return null;
+      // stay on the splash screen until we actually know, rather than
+      // bouncing a logged-in user to /login for a split second first.
+      if (authState.isLoading) return isOnSplash ? null : '/splash';
 
       final isLoggedIn = authState.valueOrNull != null;
       final isOnAuthScreen = state.matchedLocation == '/login' || state.matchedLocation == '/register';
 
-      if (!isLoggedIn && !isOnAuthScreen) return '/login';
-      if (isLoggedIn && isOnAuthScreen) return '/home';
-      return null; // no redirect needed
+      if (isLoggedIn) return (isOnAuthScreen || isOnSplash) ? '/home' : null;
+      return isOnAuthScreen ? null : '/login'; // covers isOnSplash too, since it's not an auth screen
     },
     routes: [
+      GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
       GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),

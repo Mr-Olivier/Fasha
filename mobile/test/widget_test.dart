@@ -25,7 +25,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [authSessionStorageProvider.overrideWithValue(_FakeAuthSessionStorage())],
-        child: const KaziLinkApp(),
+        child: const FashaApp(),
       ),
     );
     await tester.pumpAndSettle();

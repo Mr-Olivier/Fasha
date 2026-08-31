@@ -51,6 +51,9 @@ class AuthServiceTest {
     @Mock
     private RevokedTokenRepository revokedTokenRepository;
 
+    @Mock
+    private PasswordResetTokenRepository passwordResetTokenRepository;
+
     @InjectMocks
     private AuthService authService;
 
@@ -154,6 +157,76 @@ class AuthServiceTest {
         verify(revokedTokenRepository).save(captor.capture());
         assertThat(captor.getValue().getJti()).isEqualTo(jti);
         assertThat(captor.getValue().getExpiresAt()).isEqualTo(expiresAt);
+    }
+
+    @Test
+    void forgotPassword_returnsNoTokenForAnUnknownEmail() {
+        when(userRepository.findByEmail("nobody@example.com")).thenReturn(Optional.empty());
+
+        ForgotPasswordResponse response = authService.forgotPassword(new ForgotPasswordRequest("nobody@example.com"));
+
+        // The message is identical either way - see forgotPassword's Javadoc
+        // for why we never reveal whether the email exists via the response.
+        assertThat(response.devResetToken()).isNull();
+        verify(passwordResetTokenRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    void forgotPassword_createsATokenForAKnownEmail() {
+        User existingUser = new User("Alice Uwase", "alice@example.com", null, "hashed-password", Role.CUSTOMER);
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(existingUser));
+
+        ForgotPasswordResponse response = authService.forgotPassword(new ForgotPasswordRequest("alice@example.com"));
+
+        assertThat(response.devResetToken()).isNotNull();
+        verify(passwordResetTokenRepository).save(any(PasswordResetToken.class));
+    }
+
+    @Test
+    void resetPassword_rejectsAnUnknownToken() {
+        UUID token = UUID.randomUUID();
+        when(passwordResetTokenRepository.findById(token)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.resetPassword(new ResetPasswordRequest(token, "newpassword123")))
+                .isInstanceOf(InvalidResetTokenException.class);
+    }
+
+    @Test
+    void resetPassword_rejectsAnAlreadyUsedToken() {
+        UUID userId = UUID.randomUUID();
+        PasswordResetToken usedToken = new PasswordResetToken(userId, Instant.now().plusSeconds(600));
+        usedToken.setUsedAt(Instant.now().minusSeconds(60));
+        when(passwordResetTokenRepository.findById(any())).thenReturn(Optional.of(usedToken));
+
+        assertThatThrownBy(() -> authService.resetPassword(new ResetPasswordRequest(UUID.randomUUID(), "newpassword123")))
+                .isInstanceOf(InvalidResetTokenException.class);
+    }
+
+    @Test
+    void resetPassword_rejectsAnExpiredToken() {
+        UUID userId = UUID.randomUUID();
+        PasswordResetToken expiredToken = new PasswordResetToken(userId, Instant.now().minusSeconds(60));
+        when(passwordResetTokenRepository.findById(any())).thenReturn(Optional.of(expiredToken));
+
+        assertThatThrownBy(() -> authService.resetPassword(new ResetPasswordRequest(UUID.randomUUID(), "newpassword123")))
+                .isInstanceOf(InvalidResetTokenException.class);
+    }
+
+    @Test
+    void resetPassword_updatesThePasswordAndMarksTheTokenUsed() {
+        UUID userId = UUID.randomUUID();
+        User existingUser = new User("Alice Uwase", "alice@example.com", null, "old-hash", Role.CUSTOMER);
+        existingUser.setId(userId);
+        PasswordResetToken validToken = new PasswordResetToken(userId, Instant.now().plusSeconds(600));
+
+        when(passwordResetTokenRepository.findById(any())).thenReturn(Optional.of(validToken));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(existingUser));
+        when(passwordEncoder.encode("newpassword123")).thenReturn("new-hash");
+
+        authService.resetPassword(new ResetPasswordRequest(UUID.randomUUID(), "newpassword123"));
+
+        assertThat(existingUser.getPasswordHash()).isEqualTo("new-hash");
+        assertThat(validToken.getUsedAt()).isNotNull();
     }
 
     private void verifyUserWasSavedWithHash(String expectedHash) {

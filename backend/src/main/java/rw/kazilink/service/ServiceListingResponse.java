@@ -13,4 +13,16 @@ public record ServiceListingResponse(
         BigDecimal price,
         Instant createdAt
 ) {
+
+    public static ServiceListingResponse from(ServiceListing listing) {
+        return new ServiceListingResponse(
+                listing.getId(),
+                listing.getProviderProfileId(),
+                listing.getCategoryId(),
+                listing.getName(),
+                listing.getDescription(),
+                listing.getPrice(),
+                listing.getCreatedAt()
+        );
+    }
 }

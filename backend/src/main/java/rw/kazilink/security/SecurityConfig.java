@@ -80,11 +80,17 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Only register/login are public. Logout deliberately
+                        // Public because they're all things you do specifically
+                        // BEFORE/WITHOUT being authenticated. Logout deliberately
                         // is NOT listed here - it needs a real, valid token to
                         // revoke, so it falls under anyRequest().authenticated()
                         // below like every other endpoint.
-                        .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                        .requestMatchers(
+                                "/api/auth/register",
+                                "/api/auth/login",
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password"
+                        ).permitAll()
                         // Categories are only ever read here (admin management is
                         // Feature 9) - scoped to GET specifically, so a future
                         // admin-only POST/PUT on the same path doesn't

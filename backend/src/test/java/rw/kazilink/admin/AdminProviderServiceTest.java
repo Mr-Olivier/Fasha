@@ -5,6 +5,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import rw.kazilink.notification.NotificationService;
 import rw.kazilink.provider.ProviderProfile;
 import rw.kazilink.provider.ProviderProfileNotFoundException;
 import rw.kazilink.provider.ProviderProfileRepository;
@@ -33,6 +34,9 @@ class AdminProviderServiceTest {
 
     @Mock
     private ServiceListingRepository serviceListingRepository;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private AdminProviderService adminProviderService;

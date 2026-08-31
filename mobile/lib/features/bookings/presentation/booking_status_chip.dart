@@ -21,6 +21,7 @@ class BookingStatusChip extends StatelessWidget {
       BookingStatus.completed => ('Completed', StatusColors.positive(context)),
       BookingStatus.rejected => ('Rejected', StatusColors.negative(context)),
       BookingStatus.cancelled => ('Cancelled', StatusColors.negative(context)),
+      BookingStatus.reviewed => ('Reviewed', StatusColors.positive(context)),
     };
 
     return Chip(

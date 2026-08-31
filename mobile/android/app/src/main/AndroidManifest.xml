@@ -1,8 +1,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Without this, every network request (login, browsing, everything)
+         fails immediately - Android denies socket access to any app that
+         doesn't explicitly declare it wants network access at all. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="kazilink_rwanda"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
+        <!-- The line above allows plain HTTP (not just HTTPS) - required
+             because our local dev backend (see ApiClient) has no TLS
+             certificate. Android 9+ blocks cleartext traffic by default;
+             this is fine for local development, but a real production
+             backend should serve HTTPS instead of relying on this. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

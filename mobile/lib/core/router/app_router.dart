@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/admin/presentation/admin_providers_screen.dart';
 import '../../features/auth/presentation/auth_controller.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
@@ -119,6 +120,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => RequestBookingScreen(service: state.extra as ServiceListing),
       ),
       GoRoute(path: '/my-bookings', builder: (context, state) => const MyBookingsScreen()),
+      GoRoute(path: '/admin/providers', builder: (context, state) => const AdminProvidersScreen()),
       GoRoute(path: '/incoming-requests', builder: (context, state) => const IncomingRequestsScreen()),
       GoRoute(
         path: '/write-review',

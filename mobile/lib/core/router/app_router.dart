@@ -13,6 +13,7 @@ import '../../features/bookings/presentation/incoming_requests_screen.dart';
 import '../../features/bookings/presentation/my_bookings_screen.dart';
 import '../../features/bookings/presentation/request_booking_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/profile/presentation/change_password_screen.dart';
 import '../../features/profile/presentation/edit_profile_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
@@ -121,6 +122,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/my-bookings', builder: (context, state) => const MyBookingsScreen()),
       GoRoute(path: '/admin/providers', builder: (context, state) => const AdminProvidersScreen()),
+      GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen()),
       GoRoute(path: '/incoming-requests', builder: (context, state) => const IncomingRequestsScreen()),
       GoRoute(
         path: '/write-review',

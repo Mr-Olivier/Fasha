@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/validators.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../domain/provider_profile.dart';
 import 'provider_profile_controller.dart';
 import 'verification_badge.dart';
@@ -71,13 +72,12 @@ class _ProviderProfileScreenState extends ConsumerState<ProviderProfileScreen> {
       final error = next.error;
       if (error != null && !identical(previous?.error, error)) {
         _isSubmitting = false;
-        final message = error is ApiException ? error.message : 'Something went wrong.';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        AppToast.apiError(context, error);
         return;
       }
       if (_isSubmitting && next.hasValue && error == null) {
         _isSubmitting = false;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved.')));
+        AppToast.success(context, 'Profile saved.');
       }
     });
 
@@ -93,6 +93,7 @@ class _ProviderProfileScreenState extends ConsumerState<ProviderProfileScreen> {
               padding: const EdgeInsets.all(AppSpacing.gutter),
               child: Form(
                 key: _formKey,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -101,8 +102,7 @@ class _ProviderProfileScreenState extends ConsumerState<ProviderProfileScreen> {
                     TextFormField(
                       controller: _businessNameController,
                       decoration: const InputDecoration(labelText: 'Business name'),
-                      validator: (value) =>
-                          (value == null || value.trim().isEmpty) ? 'Business name is required' : null,
+                      validator: (value) => Validators.required(value, fieldName: 'Business name'),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(

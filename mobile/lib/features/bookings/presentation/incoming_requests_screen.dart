@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../domain/booking.dart';
 import '../domain/booking_status.dart';
 import 'booking_controller.dart';
@@ -23,8 +23,7 @@ class IncomingRequestsScreen extends ConsumerWidget {
     ref.listen(incomingRequestsControllerProvider, (previous, next) {
       final error = next.error;
       if (error != null && !identical(previous?.error, error)) {
-        final message = error is ApiException ? error.message : 'Something went wrong.';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        AppToast.apiError(context, error);
       }
     });
 

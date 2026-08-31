@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../domain/auth_user.dart';
+import '../domain/password_reset_result.dart';
 import '../domain/user_role.dart';
 import 'auth_api.dart';
 import 'auth_session_storage.dart';
@@ -70,4 +71,20 @@ class AuthRepository {
   /// Called once when the app starts, so a previously logged-in user
   /// doesn't have to log in again every time they reopen the app.
   Future<AuthUser?> restoreSession() => _storage.read();
+
+  Future<ForgotPasswordResult> forgotPassword({required String email}) async {
+    try {
+      return await _api.forgotPassword(email: email);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<void> resetPassword({required String token, required String newPassword}) async {
+    try {
+      await _api.resetPassword(token: token, newPassword: newPassword);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
 }

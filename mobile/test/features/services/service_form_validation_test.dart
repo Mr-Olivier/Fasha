@@ -59,6 +59,6 @@ void main() {
 
     expect(find.text('Choose a category'), findsOneWidget);
     expect(find.text('Name is required'), findsOneWidget);
-    expect(find.text('Enter a valid price'), findsOneWidget);
+    expect(find.text('Price is required'), findsOneWidget);
   });
 }

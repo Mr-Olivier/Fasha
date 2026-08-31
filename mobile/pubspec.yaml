@@ -42,6 +42,7 @@ dependencies:
   flutter_secure_storage: ^9.2.2 # encrypted storage for the JWT auth token
   shared_preferences: ^2.3.3 # simple key-value storage (e.g. saved theme mode)
   google_fonts: ^6.2.1       # Plus Jakarta Sans, per the "Kigali Green" design system
+  image_picker: ^1.1.2       # picking an avatar image from the device's gallery
 
 dev_dependencies:
   flutter_test:

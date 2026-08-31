@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_toast.dart';
@@ -68,6 +69,8 @@ class _BookingCard extends ConsumerWidget {
 
   bool get _canCancel => booking.status == BookingStatus.requested || booking.status == BookingStatus.accepted;
 
+  bool get _canReview => booking.status == BookingStatus.completed;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
@@ -99,6 +102,16 @@ class _BookingCard extends ConsumerWidget {
                 child: TextButton(
                   onPressed: () => ref.read(myBookingsControllerProvider.notifier).cancel(booking.id),
                   child: const Text('Cancel'),
+                ),
+              ),
+            ],
+            if (_canReview) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton(
+                  onPressed: () => context.push('/write-review', extra: booking),
+                  child: const Text('Leave a review'),
                 ),
               ),
             ],

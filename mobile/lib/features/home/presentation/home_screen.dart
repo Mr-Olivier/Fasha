@@ -7,6 +7,7 @@ import '../../admin/presentation/admin_provider_controller.dart';
 import '../../auth/domain/auth_user.dart';
 import '../../auth/domain/user_role.dart';
 import '../../auth/presentation/auth_controller.dart';
+import '../../notifications/presentation/notification_controller.dart';
 import '../../providers/presentation/provider_profile_controller.dart';
 import '../../providers/presentation/verification_badge.dart';
 import '../../services/presentation/category_controller.dart';
@@ -27,13 +28,33 @@ class HomeScreen extends ConsumerWidget {
       // Logging out lives in the Profile tab now (see AppShell) - matching
       // Instagram/Facebook, account actions belong in a Profile tab, not
       // scattered as an icon on every other screen's app bar.
-      appBar: AppBar(title: const Text('FASHA APP')),
+      appBar: AppBar(title: const Text('FASHA APP'), actions: const [_NotificationBell()]),
       body: switch (user) {
         null => const Center(child: Text('No user logged in.')),
         AuthUser(role: UserRole.provider) => const _ProviderHome(),
         AuthUser(role: UserRole.admin) => const _AdminHome(),
         _ => _CustomerHome(user: user),
       },
+    );
+  }
+}
+
+/// Visible in every role's Home app bar (unlike the rest of this screen,
+/// which splits by role) since any role can receive a notification.
+class _NotificationBell extends ConsumerWidget {
+  const _NotificationBell();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadCount = ref.watch(notificationsProvider).valueOrNull?.where((n) => !n.read).length ?? 0;
+
+    return IconButton(
+      onPressed: () => context.push('/notifications'),
+      icon: Badge(
+        label: Text('$unreadCount'),
+        isLabelVisible: unreadCount > 0,
+        child: const Icon(Icons.notifications_outlined),
+      ),
     );
   }
 }

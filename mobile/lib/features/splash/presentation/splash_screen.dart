@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../core/widgets/app_logo.dart';
 
-/// Shown while AuthController restores a previous session from secure
-/// storage (see app_router.dart's redirect logic) - this is a real loading
-/// state tied to that async check, not just a fixed-duration splash, so it
-/// only ever appears for as long as the restore actually takes.
+/// Shown for a fixed minimum time (see splashMinimumDurationProvider) while
+/// AuthController restores a previous session from secure storage in
+/// parallel - like Instagram/Facebook, this stays up long enough to
+/// register as a real screen even though the actual session check
+/// underneath usually finishes in well under a second.
 ///
 /// The design reference's splash is the first slide of a swipeable
 /// onboarding carousel (dot indicators, multiple slides) - we only build
@@ -37,6 +38,12 @@ class SplashScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             const Text('Trusted local services, one tap away', style: TextStyle(color: Colors.white70)),
+            const SizedBox(height: 40),
+            const SizedBox(
+              height: 28,
+              width: 28,
+              child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white70),
+            ),
           ],
         ),
       ),

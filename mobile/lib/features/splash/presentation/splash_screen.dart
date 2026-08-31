@@ -29,12 +29,8 @@ class SplashScreen extends StatelessWidget {
             const AppLogo(),
             const SizedBox(height: 24),
             Text(
-              'KaziLink',
-              style: textTheme.headlineMedium?.copyWith(color: Colors.white),
-            ),
-            const Text(
-              'RWANDA',
-              style: TextStyle(color: Colors.white70, letterSpacing: 4, fontSize: 12, fontWeight: FontWeight.w600),
+              'FASHA APP',
+              style: textTheme.headlineMedium?.copyWith(color: Colors.white, letterSpacing: 1),
             ),
             const SizedBox(height: 12),
             const Text('Trusted local services, one tap away', style: TextStyle(color: Colors.white70)),

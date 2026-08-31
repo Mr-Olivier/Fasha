@@ -66,23 +66,19 @@ class _CustomerHome extends ConsumerWidget {
                 for (final category in categories)
                   CategoryTile(
                     category: category,
-                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Provider search is coming in a future update.')),
+                    onTap: () => context.push(
+                      '/providers?categoryId=${category.id}&categoryName=${Uri.encodeComponent(category.name)}',
                     ),
                   ),
               ],
             ),
           ),
           const SizedBox(height: AppSpacing.gutter),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Text(
-                'Provider search and booking launch in a later update. For now, providers can set up '
-                'their profile and services.',
-                style: textTheme.bodyMedium,
-              ),
-            ),
+          _DashboardTile(
+            icon: Icons.event_note_outlined,
+            title: 'My bookings',
+            subtitle: 'Track requests you\'ve sent to providers',
+            onTap: () => context.push('/my-bookings'),
           ),
         ],
       ),
@@ -154,6 +150,13 @@ class _ProviderHome extends ConsumerWidget {
             title: 'My services',
             subtitle: 'Add and edit what you offer',
             onTap: () => context.push('/my-services'),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          _DashboardTile(
+            icon: Icons.inbox_outlined,
+            title: 'Incoming requests',
+            subtitle: 'Accept, reject, and manage bookings',
+            onTap: () => context.push('/incoming-requests'),
           ),
         ],
       ),

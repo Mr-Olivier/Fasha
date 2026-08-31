@@ -8,6 +8,8 @@ import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/reset_password_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/profile/presentation/change_password_screen.dart';
+import '../../features/profile/presentation/edit_profile_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/providers/presentation/provider_profile_screen.dart';
 import '../../features/services/domain/service_listing.dart';
@@ -73,6 +75,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen())]),
         ],
       ),
+      GoRoute(path: '/profile/edit', builder: (context, state) => const EditProfileScreen()),
+      GoRoute(path: '/profile/change-password', builder: (context, state) => const ChangePasswordScreen()),
       GoRoute(path: '/provider-profile', builder: (context, state) => const ProviderProfileScreen()),
       GoRoute(path: '/my-services', builder: (context, state) => const MyServicesScreen()),
       GoRoute(

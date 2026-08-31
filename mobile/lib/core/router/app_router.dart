@@ -20,6 +20,7 @@ import '../../features/providers/presentation/provider_profile_screen.dart';
 import '../../features/services/domain/service_listing.dart';
 import '../../features/services/presentation/my_services_screen.dart';
 import '../../features/services/presentation/service_form_screen.dart';
+import '../../features/splash/presentation/splash_controller.dart';
 import '../../features/splash/presentation/splash_screen.dart';
 import 'app_shell.dart';
 
@@ -35,6 +36,7 @@ import 'app_shell.dart';
 class _AuthRefreshNotifier extends ChangeNotifier {
   _AuthRefreshNotifier(Ref ref) {
     ref.listen(authControllerProvider, (previous, next) => notifyListeners());
+    ref.listen(splashMinimumDurationProvider, (previous, next) => notifyListeners());
   }
 }
 
@@ -46,12 +48,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     refreshListenable: refreshNotifier,
     redirect: (context, state) {
       final authState = ref.read(authControllerProvider);
+      final splashTimer = ref.read(splashMinimumDurationProvider);
       final isOnSplash = state.matchedLocation == '/splash';
 
-      // Still restoring the session from storage (see AuthController.build) -
-      // stay on the splash screen until we actually know, rather than
-      // bouncing a logged-in user to /login for a split second first.
-      if (authState.isLoading) return isOnSplash ? null : '/splash';
+      // Two independent reasons to stay on the splash screen: still
+      // restoring the session from storage (see AuthController.build), OR
+      // the fixed minimum splash duration hasn't elapsed yet (see
+      // splashMinimumDurationProvider) - whichever takes longer wins,
+      // rather than bouncing to /login the instant either one settles.
+      if (authState.isLoading || splashTimer.isLoading) {
+        return isOnSplash ? null : '/splash';
+      }
 
       final isLoggedIn = authState.valueOrNull != null;
       // Forgot/reset-password are reachable without being logged in, same

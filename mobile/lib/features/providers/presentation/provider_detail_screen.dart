@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/star_rating.dart';
+import '../../reviews/presentation/review_controller.dart';
 import 'provider_browse_controller.dart';
 
 /// Customer-facing public profile - business info plus every service they
@@ -15,6 +17,7 @@ class ProviderDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detailState = ref.watch(providerDetailProvider(providerId));
+    final reviewsState = ref.watch(providerReviewsProvider(providerId));
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -49,6 +52,21 @@ class ProviderDetailScreen extends ConsumerWidget {
                           const SizedBox(height: 2),
                           Text(profile.location!, style: textTheme.bodyMedium),
                         ],
+                        const SizedBox(height: 4),
+                        if (profile.averageRating != null)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              StarRating(rating: profile.averageRating!, size: 16),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${profile.averageRating!.toStringAsFixed(1)} (${profile.reviewCount} review${profile.reviewCount == 1 ? '' : 's'})',
+                                style: textTheme.bodySmall,
+                              ),
+                            ],
+                          )
+                        else
+                          Text('No reviews yet', style: textTheme.bodySmall),
                       ],
                     ),
                   ),
@@ -82,6 +100,52 @@ class ProviderDetailScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                 ],
+              const SizedBox(height: AppSpacing.gutter),
+              Text('Reviews', style: textTheme.titleLarge),
+              const SizedBox(height: AppSpacing.md),
+              reviewsState.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Text(
+                  'Could not load reviews.',
+                  style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
+                ),
+                data: (reviews) {
+                  if (reviews.isEmpty) {
+                    return Text(
+                      'No reviews yet.',
+                      style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
+                    );
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final review in reviews) ...[
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSpacing.md),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(child: Text(review.customerName, style: textTheme.titleMedium)),
+                                    StarRating(rating: review.rating.toDouble(), size: 14),
+                                  ],
+                                ),
+                                if (review.comment != null && review.comment!.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(review.comment!, style: textTheme.bodyMedium),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                      ],
+                    ],
+                  );
+                },
+              ),
             ],
           );
         },

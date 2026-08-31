@@ -39,6 +39,12 @@ class ApiClient {
     }
     return 'http://localhost:8081/api';
   }
+
+  /// Same host as [_baseUrl], but without the "/api" prefix - avatar URLs
+  /// (e.g. "/uploads/avatars/xyz.jpg") come from StaticResourceConfig on
+  /// the backend, which serves them OUTSIDE the "/api" REST namespace.
+  /// ProfileScreen prepends this to build a full, loadable image URL.
+  static String get mediaBaseUrl => _baseUrl.replaceFirst('/api', '');
 }
 
 /// Shared by every feature's *Api class, so the whole app makes requests

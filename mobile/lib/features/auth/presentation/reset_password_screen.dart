@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/validators.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'password_reset_controller.dart';
 
 /// Step 2 of the reset flow: spend a token (from ForgotPasswordScreen, or
@@ -54,17 +55,14 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     ref.listen(resetPasswordControllerProvider, (previous, next) {
       final error = next.error;
       if (error != null && !identical(previous?.error, error)) {
-        final message = error is ApiException ? error.message : 'Something went wrong.';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        AppToast.apiError(context, error);
         return;
       }
       // Flips from false -> true exactly once, the moment resetPassword()
       // succeeds - that's our cue to leave this screen and let the user
       // log in with the password they just set.
       if (next.valueOrNull == true && previous?.valueOrNull != true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password reset. Please log in with your new password.')),
-        );
+        AppToast.success(context, 'Password reset. Please log in with your new password.');
         context.go('/login');
       }
     });
@@ -76,6 +74,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           padding: const EdgeInsets.all(AppSpacing.gutter),
           child: Form(
             key: _formKey,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -90,10 +89,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                   controller: _tokenController,
                   enabled: !isLoading,
                   decoration: const InputDecoration(labelText: 'Reset token'),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) return 'The reset token is required';
-                    return null;
-                  },
+                  validator: (value) => Validators.required(value, fieldName: 'The reset token'),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -107,11 +103,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       child: Text(_obscurePassword ? 'Show' : 'Hide'),
                     ),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'A new password is required';
-                    if (value.length < 8) return 'Use at least 8 characters';
-                    return null;
-                  },
+                  validator: Validators.password,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -119,10 +111,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                   enabled: !isLoading,
                   obscureText: _obscurePassword,
                   decoration: const InputDecoration(labelText: 'Confirm new password'),
-                  validator: (value) {
-                    if (value != _newPasswordController.text) return 'Passwords don\'t match';
-                    return null;
-                  },
+                  validator: (value) => Validators.confirmPassword(value, _newPasswordController.text),
                 ),
                 const SizedBox(height: 24),
                 FilledButton(

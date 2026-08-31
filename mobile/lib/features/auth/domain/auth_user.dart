@@ -49,14 +49,4 @@ class AuthUser {
         'phone': phone,
         'profileImageUrl': profileImageUrl,
       };
-
-  AuthUser copyWith({String? name, String? phone, String? profileImageUrl}) => AuthUser(
-        token: token,
-        userId: userId,
-        name: name ?? this.name,
-        email: email,
-        role: role,
-        phone: phone ?? this.phone,
-        profileImageUrl: profileImageUrl ?? this.profileImageUrl,
-      );
 }

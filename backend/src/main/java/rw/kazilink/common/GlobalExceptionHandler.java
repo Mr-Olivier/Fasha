@@ -10,6 +10,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
@@ -65,6 +66,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleNotFound(NoResourceFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiError.of(HttpStatus.NOT_FOUND.value(), "Not Found", "No such endpoint."));
+    }
+
+    /** Thrown when an uploaded avatar (see UserController) exceeds application.yml's multipart size limit. */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> handleUploadTooLarge(MaxUploadSizeExceededException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiError.of(HttpStatus.BAD_REQUEST.value(), "Bad Request", "That file is too large (max 5MB)."));
     }
 
     /**

@@ -96,6 +96,20 @@ public class SecurityConfig {
                         // admin-only POST/PUT on the same path doesn't
                         // accidentally inherit this permitAll.
                         .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
+                        // "/api/providers/me" and "/api/providers/{id}" have the
+                        // same URL shape ("/api/providers/<one segment>"), so
+                        // Spring Security can't tell them apart by pattern alone -
+                        // only declaration ORDER does. This more specific "me"
+                        // rule must come BEFORE the wildcard below, or a GET
+                        // to /api/providers/me with no token would fall through
+                        // to the wildcard's permitAll (a 403 from @PreAuthorize
+                        // instead of the correct 401 for a missing token).
+                        .requestMatchers(HttpMethod.GET, "/api/providers/me").authenticated()
+                        // Provider search/browse (GET /api/providers and
+                        // GET /api/providers/{id}) is public - see
+                        // ProviderProfileService's doc comments on why only
+                        // APPROVED providers ever come back from these.
+                        .requestMatchers(HttpMethod.GET, "/api/providers", "/api/providers/*").permitAll()
                         // Uploaded avatars are public images (shown on profiles
                         // anyone can view), served by StaticResourceConfig -
                         // requiring a JWT just to display a picture would be

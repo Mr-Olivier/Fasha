@@ -17,19 +17,14 @@ final bookingRepositoryProvider = Provider<BookingRepository>(
 /// shape as ServiceListingController - simpler to reason about than
 /// patching one item in place, and the list is small enough that
 /// re-fetching costs nothing noticeable.
+///
+/// Deliberately has NO "create/request a booking" method - see
+/// RequestBookingController below for why that needs to be a separate,
+/// dedicated controller rather than living here.
 class MyBookingsController extends AsyncNotifier<List<Booking>> {
   @override
   Future<List<Booking>> build() {
     return ref.read(bookingRepositoryProvider).listForCustomer();
-  }
-
-  Future<void> requestBooking({required String serviceListingId, String? note, DateTime? requestedDate}) async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
-      final repository = ref.read(bookingRepositoryProvider);
-      await repository.create(serviceListingId: serviceListingId, note: note, requestedDate: requestedDate);
-      return repository.listForCustomer();
-    });
   }
 
   /// Only actually succeeds server-side while the booking is still
@@ -45,6 +40,40 @@ class MyBookingsController extends AsyncNotifier<List<Booking>> {
 }
 
 final myBookingsControllerProvider = AsyncNotifierProvider<MyBookingsController, List<Booking>>(MyBookingsController.new);
+
+/// Submitting a new booking request (RequestBookingScreen) - deliberately
+/// its OWN controller rather than a method on MyBookingsController.
+///
+/// MyBookingsController's state doubles as "is the bookings list loading"
+/// AND would otherwise double as "is my submission loading" - the same
+/// screen watching both meanings on one shared provider can't tell "the
+/// list's own background fetch just finished" apart from "my submit just
+/// succeeded". That's not hypothetical: it briefly caused
+/// RequestBookingScreen to auto-navigate away the instant its own
+/// nothing-to-do-with-submitting list fetch resolved. A dedicated
+/// true-once-on-success bool (same shape as auth's ResetPasswordController)
+/// has no such ambiguity.
+class RequestBookingController extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() async => false;
+
+  Future<void> submit({required String serviceListingId, String? note, DateTime? requestedDate}) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(bookingRepositoryProvider)
+          .create(serviceListingId: serviceListingId, note: note, requestedDate: requestedDate);
+      // So "My Bookings" shows the new request next time it's opened,
+      // without this controller needing to know anything about that one's
+      // internal state.
+      ref.invalidate(myBookingsControllerProvider);
+      return true;
+    });
+  }
+}
+
+final requestBookingControllerProvider =
+    AsyncNotifierProvider<RequestBookingController, bool>(RequestBookingController.new);
 
 /// A provider's incoming requests - the other side of the same bookings,
 /// with the provider-only actions (accept/reject/start/complete) instead

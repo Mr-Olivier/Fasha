@@ -45,17 +45,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
   }
 
-  // The design references a real password-reset flow, which the backend
-  // doesn't have yet (there's no /api/auth/forgot-password endpoint). We
-  // still show the link - it's a normal, expected part of a login screen -
-  // but it's an honest stub rather than a fake reset form: it tells the
-  // user plainly that this isn't built yet instead of pretending to work.
-  void _showForgotPasswordStub() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Password reset isn\'t available yet.')),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
@@ -123,7 +112,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: isLoading ? null : _showForgotPasswordStub,
+                    onPressed: isLoading ? null : () => context.push('/forgot-password'),
                     child: const Text('Forgot password?'),
                   ),
                 ),

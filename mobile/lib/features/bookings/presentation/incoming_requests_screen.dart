@@ -94,19 +94,37 @@ class _RequestCard extends ConsumerWidget {
             const SizedBox(height: AppSpacing.sm),
             Align(
               alignment: Alignment.centerRight,
+              // AppTheme's FilledButtonThemeData sets minimumSize to
+              // Size.fromHeight(52) - Size.fromHeight means "infinite
+              // width, fixed height", which is exactly what every OTHER
+              // FilledButton in the app wants (a full-width primary action
+              // in a stretched Column). Inside a Row here instead, that
+              // infinite minWidth silently breaks layout - the button
+              // never actually appears. compactButtonStyle overrides it
+              // back to a normal, content-sized button for this one place.
               child: switch (booking.status) {
                 BookingStatus.requested => Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       TextButton(onPressed: () => notifier.reject(booking.id), child: const Text('Reject')),
                       const SizedBox(width: AppSpacing.sm),
-                      FilledButton(onPressed: () => notifier.accept(booking.id), child: const Text('Accept')),
+                      FilledButton(
+                        style: _compactButtonStyle,
+                        onPressed: () => notifier.accept(booking.id),
+                        child: const Text('Accept'),
+                      ),
                     ],
                   ),
-                BookingStatus.accepted =>
-                  FilledButton(onPressed: () => notifier.start(booking.id), child: const Text('Start job')),
-                BookingStatus.inProgress =>
-                  FilledButton(onPressed: () => notifier.complete(booking.id), child: const Text('Mark complete')),
+                BookingStatus.accepted => FilledButton(
+                    style: _compactButtonStyle,
+                    onPressed: () => notifier.start(booking.id),
+                    child: const Text('Start job'),
+                  ),
+                BookingStatus.inProgress => FilledButton(
+                    style: _compactButtonStyle,
+                    onPressed: () => notifier.complete(booking.id),
+                    child: const Text('Mark complete'),
+                  ),
                 _ => const SizedBox.shrink(),
               },
             ),
@@ -116,3 +134,7 @@ class _RequestCard extends ConsumerWidget {
     );
   }
 }
+
+/// See the doc comment where this is used - overrides AppTheme's
+/// full-width FilledButton default back to a normal, content-sized button.
+final ButtonStyle _compactButtonStyle = FilledButton.styleFrom(minimumSize: const Size(64, 36));

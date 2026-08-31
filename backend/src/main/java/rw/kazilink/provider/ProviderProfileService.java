@@ -53,7 +53,7 @@ public class ProviderProfileService {
     public ProviderDetailResponse getProviderDetail(UUID providerProfileId) {
         ProviderProfile profile = providerProfileRepository.findById(providerProfileId)
                 .filter(p -> p.getVerificationStatus() == VerificationStatus.APPROVED)
-                .orElseThrow(ProviderProfileNotFoundException::new);
+                .orElseThrow(ProviderNotFoundException::new);
 
         List<ServiceListingResponse> services = serviceListingRepository.findByProviderProfileId(providerProfileId).stream()
                 .map(ServiceListingResponse::from)

@@ -7,10 +7,15 @@ import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/reset_password_screen.dart';
+import '../../features/bookings/presentation/incoming_requests_screen.dart';
+import '../../features/bookings/presentation/my_bookings_screen.dart';
+import '../../features/bookings/presentation/request_booking_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/profile/presentation/change_password_screen.dart';
 import '../../features/profile/presentation/edit_profile_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/providers/presentation/provider_detail_screen.dart';
+import '../../features/providers/presentation/provider_list_screen.dart';
 import '../../features/providers/presentation/provider_profile_screen.dart';
 import '../../features/services/domain/service_listing.dart';
 import '../../features/services/presentation/my_services_screen.dart';
@@ -85,6 +90,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         // adding a new one - see ServiceFormScreen's doc comment for why.
         builder: (context, state) => ServiceFormScreen(existing: state.extra as ServiceListing?),
       ),
+      GoRoute(
+        path: '/providers',
+        // Real query params (not `extra`) so this URL survives a browser
+        // refresh - tapped from HomeScreen's category grid.
+        builder: (context, state) => ProviderListScreen(
+          categoryId: state.uri.queryParameters['categoryId'],
+          categoryName: state.uri.queryParameters['categoryName'],
+        ),
+      ),
+      GoRoute(
+        path: '/providers/:id',
+        builder: (context, state) => ProviderDetailScreen(providerId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/request-booking',
+        // `extra` carries the ServiceListing being requested - see
+        // ProviderDetailScreen's service list onTap.
+        builder: (context, state) => RequestBookingScreen(service: state.extra as ServiceListing),
+      ),
+      GoRoute(path: '/my-bookings', builder: (context, state) => const MyBookingsScreen()),
+      GoRoute(path: '/incoming-requests', builder: (context, state) => const IncomingRequestsScreen()),
     ],
   );
 });

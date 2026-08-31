@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/auth_controller.dart';
+import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
+import '../../features/auth/presentation/reset_password_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/providers/presentation/provider_profile_screen.dart';
@@ -45,7 +47,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (authState.isLoading) return isOnSplash ? null : '/splash';
 
       final isLoggedIn = authState.valueOrNull != null;
-      final isOnAuthScreen = state.matchedLocation == '/login' || state.matchedLocation == '/register';
+      // Forgot/reset-password are reachable without being logged in, same
+      // as login/register - they're how a locked-out user gets back IN.
+      const authScreens = {'/login', '/register', '/forgot-password', '/reset-password'};
+      final isOnAuthScreen = authScreens.contains(state.matchedLocation);
 
       if (isLoggedIn) return (isOnAuthScreen || isOnSplash) ? '/home' : null;
       return isOnAuthScreen ? null : '/login'; // covers isOnSplash too, since it's not an auth screen
@@ -54,6 +59,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
+      GoRoute(path: '/forgot-password', builder: (context, state) => const ForgotPasswordScreen()),
+      GoRoute(
+        path: '/reset-password',
+        // `extra` carries the dev-mode token from ForgotPasswordScreen, or
+        // null when reached some other way (e.g. a bookmarked link).
+        builder: (context, state) => ResetPasswordScreen(prefilledToken: state.extra as String?),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
         branches: [

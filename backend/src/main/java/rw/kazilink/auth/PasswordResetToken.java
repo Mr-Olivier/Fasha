@@ -2,7 +2,6 @@ package rw.kazilink.auth;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
@@ -21,8 +20,13 @@ import java.util.UUID;
 @NoArgsConstructor
 public class PasswordResetToken {
 
+    /**
+     * Generated here in Java (not via {@code @GeneratedValue}) because
+     * AuthService needs the token's value immediately - to log/return it -
+     * in the same call that creates it, before any database round-trip
+     * would otherwise assign one.
+     */
     @Id
-    @GeneratedValue
     private UUID token;
 
     @Column(name = "user_id", nullable = false)
@@ -38,6 +42,7 @@ public class PasswordResetToken {
     private Instant createdAt;
 
     public PasswordResetToken(UUID userId, Instant expiresAt) {
+        this.token = UUID.randomUUID();
         this.userId = userId;
         this.expiresAt = expiresAt;
     }

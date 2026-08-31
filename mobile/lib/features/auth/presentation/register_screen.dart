@@ -106,7 +106,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('How will you use KaziLink?', style: textTheme.headlineSmall),
+        Text('How will you use Fasha?', style: textTheme.headlineSmall),
         const SizedBox(height: AppSpacing.xs),
         Text(
           'You can only pick one - this sets your role.',

@@ -12,20 +12,30 @@ import 'package:google_fonts/google_fonts.dart';
 class AppTheme {
   AppTheme._(); // Not meant to be instantiated - only static members below.
 
-  // --- Exact tokens from the design spec ---
-  // Only these 8 colours were actually specified. Every other Material 3
-  // colour role (onPrimary, secondaryContainer, tertiary, surfaceContainer,
-  // ...) is DERIVED below via ColorScheme.fromSeed rather than hand-picked -
+  // --- Exact tokens from the design spec (fasha-app-final-ui.html's
+  // "DESIGN TOKENS" section - the full 38-screen reference, light + dark). ---
+  // Every other Material 3 colour role (onPrimary, tertiary, ...) not named
+  // there is DERIVED below via ColorScheme.fromSeed rather than hand-picked -
   // that's what keeps roles we weren't given a spec for still looking
   // deliberately chosen instead of arbitrary, and keeps contrast accessible.
   static const _primary = Color(0xFF0B6B4F);
   static const _primaryContainer = Color(0xFFDCEFE7);
-  static const _primaryDark = Color(0xFF0E3D2E); // a deep background tone for dark mode, not literally dark-scheme "primary"
   static const _secondary = Color(0xFFE8A33D);
   static const _surfaceLight = Color(0xFFFBFAF6);
+  static const _surfaceVariantLight = Color(0xFFEFEDE6);
   static const _outlineLight = Color(0xFFE7E4DB);
   static const _onSurfaceLight = Color(0xFF132420);
+  static const _onSurfaceVariantLight = Color(0xFF6E7A73);
   static const _error = Color(0xFFB3261E);
+
+  // Dark scheme - pinned outright rather than derived via ColorScheme.fromSeed,
+  // since the design spec gives every one of these roles an exact value.
+  static const _primaryDarkScheme = Color(0xFF4EAE8B);
+  static const _primaryContainerDark = Color(0xFF1B3A2E);
+  static const _surfaceDark = Color(0xFF0F1714);
+  static const _outlineDark = Color(0xFF24332C);
+  static const _onSurfaceDark = Color(0xFFEDF2EF);
+  static const _onSurfaceVariantDark = Color(0xFF8A9791);
 
   static ThemeData get light => _buildTheme(
         colorScheme: ColorScheme.fromSeed(
@@ -49,8 +59,10 @@ class AppTheme {
           secondaryContainer: Color.lerp(_secondary, Colors.white, 0.85),
           onSecondaryContainer: _onSurfaceLight,
           surface: _surfaceLight,
+          surfaceContainerHighest: _surfaceVariantLight,
           outline: _outlineLight,
           onSurface: _onSurfaceLight,
+          onSurfaceVariant: _onSurfaceVariantLight,
           error: _error,
         ),
       );
@@ -60,12 +72,11 @@ class AppTheme {
           seedColor: _primary,
           brightness: Brightness.dark,
         ).copyWith(
-          // We deliberately do NOT pin `primary` here: #0B6B4F is dark
-          // enough that it would barely read against an already-dark
-          // background, so we let fromSeed's own dark-mode algorithm pick
-          // a lighter, legible tint of it instead. Amber has no such
-          // problem - it's light enough to work unmodified on both
-          // backgrounds - so unlike primary, we DO pin secondary here (this
+          primary: _primaryDarkScheme,
+          primaryContainer: _primaryContainerDark,
+          onPrimaryContainer: _onSurfaceDark,
+          // Amber has no legibility problem on a dark background, unlike
+          // primary, so it's pinned to the same value in both schemes (this
           // was a real bug during visual QA: leaving it unpinned meant the
           // "pending" status badge silently stopped being amber in dark
           // mode, using a green-tinted colour instead).
@@ -73,7 +84,11 @@ class AppTheme {
           onSecondary: _onSurfaceLight,
           secondaryContainer: Color.lerp(_secondary, Colors.black, 0.55),
           onSecondaryContainer: _secondary,
-          surface: _primaryDark,
+          surface: _surfaceDark,
+          surfaceContainerHighest: const Color(0xFF18241F),
+          outline: _outlineDark,
+          onSurface: _onSurfaceDark,
+          onSurfaceVariant: _onSurfaceVariantDark,
         ),
       );
 

@@ -110,6 +110,10 @@ public class SecurityConfig {
                         // ProviderProfileService's doc comments on why only
                         // APPROVED providers ever come back from these.
                         .requestMatchers(HttpMethod.GET, "/api/providers", "/api/providers/*").permitAll()
+                        // A provider's reviews are as public as their profile -
+                        // anyone deciding whether to book them can read what
+                        // past customers said, logged in or not.
+                        .requestMatchers(HttpMethod.GET, "/api/providers/*/reviews").permitAll()
                         // Uploaded avatars are public images (shown on profiles
                         // anyone can view), served by StaticResourceConfig -
                         // requiring a JWT just to display a picture would be

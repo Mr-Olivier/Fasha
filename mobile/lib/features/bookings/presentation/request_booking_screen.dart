@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../services/domain/service_listing.dart';
 import 'booking_controller.dart';
 
@@ -58,15 +58,14 @@ class _RequestBookingScreenState extends ConsumerState<RequestBookingScreen> {
     ref.listen(requestBookingControllerProvider, (previous, next) {
       final error = next.error;
       if (error != null && !identical(previous?.error, error)) {
-        final message = error is ApiException ? error.message : 'Something went wrong.';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        AppToast.apiError(context, error);
         return;
       }
       // Checking the VALUE itself (not just "was loading, now has one") -
       // build() also resolves loading -> AsyncData(false) once, on this
       // screen's very first frame, which is not a successful submission.
       if (next.valueOrNull == true && previous?.valueOrNull != true) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request sent.')));
+        AppToast.success(context, 'Request sent.');
         context.go('/my-bookings');
       }
     });
@@ -100,6 +99,7 @@ class _RequestBookingScreenState extends ConsumerState<RequestBookingScreen> {
                 controller: _noteController,
                 enabled: !isLoading,
                 maxLines: 4,
+                maxLength: 500,
                 decoration: const InputDecoration(
                   labelText: 'Describe what you need (optional)',
                   alignLabelWithHint: true,

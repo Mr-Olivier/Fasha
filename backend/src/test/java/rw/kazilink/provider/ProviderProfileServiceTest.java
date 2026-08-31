@@ -131,7 +131,7 @@ class ProviderProfileServiceTest {
         when(providerProfileRepository.findById(providerProfileId)).thenReturn(Optional.of(pending));
 
         assertThatThrownBy(() -> providerProfileService.getProviderDetail(providerProfileId))
-                .isInstanceOf(ProviderProfileNotFoundException.class);
+                .isInstanceOf(ProviderNotFoundException.class);
     }
 
     @Test

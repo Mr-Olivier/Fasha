@@ -11,6 +11,9 @@ public record ProviderProfileResponse(
         String location,
         String profileImageUrl,
         VerificationStatus verificationStatus,
+        /** Null (not 0) when the provider has no reviews yet - the app shows "No reviews yet" instead of a 0-star rating. */
+        Double averageRating,
+        long reviewCount,
         Instant createdAt,
         Instant updatedAt
 ) {

@@ -7,6 +7,7 @@ import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/reset_password_screen.dart';
+import '../../features/bookings/domain/booking.dart';
 import '../../features/bookings/presentation/incoming_requests_screen.dart';
 import '../../features/bookings/presentation/my_bookings_screen.dart';
 import '../../features/bookings/presentation/request_booking_screen.dart';
@@ -17,6 +18,7 @@ import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/providers/presentation/provider_detail_screen.dart';
 import '../../features/providers/presentation/provider_list_screen.dart';
 import '../../features/providers/presentation/provider_profile_screen.dart';
+import '../../features/reviews/presentation/write_review_screen.dart';
 import '../../features/services/domain/service_listing.dart';
 import '../../features/services/presentation/my_services_screen.dart';
 import '../../features/services/presentation/service_form_screen.dart';
@@ -118,6 +120,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/my-bookings', builder: (context, state) => const MyBookingsScreen()),
       GoRoute(path: '/incoming-requests', builder: (context, state) => const IncomingRequestsScreen()),
+      GoRoute(
+        path: '/write-review',
+        // `extra` carries the COMPLETED Booking being reviewed - see
+        // MyBookingsScreen's "Leave a review" button.
+        builder: (context, state) => WriteReviewScreen(booking: state.extra as Booking),
+      ),
     ],
   );
 });

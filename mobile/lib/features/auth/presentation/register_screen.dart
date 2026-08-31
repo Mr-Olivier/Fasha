@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/validators.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../domain/user_role.dart';
 import 'auth_controller.dart';
 
@@ -74,8 +75,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     ref.listen(authControllerProvider, (previous, next) {
       final error = next.error;
       if (error != null && !identical(previous?.error, error)) {
-        final message = error is ApiException ? error.message : 'Something went wrong.';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        AppToast.apiError(context, error);
       }
     });
 
@@ -152,6 +152,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Widget _buildDetailsStep(bool isLoading) {
     return Form(
       key: _formKey,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -160,24 +161,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           TextFormField(
             controller: _nameController,
             decoration: const InputDecoration(labelText: 'Full name'),
-            validator: (value) => (value == null || value.trim().isEmpty) ? 'Name is required' : null,
+            validator: (value) => Validators.required(value, fieldName: 'Name'),
           ),
           const SizedBox(height: 16),
           TextFormField(
             controller: _phoneController,
             keyboardType: TextInputType.phone,
             decoration: const InputDecoration(labelText: 'Phone (optional)', prefixText: '+250 '),
+            validator: Validators.phone,
           ),
           const SizedBox(height: 16),
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             decoration: const InputDecoration(labelText: 'Email'),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) return 'Email is required';
-              if (!value.contains('@')) return 'Enter a valid email';
-              return null;
-            },
+            validator: Validators.email,
           ),
           const SizedBox(height: 16),
           TextFormField(
@@ -191,11 +189,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 child: Text(_obscurePassword ? 'Show' : 'Hide'),
               ),
             ),
-            validator: (value) {
-              if (value == null || value.isEmpty) return 'Password is required';
-              if (value.length < 8) return 'Password must be at least 8 characters';
-              return null;
-            },
+            validator: Validators.password,
           ),
           const SizedBox(height: 8),
           CheckboxListTile(

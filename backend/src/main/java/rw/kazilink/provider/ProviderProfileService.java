@@ -3,19 +3,63 @@ package rw.kazilink.provider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import rw.kazilink.service.ServiceListing;
+import rw.kazilink.service.ServiceListingRepository;
+import rw.kazilink.service.ServiceListingResponse;
 
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ProviderProfileService {
 
     private final ProviderProfileRepository providerProfileRepository;
+    private final ServiceListingRepository serviceListingRepository;
 
     public ProviderProfileResponse getMyProfile(UUID userId) {
         ProviderProfile profile = providerProfileRepository.findByUserId(userId)
                 .orElseThrow(ProviderProfileNotFoundException::new);
         return toResponse(profile);
+    }
+
+    /**
+     * Powers customer-facing search (GET /api/providers). Only APPROVED
+     * providers are ever returned - an unverified or rejected provider
+     * shouldn't be discoverable by customers, even though their profile
+     * still exists in the database.
+     */
+    public List<ProviderProfileResponse> browseProviders(UUID categoryId) {
+        List<ProviderProfile> approved = providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED);
+
+        if (categoryId != null) {
+            Set<UUID> providerIdsInCategory = serviceListingRepository.findByCategoryId(categoryId).stream()
+                    .map(ServiceListing::getProviderProfileId)
+                    .collect(Collectors.toSet());
+            approved = approved.stream().filter(p -> providerIdsInCategory.contains(p.getId())).toList();
+        }
+
+        return approved.stream().map(this::toResponse).toList();
+    }
+
+    /**
+     * A provider's public detail page (GET /api/providers/{id}) - profile
+     * plus every service they offer. Same APPROVED-only rule as
+     * browseProviders: a direct link to an unverified provider's id isn't
+     * a back door around the search filter.
+     */
+    public ProviderDetailResponse getProviderDetail(UUID providerProfileId) {
+        ProviderProfile profile = providerProfileRepository.findById(providerProfileId)
+                .filter(p -> p.getVerificationStatus() == VerificationStatus.APPROVED)
+                .orElseThrow(ProviderProfileNotFoundException::new);
+
+        List<ServiceListingResponse> services = serviceListingRepository.findByProviderProfileId(providerProfileId).stream()
+                .map(ServiceListingResponse::from)
+                .toList();
+
+        return new ProviderDetailResponse(toResponse(profile), services);
     }
 
     /**

@@ -1,11 +1,11 @@
 {
-    "name": "kazilink_rwanda",
-    "short_name": "kazilink_rwanda",
+    "name": "FASHA APP",
+    "short_name": "FASHA APP",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "KaziLink Rwanda - service marketplace mobile app",
+    "background_color": "#0B6B4F",
+    "theme_color": "#0B6B4F",
+    "description": "FASHA APP - service marketplace mobile app",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

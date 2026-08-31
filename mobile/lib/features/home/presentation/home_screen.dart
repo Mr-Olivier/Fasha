@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../admin/presentation/admin_provider_controller.dart';
 import '../../auth/domain/auth_user.dart';
 import '../../auth/domain/user_role.dart';
 import '../../auth/presentation/auth_controller.dart';
@@ -30,6 +31,7 @@ class HomeScreen extends ConsumerWidget {
       body: switch (user) {
         null => const Center(child: Text('No user logged in.')),
         AuthUser(role: UserRole.provider) => const _ProviderHome(),
+        AuthUser(role: UserRole.admin) => const _AdminHome(),
         _ => _CustomerHome(user: user),
       },
     );
@@ -157,6 +159,36 @@ class _ProviderHome extends ConsumerWidget {
             title: 'Incoming requests',
             subtitle: 'Accept, reject, and manage bookings',
             onTap: () => context.push('/incoming-requests'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdminHome extends ConsumerWidget {
+  const _AdminHome();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pendingState = ref.watch(pendingProvidersProvider);
+    final textTheme = Theme.of(context).textTheme;
+    final pendingCount = pendingState.valueOrNull?.length;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.gutter),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Admin', style: textTheme.headlineSmall),
+          const SizedBox(height: AppSpacing.gutter),
+          _DashboardTile(
+            icon: Icons.fact_check_outlined,
+            title: 'Provider approvals',
+            subtitle: pendingCount == null
+                ? 'Review new provider applications'
+                : '$pendingCount application${pendingCount == 1 ? '' : 's'} waiting for review',
+            onTap: () => context.push('/admin/providers'),
           ),
         ],
       ),

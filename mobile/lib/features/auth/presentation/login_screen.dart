@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/validators.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'auth_controller.dart';
 
 /// ConsumerStatefulWidget: a StatefulWidget that can also read/watch
@@ -58,8 +59,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ref.listen(authControllerProvider, (previous, next) {
       final error = next.error;
       if (error != null && !identical(previous?.error, error)) {
-        final message = error is ApiException ? error.message : 'Something went wrong.';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        AppToast.apiError(context, error);
       }
     });
 
@@ -72,6 +72,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           padding: const EdgeInsets.all(AppSpacing.gutter),
           child: Form(
             key: _formKey,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -87,11 +88,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(labelText: 'Email'),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) return 'Email is required';
-                    if (!value.contains('@')) return 'Enter a valid email';
-                    return null;
-                  },
+                  validator: Validators.email,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -104,10 +101,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Text(_obscurePassword ? 'Show' : 'Hide'),
                     ),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'Password is required';
-                    return null;
-                  },
+                  validator: (value) => (value == null || value.isEmpty) ? 'Password is required' : null,
                 ),
                 Align(
                   alignment: Alignment.centerRight,

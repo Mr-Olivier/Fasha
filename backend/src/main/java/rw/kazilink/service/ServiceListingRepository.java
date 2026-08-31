@@ -11,4 +11,7 @@ public interface ServiceListingRepository extends JpaRepository<ServiceListing, 
 
     /** Powers GET /api/providers?categoryId=... - which providers offer something in this category. */
     List<ServiceListing> findByCategoryId(UUID categoryId);
+
+    /** Powers the admin provider-approval list's "services listed" count. */
+    long countByProviderProfileId(UUID providerProfileId);
 }

@@ -6,6 +6,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import rw.kazilink.review.ReviewRepository;
 import rw.kazilink.service.ServiceListing;
 import rw.kazilink.service.ServiceListingRepository;
 
@@ -27,6 +28,9 @@ class ProviderProfileServiceTest {
 
     @Mock
     private ServiceListingRepository serviceListingRepository;
+
+    @Mock
+    private ReviewRepository reviewRepository;
 
     @InjectMocks
     private ProviderProfileService providerProfileService;
@@ -50,6 +54,34 @@ class ProviderProfileServiceTest {
 
         assertThat(response.businessName()).isEqualTo("Alice's Repairs");
         assertThat(response.verificationStatus()).isEqualTo(VerificationStatus.PENDING);
+    }
+
+    @Test
+    void getMyProfile_hasNoRatingWhenThereAreNoReviewsYet() {
+        UUID userId = UUID.randomUUID();
+        ProviderProfile profile = new ProviderProfile(userId, "Alice's Repairs", null, null, null);
+        when(providerProfileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
+        when(reviewRepository.findAverageRatingByProviderProfileId(profile.getId())).thenReturn(Optional.empty());
+        when(reviewRepository.countByProviderProfileId(profile.getId())).thenReturn(0L);
+
+        ProviderProfileResponse response = providerProfileService.getMyProfile(userId);
+
+        assertThat(response.averageRating()).isNull();
+        assertThat(response.reviewCount()).isZero();
+    }
+
+    @Test
+    void getMyProfile_includesTheAverageRatingOnceThereAreReviews() {
+        UUID userId = UUID.randomUUID();
+        ProviderProfile profile = new ProviderProfile(userId, "Alice's Repairs", null, null, null);
+        when(providerProfileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
+        when(reviewRepository.findAverageRatingByProviderProfileId(profile.getId())).thenReturn(Optional.of(4.5));
+        when(reviewRepository.countByProviderProfileId(profile.getId())).thenReturn(2L);
+
+        ProviderProfileResponse response = providerProfileService.getMyProfile(userId);
+
+        assertThat(response.averageRating()).isEqualTo(4.5);
+        assertThat(response.reviewCount()).isEqualTo(2L);
     }
 
     @Test

@@ -27,6 +27,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   // currently typing on every rebuild (e.g. while saving).
   bool _controllersPrefilled = false;
 
+  // Tracks "the user actually pressed Save" - without this, the listener
+  // below can't tell that apart from this screen's own initial GET
+  // /api/users/me finishing (both look like "was loading, now has a
+  // value" on the very same provider). Set true right before calling
+  // updateProfile(), consumed (and reset) the moment the listener acts on it.
+  bool _isSubmitting = false;
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -43,6 +50,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    _isSubmitting = true;
     await ref.read(userProfileControllerProvider.notifier).updateProfile(
           name: _nameController.text.trim(),
           phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
@@ -57,12 +65,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     ref.listen(userProfileControllerProvider, (previous, next) {
       final error = next.error;
       if (error != null && !identical(previous?.error, error)) {
+        _isSubmitting = false;
         final message = error is ApiException ? error.message : 'Something went wrong.';
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
         return;
       }
-      final wasLoading = previous?.isLoading ?? false;
-      if (wasLoading && next.hasValue && error == null) {
+      if (_isSubmitting && next.hasValue && error == null) {
+        _isSubmitting = false;
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated.')));
       }
     });

@@ -26,7 +26,7 @@ class HomeScreen extends ConsumerWidget {
       // Logging out lives in the Profile tab now (see AppShell) - matching
       // Instagram/Facebook, account actions belong in a Profile tab, not
       // scattered as an icon on every other screen's app bar.
-      appBar: AppBar(title: const Text('KaziLink Rwanda')),
+      appBar: AppBar(title: const Text('FASHA APP')),
       body: switch (user) {
         null => const Center(child: Text('No user logged in.')),
         AuthUser(role: UserRole.provider) => const _ProviderHome(),

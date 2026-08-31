@@ -38,6 +38,7 @@ backend/out/
 backend/HELP.md
 backend/*.jar
 backend/*.war
+backend/uploads/
 
 # ---- Environment / secrets ----
 .env

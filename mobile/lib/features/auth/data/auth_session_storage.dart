@@ -14,9 +14,11 @@ import '../domain/auth_user.dart';
 /// can act as this user until it expires, so it deserves encrypted storage,
 /// unlike something low-stakes like a theme preference.
 ///
-/// We cache the WHOLE user (not just the token) because the backend has no
-/// "/me" endpoint yet to re-fetch name/email/role from - simplest thing
-/// that works for now; revisit if/when a "/me" endpoint exists.
+/// We cache the WHOLE user (not just the token) so the app has something to
+/// show immediately on startup without an extra round-trip - GET /api/users/me
+/// exists now too (see UserProfileController), but that's for refreshing
+/// profile fields the login response doesn't include, not for replacing
+/// this cache.
 class AuthSessionStorage {
   const AuthSessionStorage(this._storage);
 

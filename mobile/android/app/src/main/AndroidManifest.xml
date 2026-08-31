@@ -4,7 +4,7 @@
          doesn't explicitly declare it wants network access at all. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="kazilink_rwanda"
+        android:label="FASHA APP"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">

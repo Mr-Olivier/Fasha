@@ -72,6 +72,12 @@ class AuthRepository {
   /// doesn't have to log in again every time they reopen the app.
   Future<AuthUser?> restoreSession() => _storage.read();
 
+  /// Overwrites the cached session with an already-updated [user] - no
+  /// network call here, just persistence. Used by
+  /// AuthController.applyAccountUpdate after a profile edit succeeds, so
+  /// the edited name/phone/avatar survive an app restart too.
+  Future<void> persistUser(AuthUser user) => _storage.save(user);
+
   Future<ForgotPasswordResult> forgotPassword({required String email}) async {
     try {
       return await _api.forgotPassword(email: email);

@@ -3,6 +3,7 @@ package rw.kazilink.admin;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import rw.kazilink.notification.NotificationService;
 import rw.kazilink.provider.ProviderProfile;
 import rw.kazilink.provider.ProviderProfileNotFoundException;
 import rw.kazilink.provider.ProviderProfileRepository;
@@ -22,6 +23,7 @@ public class AdminProviderService {
     private final ProviderProfileRepository providerProfileRepository;
     private final UserRepository userRepository;
     private final ServiceListingRepository serviceListingRepository;
+    private final NotificationService notificationService;
 
     /**
      * status is optional - omitting it (plain GET /api/admin/providers) lists
@@ -42,6 +44,15 @@ public class AdminProviderService {
                 .orElseThrow(ProviderProfileNotFoundException::new);
         profile.setVerificationStatus(approved ? VerificationStatus.APPROVED : VerificationStatus.REJECTED);
         providerProfileRepository.save(profile);
+
+        notificationService.create(
+                profile.getUserId(),
+                approved ? "Application approved" : "Application rejected",
+                approved
+                        ? "Your provider application for " + profile.getBusinessName() + " was approved - you're now visible in search."
+                        : "Your provider application for " + profile.getBusinessName() + " wasn't approved this time.",
+                null);
+
         return toResponse(profile);
     }
 

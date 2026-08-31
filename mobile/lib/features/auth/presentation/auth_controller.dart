@@ -76,6 +76,32 @@ class AuthController extends AsyncNotifier<AuthUser?> {
     await ref.read(authRepositoryProvider).logout();
     state = const AsyncValue.data(null);
   }
+
+  /// Folds a fresh account snapshot (from GET/PATCH /api/users/me or the
+  /// avatar upload endpoint - see UserProfileController) back into the
+  /// cached, logged-in user, so every screen watching this controller
+  /// (HomeScreen's greeting, ProfileScreen, ...) reflects an edit
+  /// immediately instead of only after the next login.
+  ///
+  /// Takes plain fields rather than a UserAccount object on purpose - this
+  /// class belongs to the auth feature and shouldn't need to import the
+  /// profile feature's domain types just to accept an update.
+  void applyAccountUpdate({required String name, String? phone, String? profileImageUrl}) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+
+    final updated = AuthUser(
+      token: current.token,
+      userId: current.userId,
+      name: name,
+      email: current.email,
+      role: current.role,
+      phone: phone,
+      profileImageUrl: profileImageUrl,
+    );
+    state = AsyncValue.data(updated);
+    ref.read(authRepositoryProvider).persistUser(updated);
+  }
 }
 
 final authControllerProvider = AsyncNotifierProvider<AuthController, AuthUser?>(AuthController.new);

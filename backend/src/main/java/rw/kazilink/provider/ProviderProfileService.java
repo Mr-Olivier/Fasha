@@ -3,6 +3,7 @@ package rw.kazilink.provider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import rw.kazilink.review.ReviewRepository;
 import rw.kazilink.service.ServiceListing;
 import rw.kazilink.service.ServiceListingRepository;
 import rw.kazilink.service.ServiceListingResponse;
@@ -18,6 +19,7 @@ public class ProviderProfileService {
 
     private final ProviderProfileRepository providerProfileRepository;
     private final ServiceListingRepository serviceListingRepository;
+    private final ReviewRepository reviewRepository;
 
     public ProviderProfileResponse getMyProfile(UUID userId) {
         ProviderProfile profile = providerProfileRepository.findByUserId(userId)
@@ -92,6 +94,9 @@ public class ProviderProfileService {
     }
 
     private ProviderProfileResponse toResponse(ProviderProfile profile) {
+        Double averageRating = reviewRepository.findAverageRatingByProviderProfileId(profile.getId()).orElse(null);
+        long reviewCount = reviewRepository.countByProviderProfileId(profile.getId());
+
         return new ProviderProfileResponse(
                 profile.getId(),
                 profile.getUserId(),
@@ -100,6 +105,8 @@ public class ProviderProfileService {
                 profile.getLocation(),
                 profile.getProfileImageUrl(),
                 profile.getVerificationStatus(),
+                averageRating,
+                reviewCount,
                 profile.getCreatedAt(),
                 profile.getUpdatedAt()
         );

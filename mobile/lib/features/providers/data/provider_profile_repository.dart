@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../domain/provider_detail.dart';
 import '../domain/provider_profile.dart';
 import 'provider_profile_api.dart';
 
@@ -8,6 +9,22 @@ class ProviderProfileRepository {
   const ProviderProfileRepository(this._api);
 
   final ProviderProfileApi _api;
+
+  Future<List<ProviderProfile>> browseProviders({String? categoryId}) async {
+    try {
+      return await _api.browseProviders(categoryId: categoryId);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<ProviderDetail> getProviderDetail(String providerId) async {
+    try {
+      return await _api.getProviderDetail(providerId);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
 
   /// A 404 here means "you haven't created a profile yet" - a normal,
   /// expected state for a new provider, not an error. We turn that one

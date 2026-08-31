@@ -41,7 +41,7 @@ class _RequestBookingScreenState extends ConsumerState<RequestBookingScreen> {
   }
 
   Future<void> _submit() async {
-    await ref.read(myBookingsControllerProvider.notifier).requestBooking(
+    await ref.read(requestBookingControllerProvider.notifier).submit(
           serviceListingId: widget.service.id,
           note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
           requestedDate: _requestedDate,
@@ -50,20 +50,22 @@ class _RequestBookingScreenState extends ConsumerState<RequestBookingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(myBookingsControllerProvider);
+    final state = ref.watch(requestBookingControllerProvider);
     final isLoading = state.isLoading;
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    ref.listen(myBookingsControllerProvider, (previous, next) {
+    ref.listen(requestBookingControllerProvider, (previous, next) {
       final error = next.error;
       if (error != null && !identical(previous?.error, error)) {
         final message = error is ApiException ? error.message : 'Something went wrong.';
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
         return;
       }
-      final wasLoading = previous?.isLoading ?? false;
-      if (wasLoading && next.hasValue && error == null) {
+      // Checking the VALUE itself (not just "was loading, now has one") -
+      // build() also resolves loading -> AsyncData(false) once, on this
+      // screen's very first frame, which is not a successful submission.
+      if (next.valueOrNull == true && previous?.valueOrNull != true) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request sent.')));
         context.go('/my-bookings');
       }

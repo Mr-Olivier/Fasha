@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/theme_mode_controller.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../auth/domain/auth_user.dart';
 import '../../auth/presentation/auth_controller.dart';
@@ -99,6 +100,8 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.gutter),
+                const _AppearanceCard(),
+                const SizedBox(height: AppSpacing.md),
                 Card(
                   clipBehavior: Clip.antiAlias,
                   child: Column(
@@ -134,6 +137,56 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   String _roleLabel(AuthUser user) => '${user.role.name[0].toUpperCase()}${user.role.name.substring(1)}';
+}
+
+/// "Appearance: Light / Dark / System" - see F2 in fasha-app-final-ui.html.
+/// Reads/writes ThemeModeController, which persists the choice so it
+/// survives an app restart instead of resetting to System every time.
+class _AppearanceCard extends ConsumerWidget {
+  const _AppearanceCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeControllerProvider);
+    final textTheme = Theme.of(context).textTheme;
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Appearance', style: textTheme.titleMedium),
+            const SizedBox(height: AppSpacing.sm),
+            SegmentedButton<ThemeMode>(
+              segments: const [
+                ButtonSegment(
+                  value: ThemeMode.light,
+                  label: Text('Light'),
+                  icon: Icon(Icons.light_mode_outlined),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.dark,
+                  label: Text('Dark'),
+                  icon: Icon(Icons.dark_mode_outlined),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.system,
+                  label: Text('System'),
+                  icon: Icon(Icons.brightness_auto_outlined),
+                ),
+              ],
+              selected: {themeMode},
+              showSelectedIcon: false,
+              onSelectionChanged: (selection) =>
+                  ref.read(themeModeControllerProvider.notifier).setThemeMode(selection.first),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _Avatar extends StatelessWidget {

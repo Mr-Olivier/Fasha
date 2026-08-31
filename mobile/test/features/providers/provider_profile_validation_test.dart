@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:kazilink_rwanda/features/providers/data/provider_profile_repository.dart';
+import 'package:kazilink_rwanda/features/providers/domain/provider_detail.dart';
 import 'package:kazilink_rwanda/features/providers/domain/provider_profile.dart';
 import 'package:kazilink_rwanda/features/providers/presentation/provider_profile_controller.dart';
 import 'package:kazilink_rwanda/features/providers/presentation/provider_profile_screen.dart';
@@ -21,6 +22,16 @@ class _FakeProviderProfileRepository implements ProviderProfileRepository {
     String? location,
     String? profileImageUrl,
   }) {
+    throw UnimplementedError('not exercised by this test');
+  }
+
+  @override
+  Future<List<ProviderProfile>> browseProviders({String? categoryId}) {
+    throw UnimplementedError('not exercised by this test');
+  }
+
+  @override
+  Future<ProviderDetail> getProviderDetail(String providerId) {
     throw UnimplementedError('not exercised by this test');
   }
 }

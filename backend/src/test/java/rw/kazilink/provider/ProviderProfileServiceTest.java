@@ -6,7 +6,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import rw.kazilink.service.ServiceListing;
+import rw.kazilink.service.ServiceListingRepository;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,6 +24,9 @@ class ProviderProfileServiceTest {
 
     @Mock
     private ProviderProfileRepository providerProfileRepository;
+
+    @Mock
+    private ServiceListingRepository serviceListingRepository;
 
     @InjectMocks
     private ProviderProfileService providerProfileService;
@@ -77,5 +84,70 @@ class ProviderProfileServiceTest {
         assertThat(captor.getValue()).isSameAs(existing);
         assertThat(captor.getValue().getBusinessName()).isEqualTo("New Name");
         assertThat(captor.getValue().getLocation()).isEqualTo("Kigali");
+    }
+
+    @Test
+    void browseProviders_excludesProvidersThatArentApproved() {
+        when(providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED)).thenReturn(List.of());
+
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null);
+
+        assertThat(results).isEmpty();
+    }
+
+    @Test
+    void browseProviders_withNoCategoryFilterReturnsEveryApprovedProvider() {
+        ProviderProfile approved = new ProviderProfile(UUID.randomUUID(), "Alice's Repairs", null, null, null);
+        when(providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED)).thenReturn(List.of(approved));
+
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null);
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).businessName()).isEqualTo("Alice's Repairs");
+    }
+
+    @Test
+    void browseProviders_withACategoryFilterOnlyReturnsProvidersOfferingSomethingInIt() {
+        ProviderProfile inCategory = new ProviderProfile(UUID.randomUUID(), "Alice's Repairs", null, null, null);
+        inCategory.setId(UUID.randomUUID());
+        ProviderProfile notInCategory = new ProviderProfile(UUID.randomUUID(), "Bob's Tailoring", null, null, null);
+        notInCategory.setId(UUID.randomUUID());
+        UUID categoryId = UUID.randomUUID();
+        when(providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED))
+                .thenReturn(List.of(inCategory, notInCategory));
+        when(serviceListingRepository.findByCategoryId(categoryId)).thenReturn(List.of(
+                new ServiceListing(inCategory.getId(), categoryId, "Phone repair", null, BigDecimal.TEN)));
+
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(categoryId);
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).businessName()).isEqualTo("Alice's Repairs");
+    }
+
+    @Test
+    void getProviderDetail_throwsForAProviderThatIsNotApproved() {
+        ProviderProfile pending = new ProviderProfile(UUID.randomUUID(), "Alice's Repairs", null, null, null);
+        UUID providerProfileId = UUID.randomUUID();
+        when(providerProfileRepository.findById(providerProfileId)).thenReturn(Optional.of(pending));
+
+        assertThatThrownBy(() -> providerProfileService.getProviderDetail(providerProfileId))
+                .isInstanceOf(ProviderProfileNotFoundException.class);
+    }
+
+    @Test
+    void getProviderDetail_returnsTheProfileWithItsServices() {
+        UUID providerProfileId = UUID.randomUUID();
+        ProviderProfile approved = new ProviderProfile(UUID.randomUUID(), "Alice's Repairs", null, null, null);
+        approved.setId(providerProfileId);
+        approved.setVerificationStatus(VerificationStatus.APPROVED);
+        when(providerProfileRepository.findById(providerProfileId)).thenReturn(Optional.of(approved));
+        when(serviceListingRepository.findByProviderProfileId(providerProfileId)).thenReturn(List.of(
+                new ServiceListing(providerProfileId, UUID.randomUUID(), "Phone repair", "Screens & batteries", BigDecimal.TEN)));
+
+        ProviderDetailResponse detail = providerProfileService.getProviderDetail(providerProfileId);
+
+        assertThat(detail.profile().businessName()).isEqualTo("Alice's Repairs");
+        assertThat(detail.services()).hasSize(1);
+        assertThat(detail.services().get(0).name()).isEqualTo("Phone repair");
     }
 }

@@ -35,6 +35,16 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  servlet:
+    multipart:
+      # Applies to avatar uploads (see AvatarStorageService) - a generous
+      # limit for a single small profile picture, not a general file-upload
+      # feature. MaxUploadSizeExceededException past this is turned into a
+      # clean 400 by GlobalExceptionHandler instead of the raw 500 Spring
+      # would otherwise send.
+      max-file-size: 5MB
+      max-request-size: 5MB
+
 server:
   # 8081, not the default 8080: something else on this machine already
   # holds 8080. Override with SERVER_PORT if you need a different one.
@@ -47,6 +57,12 @@ app:
     # always override this with the JWT_SECRET environment variable.
     secret: ${JWT_SECRET:dev-only-secret-change-me-please-make-me-long-and-random}
     expiration-ms: 86400000 # 24 hours, in milliseconds
+
+  # Where AvatarStorageService writes uploaded avatar files, and where
+  # StaticResourceConfig serves them back from. Relative to wherever the
+  # backend process is started from - fine for local dev; a real deployment
+  # would point this at a persistent volume or object storage instead.
+  uploads-dir: uploads
 
 logging:
   level:

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/star_rating.dart';
 import 'provider_browse_controller.dart';
 
 /// Customer-facing: approved providers offering something in one category
@@ -57,7 +58,28 @@ class ProviderListScreen extends ConsumerWidget {
                     ),
                   ),
                   title: Text(provider.businessName),
-                  subtitle: Text(provider.location ?? 'Location not specified'),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(provider.location ?? 'Location not specified'),
+                      const SizedBox(height: 2),
+                      if (provider.averageRating != null)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            StarRating(rating: provider.averageRating!, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${provider.averageRating!.toStringAsFixed(1)} (${provider.reviewCount})',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        )
+                      else
+                        Text('No reviews yet', style: Theme.of(context).textTheme.bodySmall),
+                    ],
+                  ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/providers/${provider.id}'),
                 ),

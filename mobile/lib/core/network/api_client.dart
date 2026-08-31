@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/data/auth_session_storage.dart';
@@ -28,17 +27,22 @@ class ApiClient {
   final Dio dio;
 
   /// The backend (see README.md section 19) runs on localhost:8081 during
-  /// development. An Android EMULATOR can't reach the host machine's
-  /// "localhost" directly - 10.0.2.2 is the emulator's special alias for
-  /// that. We use `defaultTargetPlatform` (not dart:io's Platform) because
-  /// dart:io doesn't exist on web at all; defaultTargetPlatform is Flutter's
-  /// own cross-platform-safe way to ask "what platform is this?".
-  static String get _baseUrl {
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8081/api';
-    }
-    return 'http://localhost:8081/api';
-  }
+  /// development.
+  ///
+  /// Every platform this app runs on treats "localhost" as itself, EXCEPT
+  /// Android (both the emulator and a real device) - to Android,
+  /// "localhost" is the phone/emulator, a completely different machine
+  /// from your dev machine's point of view. Rather than special-casing the
+  /// emulator's old 10.0.2.2 alias (which doesn't exist on a real device
+  /// at all), this app requires running:
+  ///
+  ///   adb reverse tcp:8081 tcp:8081
+  ///
+  /// once after connecting - for the emulator OR a real device over USB -
+  /// which forwards Android's own "localhost:8081" straight to this exact
+  /// backend. That makes the SAME url work everywhere, with no LAN IP to
+  /// hunt down and no emulator-only special case to maintain.
+  static String get _baseUrl => 'http://localhost:8081/api';
 
   /// Same host as [_baseUrl], but without the "/api" prefix - avatar URLs
   /// (e.g. "/uploads/avatars/xyz.jpg") come from StaticResourceConfig on

@@ -3,6 +3,7 @@ package rw.kazilink.booking;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import rw.kazilink.notification.NotificationService;
 import rw.kazilink.provider.ProviderProfile;
 import rw.kazilink.provider.ProviderProfileNotFoundException;
 import rw.kazilink.provider.ProviderProfileRepository;
@@ -15,6 +16,7 @@ import rw.kazilink.user.UserRepository;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 /**
  * All the business rules for the booking lifecycle (see BookingStatus's doc
@@ -31,15 +33,26 @@ public class BookingService {
     private final ServiceListingRepository serviceListingRepository;
     private final ProviderProfileRepository providerProfileRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public BookingResponse createBooking(UUID customerId, CreateBookingRequest request) {
         ServiceListing service = serviceListingRepository.findById(request.serviceListingId())
                 .orElseThrow(ServiceListingNotFoundException::new);
+        ProviderProfile provider = providerProfileRepository.findById(service.getProviderProfileId())
+                .orElseThrow(ProviderProfileNotFoundException::new);
+        User customer = userRepository.findById(customerId).orElseThrow(UserNotFoundException::new);
 
         Booking booking = new Booking(
                 customerId, service.getProviderProfileId(), service.getId(), request.note(), request.requestedDate());
         bookingRepository.save(booking);
+
+        notificationService.create(
+                provider.getUserId(),
+                "New booking request",
+                customer.getName() + " requested " + service.getName(),
+                booking.getId());
+
         return toResponse(booking);
     }
 
@@ -70,6 +83,7 @@ public class BookingService {
         requireStatus(booking, BookingStatus.REQUESTED);
         booking.setStatus(BookingStatus.ACCEPTED);
         bookingRepository.save(booking);
+        notifyCustomer(booking, "Request accepted", providerName -> providerName + " accepted your request");
         return toResponse(booking);
     }
 
@@ -79,6 +93,7 @@ public class BookingService {
         requireStatus(booking, BookingStatus.REQUESTED);
         booking.setStatus(BookingStatus.REJECTED);
         bookingRepository.save(booking);
+        notifyCustomer(booking, "Request declined", providerName -> providerName + " can't take this request right now");
         return toResponse(booking);
     }
 
@@ -88,6 +103,7 @@ public class BookingService {
         requireStatus(booking, BookingStatus.ACCEPTED);
         booking.setStatus(BookingStatus.IN_PROGRESS);
         bookingRepository.save(booking);
+        notifyCustomer(booking, "Job started", providerName -> providerName + " has started working on your job");
         return toResponse(booking);
     }
 
@@ -97,6 +113,7 @@ public class BookingService {
         requireStatus(booking, BookingStatus.IN_PROGRESS);
         booking.setStatus(BookingStatus.COMPLETED);
         bookingRepository.save(booking);
+        notifyCustomer(booking, "Job completed", providerName -> "Your job with " + providerName + " is complete - leave a review");
         return toResponse(booking);
     }
 
@@ -110,7 +127,24 @@ public class BookingService {
         }
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
+
+        User customer = userRepository.findById(customerId).orElseThrow(UserNotFoundException::new);
+        ProviderProfile provider = providerProfileRepository.findById(booking.getProviderProfileId())
+                .orElseThrow(ProviderProfileNotFoundException::new);
+        notificationService.create(
+                provider.getUserId(),
+                "Booking cancelled",
+                customer.getName() + " cancelled their request",
+                booking.getId());
+
         return toResponse(booking);
+    }
+
+    /** Shared by accept/reject/start/complete - each just supplies its own wording around the provider's business name. */
+    private void notifyCustomer(Booking booking, String title, Function<String, String> bodyBuilder) {
+        ProviderProfile provider = providerProfileRepository.findById(booking.getProviderProfileId())
+                .orElseThrow(ProviderProfileNotFoundException::new);
+        notificationService.create(booking.getCustomerId(), title, bodyBuilder.apply(provider.getBusinessName()), booking.getId());
     }
 
     private void requireStatus(Booking booking, BookingStatus expected) {

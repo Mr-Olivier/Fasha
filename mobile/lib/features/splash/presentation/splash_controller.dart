@@ -10,5 +10,5 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// AuthController have resolved - whichever takes longer wins, so a slow
 /// device or a slow disk read never gets CUT SHORT by this timer either.
 final splashMinimumDurationProvider = FutureProvider<void>((ref) {
-  return Future<void>.delayed(const Duration(seconds: 3));
+  return Future<void>.delayed(const Duration(seconds: 5));
 });

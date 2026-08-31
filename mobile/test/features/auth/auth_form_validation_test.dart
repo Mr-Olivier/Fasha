@@ -62,7 +62,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Log in'));
       await tester.pump();
 
-      expect(find.text('Enter a valid email'), findsOneWidget);
+      expect(find.text('Enter a valid email address'), findsOneWidget);
     });
   });
 
@@ -85,7 +85,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Create account'));
       await tester.pump();
 
-      expect(find.text('Password must be at least 8 characters'), findsOneWidget);
+      expect(find.text('Use at least 8 characters'), findsOneWidget);
     });
   });
 }

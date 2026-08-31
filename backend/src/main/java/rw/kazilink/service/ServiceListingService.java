@@ -68,14 +68,6 @@ public class ServiceListingService {
     }
 
     private ServiceListingResponse toResponse(ServiceListing listing) {
-        return new ServiceListingResponse(
-                listing.getId(),
-                listing.getProviderProfileId(),
-                listing.getCategoryId(),
-                listing.getName(),
-                listing.getDescription(),
-                listing.getPrice(),
-                listing.getCreatedAt()
-        );
+        return ServiceListingResponse.from(listing);
     }
 }

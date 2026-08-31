@@ -9,7 +9,7 @@ void main() {
     // ProviderScope stores the state of every Riverpod provider in the app.
     // It must wrap the app exactly once, at the very root - every feature's
     // providers (auth, bookings, ...) will read/write through this scope.
-    const ProviderScope(child: KaziLinkApp()),
+    const ProviderScope(child: FashaApp()),
   );
 }
 
@@ -17,15 +17,15 @@ void main() {
 /// appRouterProvider - GoRouter itself is built from Riverpod state (see
 /// app_router.dart), so the widget that hands it to MaterialApp.router
 /// has to be Riverpod-aware too.
-class KaziLinkApp extends ConsumerWidget {
-  const KaziLinkApp({super.key});
+class FashaApp extends ConsumerWidget {
+  const FashaApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
-      title: 'KaziLink Rwanda',
+      title: 'FASHA APP',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

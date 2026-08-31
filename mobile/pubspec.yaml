@@ -1,5 +1,5 @@
 name: kazilink_rwanda
-description: "KaziLink Rwanda - service marketplace mobile app"
+description: "FASHA APP - service marketplace mobile app"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -55,6 +55,12 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
 
+  # Generates Android/web/Windows launcher & favicon icons from one source
+  # image (assets/images/logo.png) - see the flutter_launcher_icons: config
+  # block below. Only ever run manually via `dart run flutter_launcher_icons`,
+  # never at app startup, so it has no effect on the shipped app itself.
+  flutter_launcher_icons: ^0.14.3
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -66,10 +72,8 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - assets/images/logo.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -96,3 +100,20 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Config for the flutter_launcher_icons dev dependency above - regenerates
+# every platform's launcher/favicon icons from assets/images/logo.png.
+# Run with: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/images/logo.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/images/logo.png"
+    background_color: "#0B6B4F"
+    theme_color: "#0B6B4F"
+  windows:
+    generate: true
+    image_path: "assets/images/logo.png"
+    icon_size: 256

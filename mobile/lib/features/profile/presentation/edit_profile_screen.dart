@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/validators.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../domain/user_account.dart';
 import 'user_profile_controller.dart';
 
@@ -66,13 +67,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       final error = next.error;
       if (error != null && !identical(previous?.error, error)) {
         _isSubmitting = false;
-        final message = error is ApiException ? error.message : 'Something went wrong.';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        AppToast.apiError(context, error);
         return;
       }
       if (_isSubmitting && next.hasValue && error == null) {
         _isSubmitting = false;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated.')));
+        AppToast.success(context, 'Profile updated.');
       }
     });
 
@@ -87,6 +87,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               padding: const EdgeInsets.all(AppSpacing.gutter),
               child: Form(
                 key: _formKey,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -94,10 +95,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       controller: _nameController,
                       enabled: !isLoading,
                       decoration: const InputDecoration(labelText: 'Full name'),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) return 'Name is required';
-                        return null;
-                      },
+                      validator: (value) => Validators.required(value, fieldName: 'Name'),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -105,6 +103,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       enabled: !isLoading,
                       keyboardType: TextInputType.phone,
                       decoration: const InputDecoration(labelText: 'Phone (optional)'),
+                      validator: Validators.phone,
                     ),
                     const SizedBox(height: 24),
                     FilledButton(

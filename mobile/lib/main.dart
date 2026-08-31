@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_mode_controller.dart';
 
 void main() {
   runApp(
@@ -23,16 +24,16 @@ class FashaApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    final themeMode = ref.watch(themeModeControllerProvider);
 
     return MaterialApp.router(
       title: 'FASHA APP',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      // "system" follows the phone's own setting, per README section 15.
-      // Letting the user override this (and persisting the choice) is a
-      // later feature - see the roadmap's "Theme, polish" day.
-      themeMode: ThemeMode.system,
+      // Defaults to following the phone's own setting, but the user can
+      // override it from Profile > Appearance - see ThemeModeController.
+      themeMode: themeMode,
       routerConfig: router,
     );
   }

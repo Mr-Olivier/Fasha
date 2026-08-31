@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/validators.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../domain/service_listing.dart';
 import 'category_controller.dart';
 import 'service_listing_controller.dart';
@@ -74,6 +75,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
     final state = ref.read(serviceListingControllerProvider);
     if (state.hasError) return;
     if (!mounted) return;
+    AppToast.success(context, widget.existing == null ? 'Service added.' : 'Service updated.');
     context.pop();
   }
 
@@ -86,8 +88,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
     ref.listen(serviceListingControllerProvider, (previous, next) {
       final error = next.error;
       if (error != null && !identical(previous?.error, error)) {
-        final message = error is ApiException ? error.message : 'Something went wrong.';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        AppToast.apiError(context, error);
       }
     });
 
@@ -97,6 +98,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
         padding: const EdgeInsets.all(AppSpacing.gutter),
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -118,7 +120,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Service name'),
-                validator: (value) => (value == null || value.trim().isEmpty) ? 'Name is required' : null,
+                validator: (value) => Validators.required(value, fieldName: 'Name'),
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -131,12 +133,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
                 controller: _priceController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(labelText: 'Price', prefixText: 'RWF '),
-                validator: (value) {
-                  final parsed = double.tryParse(value?.trim() ?? '');
-                  if (parsed == null) return 'Enter a valid price';
-                  if (parsed < 0) return 'Price cannot be negative';
-                  return null;
-                },
+                validator: Validators.price,
               ),
               const SizedBox(height: 24),
               FilledButton(

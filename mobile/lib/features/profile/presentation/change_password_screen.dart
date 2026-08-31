@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/validators.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'change_password_controller.dart';
 
 /// A logged-in user changing their own password from settings - requires
@@ -48,12 +49,11 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     ref.listen(changePasswordControllerProvider, (previous, next) {
       final error = next.error;
       if (error != null && !identical(previous?.error, error)) {
-        final message = error is ApiException ? error.message : 'Something went wrong.';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        AppToast.apiError(context, error);
         return;
       }
       if (next.valueOrNull == true && previous?.valueOrNull != true) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password changed.')));
+        AppToast.success(context, 'Password changed.');
         context.pop();
       }
     });
@@ -65,6 +65,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
           padding: const EdgeInsets.all(AppSpacing.gutter),
           child: Form(
             key: _formKey,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -73,10 +74,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                   enabled: !isLoading,
                   obscureText: _obscure,
                   decoration: const InputDecoration(labelText: 'Current password'),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'Your current password is required';
-                    return null;
-                  },
+                  validator: (value) => Validators.required(value, fieldName: 'Your current password'),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -90,11 +88,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                       child: Text(_obscure ? 'Show' : 'Hide'),
                     ),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'A new password is required';
-                    if (value.length < 8) return 'Use at least 8 characters';
-                    return null;
-                  },
+                  validator: Validators.password,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -102,10 +96,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                   enabled: !isLoading,
                   obscureText: _obscure,
                   decoration: const InputDecoration(labelText: 'Confirm new password'),
-                  validator: (value) {
-                    if (value != _newPasswordController.text) return 'Passwords don\'t match';
-                    return null;
-                  },
+                  validator: (value) => Validators.confirmPassword(value, _newPasswordController.text),
                 ),
                 const SizedBox(height: 24),
                 FilledButton(

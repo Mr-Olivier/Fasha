@@ -96,6 +96,11 @@ public class SecurityConfig {
                         // admin-only POST/PUT on the same path doesn't
                         // accidentally inherit this permitAll.
                         .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
+                        // Uploaded avatars are public images (shown on profiles
+                        // anyone can view), served by StaticResourceConfig -
+                        // requiring a JWT just to display a picture would be
+                        // pointless friction with no real security benefit.
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 // Without these, a missing/invalid token and an insufficient

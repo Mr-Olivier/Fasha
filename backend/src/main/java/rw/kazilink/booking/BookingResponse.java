@@ -12,9 +12,10 @@ import java.util.UUID;
  * card without a separate round-trip per booking - see
  * BookingService.toResponse() for where these get looked up.
  *
- * customerPhone/providerPhone are the two parties' only way to actually
- * reach each other once a booking is accepted - there's no in-app chat.
- * Either can be null if that user never set a phone number.
+ * customerPhone/providerPhone let the two parties call each other once a
+ * booking is accepted - either can be null if that user never set a phone
+ * number. In-app chat (rw.kazilink.chat) is the other way, keyed off this
+ * same booking id instead of living on this response.
  */
 public record BookingResponse(
         UUID id,

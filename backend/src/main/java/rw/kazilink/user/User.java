@@ -58,6 +58,10 @@ public class User {
     @Column(name = "profile_image_url", length = 500)
     private String profileImageUrl;
 
+    /** False from AuthService.register() until OtpService confirms an EMAIL_VERIFICATION code - see AuthService.login()'s check. Defaults true at the column level so pre-existing/admin-created rows aren't retroactively locked out. */
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = true;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

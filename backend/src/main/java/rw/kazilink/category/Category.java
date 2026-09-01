@@ -11,12 +11,9 @@ import lombok.NoArgsConstructor;
 import java.util.UUID;
 
 /**
- * Read-only from the application's point of view - no controller/service
- * anywhere calls categoryRepository.save(...); every row comes from
- * Flyway's seed migration (V5) instead. No setters - nothing ever edits a
- * Category in place (that's an admin feature, not built yet). The
- * all-args constructor below exists for tests to build fixture instances,
- * not because the app itself constructs new ones.
+ * Rows come from Flyway's seed migration (V5) plus whatever an admin has
+ * since added/renamed via AdminCategoryService - the all-args constructor
+ * below is also what both that service and tests use to build instances.
  */
 @Entity
 @Table(name = "categories")
@@ -35,6 +32,11 @@ public class Category {
     private String description;
 
     public Category(String name, String description) {
+        this.name = name;
+        this.description = description;
+    }
+
+    public void rename(String name, String description) {
         this.name = name;
         this.description = description;
     }

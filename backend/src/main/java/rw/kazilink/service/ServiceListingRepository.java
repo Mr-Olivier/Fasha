@@ -14,4 +14,7 @@ public interface ServiceListingRepository extends JpaRepository<ServiceListing, 
 
     /** Powers the admin provider-approval list's "services listed" count. */
     long countByProviderProfileId(UUID providerProfileId);
+
+    /** Guards AdminCategoryService.delete() - a category still used by a service can't be removed. */
+    boolean existsByCategoryId(UUID categoryId);
 }

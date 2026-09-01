@@ -15,6 +15,7 @@ public record AuthResponse(
         UUID userId,
         String name,
         String email,
-        Role role
+        Role role,
+        boolean emailVerified
 ) {
 }

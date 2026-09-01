@@ -1,15 +1,18 @@
 package rw.kazilink.auth;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-import java.util.UUID;
-
+/** Identifies which pending reset to spend by (email, code) rather than an opaque token - see AuthService.forgotPassword's Javadoc for why the code now only ever reaches the user by email. */
 public record ResetPasswordRequest(
 
-        @NotNull(message = "Reset token is required")
-        UUID token,
+        @NotBlank(message = "Email is required")
+        @Email(message = "Email must be a valid address")
+        String email,
+
+        @NotBlank(message = "Code is required")
+        String code,
 
         @NotBlank(message = "Password is required")
         @Size(min = 8, message = "Password must be at least 8 characters long")

@@ -4,11 +4,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 import 'app_toast.dart';
 
-/// A tappable "Call {name}" row - shown once a booking is accepted, since
-/// that's the only way a customer and provider can actually reach each
-/// other right now (there's no in-app chat). Does nothing but show a toast
-/// on a device with no phone dialer (e.g. testing in a desktop browser) -
-/// canLaunchUrl gates that gracefully instead of throwing.
+/// A tappable "Call {name}" row - shown once a booking is accepted, next to
+/// ChatEntryRow as the other way a customer and provider can reach each
+/// other. Does nothing but show a toast on a device with no phone dialer
+/// (e.g. testing in a desktop browser) - canLaunchUrl gates that
+/// gracefully instead of throwing.
 class CallContactRow extends StatelessWidget {
   const CallContactRow({super.key, required this.name, required this.phone});
 

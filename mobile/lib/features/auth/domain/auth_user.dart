@@ -18,6 +18,7 @@ class AuthUser {
     required this.name,
     required this.email,
     required this.role,
+    required this.emailVerified,
     this.phone,
     this.profileImageUrl,
   });
@@ -27,6 +28,7 @@ class AuthUser {
   final String name;
   final String email;
   final UserRole role;
+  final bool emailVerified;
   final String? phone;
   final String? profileImageUrl;
 
@@ -36,6 +38,7 @@ class AuthUser {
         name: json['name'] as String,
         email: json['email'] as String,
         role: UserRoleJson.fromWire(json['role'] as String),
+        emailVerified: json['emailVerified'] as bool,
         phone: json['phone'] as String?,
         profileImageUrl: json['profileImageUrl'] as String?,
       );
@@ -46,6 +49,7 @@ class AuthUser {
         'name': name,
         'email': email,
         'role': role.toWire(),
+        'emailVerified': emailVerified,
         'phone': phone,
         'profileImageUrl': profileImageUrl,
       };

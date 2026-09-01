@@ -177,6 +177,7 @@ public class BookingService {
         User customer = userRepository.findById(booking.getCustomerId()).orElseThrow(UserNotFoundException::new);
         ProviderProfile provider = providerProfileRepository.findById(booking.getProviderProfileId())
                 .orElseThrow(ProviderProfileNotFoundException::new);
+        User providerOwner = userRepository.findById(provider.getUserId()).orElseThrow(UserNotFoundException::new);
         ServiceListing service = serviceListingRepository.findById(booking.getServiceListingId())
                 .orElseThrow(ServiceListingNotFoundException::new);
 
@@ -184,8 +185,10 @@ public class BookingService {
                 booking.getId(),
                 booking.getCustomerId(),
                 customer.getName(),
+                customer.getPhone(),
                 booking.getProviderProfileId(),
                 provider.getBusinessName(),
+                providerOwner.getPhone(),
                 booking.getServiceListingId(),
                 service.getName(),
                 service.getPrice(),

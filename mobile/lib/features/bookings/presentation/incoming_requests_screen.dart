@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/call_contact_row.dart';
 import '../domain/booking.dart';
 import '../domain/booking_status.dart';
 import 'booking_controller.dart';
@@ -65,6 +66,14 @@ class _RequestCard extends ConsumerWidget {
 
   final Booking booking;
 
+  /// Same reasoning as MyBookingsScreen's _canCallProvider, mirrored for
+  /// the provider's side: the customer only becomes reachable once
+  /// there's actually a job to coordinate.
+  bool get _canCallCustomer => switch (booking.status) {
+        BookingStatus.accepted || BookingStatus.inProgress || BookingStatus.completed || BookingStatus.reviewed => true,
+        _ => false,
+      };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
@@ -90,6 +99,10 @@ class _RequestCard extends ConsumerWidget {
             ],
             const SizedBox(height: 4),
             Text('RWF ${booking.servicePrice.toStringAsFixed(0)}', style: textTheme.bodySmall),
+            if (_canCallCustomer && booking.customerPhone != null) ...[
+              const SizedBox(height: 4),
+              CallContactRow(name: booking.customerName, phone: booking.customerPhone!),
+            ],
             const SizedBox(height: AppSpacing.sm),
             Align(
               alignment: Alignment.centerRight,

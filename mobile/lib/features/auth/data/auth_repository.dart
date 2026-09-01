@@ -86,9 +86,25 @@ class AuthRepository {
     }
   }
 
-  Future<void> resetPassword({required String token, required String newPassword}) async {
+  Future<void> resetPassword({required String email, required String code, required String newPassword}) async {
     try {
-      await _api.resetPassword(token: token, newPassword: newPassword);
+      await _api.resetPassword(email: email, code: code, newPassword: newPassword);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<void> verifyEmail({required String code}) async {
+    try {
+      await _api.verifyEmail(code: code);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<void> resendVerification() async {
+    try {
+      await _api.resendVerification();
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

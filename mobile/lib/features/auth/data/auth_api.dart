@@ -5,7 +5,8 @@ import '../domain/password_reset_result.dart';
 import '../domain/user_role.dart';
 
 /// Raw HTTP calls to POST /api/auth/register, /login, /logout,
-/// /forgot-password, and /reset-password.
+/// /forgot-password, /reset-password, /verify-email, and
+/// /resend-verification.
 ///
 /// This class only knows how to talk to those endpoints - it doesn't catch
 /// errors or touch storage. AuthRepository is the layer that adds error
@@ -59,10 +60,19 @@ class AuthApi {
     return ForgotPasswordResult.fromJson(response.data!);
   }
 
-  Future<void> resetPassword({required String token, required String newPassword}) {
+  Future<void> resetPassword({required String email, required String code, required String newPassword}) {
     return _dio.post<void>(
       '/auth/reset-password',
-      data: {'token': token, 'newPassword': newPassword},
+      data: {'email': email, 'code': code, 'newPassword': newPassword},
     );
   }
+
+  /// The "Authorization: Bearer" header (from register()'s own JWT) is
+  /// enough to identify which account's code this is - same reasoning as
+  /// logout() needing no body of its own.
+  Future<void> verifyEmail({required String code}) {
+    return _dio.post<void>('/auth/verify-email', data: {'code': code});
+  }
+
+  Future<void> resendVerification() => _dio.post<void>('/auth/resend-verification');
 }

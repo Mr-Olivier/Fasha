@@ -9,8 +9,10 @@ class Booking {
     required this.id,
     required this.customerId,
     required this.customerName,
+    this.customerPhone,
     required this.providerProfileId,
     required this.providerBusinessName,
+    this.providerPhone,
     required this.serviceListingId,
     required this.serviceName,
     required this.servicePrice,
@@ -23,8 +25,10 @@ class Booking {
   final String id;
   final String customerId;
   final String customerName;
+  final String? customerPhone;
   final String providerProfileId;
   final String providerBusinessName;
+  final String? providerPhone;
   final String serviceListingId;
   final String serviceName;
   final double servicePrice;
@@ -37,8 +41,10 @@ class Booking {
         id: json['id'] as String,
         customerId: json['customerId'] as String,
         customerName: json['customerName'] as String,
+        customerPhone: json['customerPhone'] as String?,
         providerProfileId: json['providerProfileId'] as String,
         providerBusinessName: json['providerBusinessName'] as String,
+        providerPhone: json['providerPhone'] as String?,
         serviceListingId: json['serviceListingId'] as String,
         serviceName: json['serviceName'] as String,
         servicePrice: (json['servicePrice'] as num).toDouble(),

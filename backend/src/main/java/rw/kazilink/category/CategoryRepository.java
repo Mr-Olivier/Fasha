@@ -8,4 +8,9 @@ import java.util.UUID;
 public interface CategoryRepository extends JpaRepository<Category, UUID> {
 
     List<Category> findAllByOrderByNameAsc();
+
+    boolean existsByNameIgnoreCase(String name);
+
+    /** Used when renaming a category - excludes itself so keeping the same name doesn't false-positive as a clash. */
+    boolean existsByNameIgnoreCaseAndIdNot(String name, UUID id);
 }

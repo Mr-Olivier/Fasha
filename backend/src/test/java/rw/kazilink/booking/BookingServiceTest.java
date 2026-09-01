@@ -57,13 +57,15 @@ class BookingServiceTest {
     private final UUID serviceListingId = UUID.randomUUID();
 
     private void stubLookupsForToResponse(Booking booking) {
-        User customer = new User("Alice Uwase", "alice@example.com", null, "hash", Role.CUSTOMER);
+        User customer = new User("Alice Uwase", "alice@example.com", "0788111222", "hash", Role.CUSTOMER);
         ProviderProfile provider = new ProviderProfile(providerUserId, "Bob's Repairs", null, null, null);
         provider.setId(providerProfileId);
+        User providerOwner = new User("Bob Provider", "bob@example.com", "0788333444", "hash", Role.PROVIDER);
         ServiceListing service = new ServiceListing(providerProfileId, UUID.randomUUID(), "Phone repair", null, BigDecimal.TEN);
 
         when(userRepository.findById(booking.getCustomerId())).thenReturn(Optional.of(customer));
         when(providerProfileRepository.findById(booking.getProviderProfileId())).thenReturn(Optional.of(provider));
+        when(userRepository.findById(providerUserId)).thenReturn(Optional.of(providerOwner));
         when(serviceListingRepository.findById(booking.getServiceListingId())).thenReturn(Optional.of(service));
     }
 
@@ -80,8 +82,10 @@ class BookingServiceTest {
         User customer = new User("Alice Uwase", "alice@example.com", null, "hash", Role.CUSTOMER);
         ProviderProfile provider = new ProviderProfile(providerUserId, "Bob's Repairs", null, null, null);
         provider.setId(providerProfileId);
+        User providerOwner = new User("Bob Provider", "bob@example.com", null, "hash", Role.PROVIDER);
         when(userRepository.findById(customerId)).thenReturn(Optional.of(customer));
         when(providerProfileRepository.findById(providerProfileId)).thenReturn(Optional.of(provider));
+        when(userRepository.findById(providerUserId)).thenReturn(Optional.of(providerOwner));
 
         BookingResponse response = bookingService.createBooking(customerId, new CreateBookingRequest(serviceListingId, "Cracked screen", null));
 

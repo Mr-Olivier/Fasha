@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -11,11 +12,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import rw.kazilink.security.JwtService;
 
+import java.util.UUID;
+
 /**
  * register/login/forgot-password/reset-password are the endpoints that
  * don't require a JWT (see SecurityConfig) - all four are things a user
- * does specifically because they AREN'T authenticated yet. logout DOES
- * require one - it needs a real token to revoke.
+ * does specifically because they AREN'T authenticated yet. logout,
+ * verify-email, and resend-verification DO require one - the latter two
+ * because register() already hands back a usable JWT (see AuthService's
+ * doc comment) that they act on.
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -49,6 +54,18 @@ public class AuthController {
     @PostMapping("/reset-password")
     public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<Void> verifyEmail(@AuthenticationPrincipal UUID userId, @Valid @RequestBody VerifyEmailRequest request) {
+        authService.verifyEmail(userId, request.code());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<Void> resendVerification(@AuthenticationPrincipal UUID userId) {
+        authService.resendVerification(userId);
         return ResponseEntity.noContent().build();
     }
 }

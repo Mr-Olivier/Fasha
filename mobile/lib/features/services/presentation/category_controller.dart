@@ -13,10 +13,10 @@ final categoryRepositoryProvider = Provider<CategoryRepository>(
   (ref) => CategoryRepository(ref.watch(categoryApiProvider)),
 );
 
-/// Categories never change from inside the app (no create/edit endpoint
-/// exists yet), so a plain FutureProvider - "fetch once, cache the result" -
-/// is enough. No AsyncNotifier/mutation methods needed, unlike
-/// AuthController or ServiceListingController.
+/// A plain FutureProvider - "fetch once, cache the result" - since this
+/// provider itself only ever reads. AdminCategoryController is what
+/// mutates categories (add/rename/delete) and invalidates this provider
+/// afterwards so every screen watching it picks up the change.
 final categoriesProvider = FutureProvider<List<Category>>(
   (ref) => ref.watch(categoryRepositoryProvider).fetchCategories(),
 );

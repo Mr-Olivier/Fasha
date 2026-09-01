@@ -1,6 +1,6 @@
-/// Mirrors the backend's CategoryResponse DTO. Categories are read-only
-/// from the app's point of view - managed by an admin, a feature that
-/// doesn't exist yet.
+/// Mirrors the backend's CategoryResponse DTO. Fetched the same way for
+/// everyone (GET /api/categories); only an admin can also create, rename,
+/// or delete one, via AdminCategoryController.
 class Category {
   const Category({required this.id, required this.name, this.description});
 

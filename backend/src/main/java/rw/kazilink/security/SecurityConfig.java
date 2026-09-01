@@ -91,10 +91,11 @@ public class SecurityConfig {
                                 "/api/auth/forgot-password",
                                 "/api/auth/reset-password"
                         ).permitAll()
-                        // Categories are only ever read here (admin management is
-                        // Feature 9) - scoped to GET specifically, so a future
-                        // admin-only POST/PUT on the same path doesn't
-                        // accidentally inherit this permitAll.
+                        // Only the read side is public - scoped to GET
+                        // specifically, so admin-only writes on
+                        // /api/admin/categories (AdminCategoryController,
+                        // gated by its own @PreAuthorize) don't inherit this
+                        // permitAll just for sharing the "categories" word.
                         .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
                         // "/api/providers/me" and "/api/providers/{id}" have the
                         // same URL shape ("/api/providers/<one segment>"), so

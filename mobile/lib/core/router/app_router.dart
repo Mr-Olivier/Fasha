@@ -14,6 +14,7 @@ import '../../features/bookings/domain/booking.dart';
 import '../../features/bookings/presentation/incoming_requests_screen.dart';
 import '../../features/bookings/presentation/my_bookings_screen.dart';
 import '../../features/bookings/presentation/request_booking_screen.dart';
+import '../../features/chat/presentation/chat_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/profile/presentation/change_password_screen.dart';
@@ -124,6 +125,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => RequestBookingScreen(service: state.extra as ServiceListing),
       ),
       GoRoute(path: '/my-bookings', builder: (context, state) => const MyBookingsScreen()),
+      GoRoute(
+        path: '/chat',
+        // `extra` carries the ChatScreenArgs (bookingId + other party's
+        // name) - see ChatEntryRow's onTap.
+        builder: (context, state) => ChatScreen(args: state.extra as ChatScreenArgs),
+      ),
       GoRoute(path: '/admin/providers', builder: (context, state) => const AdminProvidersScreen()),
       GoRoute(path: '/admin/categories', builder: (context, state) => const AdminCategoriesScreen()),
       GoRoute(

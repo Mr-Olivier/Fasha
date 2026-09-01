@@ -1,8 +1,10 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/admin/presentation/admin_categories_screen.dart';
 import '../../features/admin/presentation/admin_providers_screen.dart';
+import '../../features/admin/presentation/category_form_screen.dart';
 import '../../features/auth/presentation/auth_controller.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
@@ -21,6 +23,7 @@ import '../../features/providers/presentation/provider_detail_screen.dart';
 import '../../features/providers/presentation/provider_list_screen.dart';
 import '../../features/providers/presentation/provider_profile_screen.dart';
 import '../../features/reviews/presentation/write_review_screen.dart';
+import '../../features/services/domain/category.dart';
 import '../../features/services/domain/service_listing.dart';
 import '../../features/services/presentation/my_services_screen.dart';
 import '../../features/services/presentation/service_form_screen.dart';
@@ -122,6 +125,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/my-bookings', builder: (context, state) => const MyBookingsScreen()),
       GoRoute(path: '/admin/providers', builder: (context, state) => const AdminProvidersScreen()),
+      GoRoute(path: '/admin/categories', builder: (context, state) => const AdminCategoriesScreen()),
+      GoRoute(
+        path: '/admin/categories/form',
+        // `extra` carries the Category being edited, or null when adding a
+        // new one - see CategoryFormScreen's doc comment for why.
+        builder: (context, state) => CategoryFormScreen(existing: state.extra as Category?),
+      ),
       GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen()),
       GoRoute(path: '/incoming-requests', builder: (context, state) => const IncomingRequestsScreen()),
       GoRoute(

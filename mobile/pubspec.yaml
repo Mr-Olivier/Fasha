@@ -43,6 +43,7 @@ dependencies:
   shared_preferences: ^2.3.3 # simple key-value storage (e.g. saved theme mode)
   google_fonts: ^6.2.1       # Plus Jakarta Sans, per the "Kigali Green" design system
   image_picker: ^1.1.2       # picking an avatar image from the device's gallery
+  url_launcher: ^6.3.1       # opening the phone dialer for a booking's "Call" button
 
 dev_dependencies:
   flutter_test:

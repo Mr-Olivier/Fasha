@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/call_contact_row.dart';
+import '../../../core/widgets/chat_entry_row.dart';
 import '../domain/booking.dart';
 import '../domain/booking_status.dart';
 import 'booking_controller.dart';
@@ -107,6 +108,10 @@ class _BookingCard extends ConsumerWidget {
             if (_canCallProvider && booking.providerPhone != null) ...[
               const SizedBox(height: 4),
               CallContactRow(name: booking.providerBusinessName, phone: booking.providerPhone!),
+            ],
+            if (_canCallProvider) ...[
+              const SizedBox(height: 4),
+              ChatEntryRow(bookingId: booking.id, name: booking.providerBusinessName),
             ],
             if (_canCancel) ...[
               const SizedBox(height: AppSpacing.sm),

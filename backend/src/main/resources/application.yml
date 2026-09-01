@@ -64,6 +64,14 @@ app:
   # would point this at a persistent volume or object storage instead.
   uploads-dir: uploads
 
+  brevo:
+    # From https://app.brevo.com/settings/keys/api - leave unset and
+    # BrevoEmailService just logs each OTP code instead of emailing it,
+    # so local dev works fully without a Brevo account.
+    api-key: ${BREVO_API_KEY:}
+    sender-email: ${BREVO_SENDER_EMAIL:no-reply@kazilink.rw}
+    sender-name: ${BREVO_SENDER_NAME:KaziLink Rwanda}
+
 logging:
   level:
     rw.kazilink: DEBUG

@@ -6,15 +6,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import rw.kazilink.otp.InvalidOtpException;
+import rw.kazilink.otp.OtpPurpose;
+import rw.kazilink.otp.OtpService;
 import rw.kazilink.security.JwtService;
 import rw.kazilink.security.RevokedToken;
 import rw.kazilink.security.RevokedTokenRepository;
 import rw.kazilink.user.Role;
 import rw.kazilink.user.User;
+import rw.kazilink.user.UserNotFoundException;
 import rw.kazilink.user.UserRepository;
 import rw.kazilink.user.UserStatus;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,21 +33,23 @@ public class AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
-    /** How long a "forgot password" link stays usable before it must be requested again. */
-    private static final long RESET_TOKEN_VALID_MINUTES = 30;
-
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RevokedTokenRepository revokedTokenRepository;
-    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final OtpService otpService;
 
     /**
-     * {@code @Transactional}: if anything after userRepository.save() threw
-     * an exception, the save would be rolled back too, so we never end up
-     * with a half-created user. Not strictly necessary yet (nothing else
-     * touches the database here), but this is the right default the moment
-     * a service method does more than one write.
+     * emailVerified starts false for every self-registered account - see
+     * User.emailVerified's Javadoc - and this immediately issues an
+     * EMAIL_VERIFICATION code by the same OtpService that
+     * forgotPassword()/resetPassword() use. The response still carries a
+     * real, usable JWT (see AuthResponse.emailVerified) rather than
+     * stranding the new user with no session at all - the mobile app is
+     * what actually blocks navigation past the "verify your email" screen
+     * (app_router.dart's redirect) until that flips true. login() is the
+     * one place this IS enforced server-side, for anyone who closes the
+     * app before verifying and comes back later.
      */
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -62,7 +67,11 @@ public class AuthService {
                 passwordEncoder.encode(request.password()),
                 request.role()
         );
+        user.setEmailVerified(false);
         userRepository.save(user);
+
+        otpService.issue(user, OtpPurpose.EMAIL_VERIFICATION,
+                "Verify your KaziLink email", "Welcome to KaziLink! Use this code to verify your email:");
 
         String token = jwtService.generateToken(user.getId(), user.getRole().name());
         return toAuthResponse(user, token);
@@ -78,9 +87,29 @@ public class AuthService {
         if (user.getStatus() == UserStatus.SUSPENDED) {
             throw new SuspendedAccountException();
         }
+        if (!user.isEmailVerified()) {
+            throw new EmailNotVerifiedException();
+        }
 
         String token = jwtService.generateToken(user.getId(), user.getRole().name());
         return toAuthResponse(user, token);
+    }
+
+    /** Called from the "verify your email" screen when the original register() code expired or never arrived - issues a fresh one for the same account. */
+    public void resendVerification(UUID userId) {
+        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+        otpService.issue(user, OtpPurpose.EMAIL_VERIFICATION,
+                "Your new KaziLink verification code", "Here's your new verification code:");
+    }
+
+    @Transactional
+    public void verifyEmail(UUID userId, String code) {
+        if (!otpService.verifyAndConsume(userId, OtpPurpose.EMAIL_VERIFICATION, code)) {
+            throw new InvalidOtpException();
+        }
+        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+        user.setEmailVerified(true);
+        userRepository.save(user);
     }
 
     /**
@@ -101,50 +130,38 @@ public class AuthService {
      * Always succeeds with the same generic message, whether or not `email`
      * belongs to a real account - if we responded differently for "unknown
      * email" vs "email found", anyone could use this endpoint to check
-     * which addresses are registered. If the email DOES match a user, a
-     * reset token is created and (since this project has no email server)
-     * logged here instead of being emailed - a real production version
-     * would send an email containing a link with this token and stop there;
-     * it would never put the token in the HTTP response body the way
-     * ForgotPasswordResponse.devResetToken does.
+     * which addresses are registered. If the email DOES match a user, an
+     * OTP code is issued the same way register() issues one, and emailed
+     * via Brevo (BrevoEmailService) - never returned in this response.
      */
     @Transactional
     public ForgotPasswordResponse forgotPassword(ForgotPasswordRequest request) {
         Optional<User> user = userRepository.findByEmail(request.email());
-        UUID devToken = null;
 
         if (user.isPresent()) {
-            PasswordResetToken resetToken =
-                    new PasswordResetToken(user.get().getId(), Instant.now().plus(Duration.ofMinutes(RESET_TOKEN_VALID_MINUTES)));
-            passwordResetTokenRepository.save(resetToken);
-            devToken = resetToken.getToken();
-            log.info("Password reset requested for {} - dev-mode token (would be emailed in production): {}",
-                    request.email(), devToken);
+            otpService.issue(user.get(), OtpPurpose.PASSWORD_RESET,
+                    "Your KaziLink password reset code", "Use this code to reset your password:");
         } else {
             log.info("Password reset requested for an email with no matching account: {}", request.email());
         }
 
-        return new ForgotPasswordResponse(
-                "If an account exists for that email, a reset link has been generated.", devToken);
+        return new ForgotPasswordResponse("If an account exists for that email, a verification code has been sent.");
     }
 
+    /** InvalidOtpException doubles as "no such account" here too, deliberately - same "don't reveal what you can't touch" reasoning as forgotPassword's generic message. */
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
-        PasswordResetToken resetToken = passwordResetTokenRepository.findById(request.token())
-                .filter(PasswordResetToken::isValid)
-                .orElseThrow(InvalidResetTokenException::new);
+        User user = userRepository.findByEmail(request.email()).orElseThrow(InvalidOtpException::new);
 
-        User user = userRepository.findById(resetToken.getUserId())
-                .orElseThrow(InvalidResetTokenException::new);
+        if (!otpService.verifyAndConsume(user.getId(), OtpPurpose.PASSWORD_RESET, request.code())) {
+            throw new InvalidOtpException();
+        }
 
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);
-
-        resetToken.setUsedAt(Instant.now());
-        passwordResetTokenRepository.save(resetToken);
     }
 
     private AuthResponse toAuthResponse(User user, String token) {
-        return new AuthResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole());
+        return new AuthResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole(), user.isEmailVerified());
     }
 }

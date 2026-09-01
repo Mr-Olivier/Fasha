@@ -11,13 +11,19 @@ import java.util.UUID;
  * so "My Bookings" / "Incoming Requests" list screens can render a useful
  * card without a separate round-trip per booking - see
  * BookingService.toResponse() for where these get looked up.
+ *
+ * customerPhone/providerPhone are the two parties' only way to actually
+ * reach each other once a booking is accepted - there's no in-app chat.
+ * Either can be null if that user never set a phone number.
  */
 public record BookingResponse(
         UUID id,
         UUID customerId,
         String customerName,
+        String customerPhone,
         UUID providerProfileId,
         String providerBusinessName,
+        String providerPhone,
         UUID serviceListingId,
         String serviceName,
         BigDecimal servicePrice,

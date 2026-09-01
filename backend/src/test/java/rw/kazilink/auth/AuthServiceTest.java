@@ -7,6 +7,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import rw.kazilink.otp.InvalidOtpException;
+import rw.kazilink.otp.OtpPurpose;
+import rw.kazilink.otp.OtpService;
 import rw.kazilink.security.JwtService;
 import rw.kazilink.security.RevokedToken;
 import rw.kazilink.security.RevokedTokenRepository;
@@ -23,14 +26,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the business rules in AuthService. These don't start
  * Spring or touch a real database at all - UserRepository/PasswordEncoder/
- * JwtService are Mockito "fakes" we fully control, which is what makes
- * this test run in milliseconds instead of seconds.
+ * JwtService/OtpService are Mockito "fakes" we fully control, which is
+ * what makes this test run in milliseconds instead of seconds.
  *
  * README.md section 20 calls out "Authentication" and "Authorisation" as
  * the backend behaviour most worth testing for this MVP - this class is
@@ -52,7 +57,7 @@ class AuthServiceTest {
     private RevokedTokenRepository revokedTokenRepository;
 
     @Mock
-    private PasswordResetTokenRepository passwordResetTokenRepository;
+    private OtpService otpService;
 
     @InjectMocks
     private AuthService authService;
@@ -63,6 +68,12 @@ class AuthServiceTest {
     void setUp() {
         validRegisterRequest = new RegisterRequest(
                 "Alice Uwase", "alice@example.com", "0788000000", "password123", Role.CUSTOMER);
+    }
+
+    private User verifiedUser(String passwordHash) {
+        User user = new User("Alice Uwase", "alice@example.com", null, passwordHash, Role.CUSTOMER);
+        user.setEmailVerified(true);
+        return user;
     }
 
     @Test
@@ -83,7 +94,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void register_hashesPasswordAndReturnsToken() {
+    void register_hashesPasswordAndReturnsAnUnverifiedTokenWhileIssuingAnOtp() {
         when(userRepository.existsByEmail("alice@example.com")).thenReturn(false);
         when(passwordEncoder.encode("password123")).thenReturn("hashed-password");
         when(jwtService.generateToken(any(), anyString())).thenReturn("fake-jwt-token");
@@ -93,8 +104,10 @@ class AuthServiceTest {
         assertThat(response.token()).isEqualTo("fake-jwt-token");
         assertThat(response.email()).isEqualTo("alice@example.com");
         assertThat(response.role()).isEqualTo(Role.CUSTOMER);
+        assertThat(response.emailVerified()).isFalse();
         // The raw password must never reach the repository - only the hash.
         verifyUserWasSavedWithHash("hashed-password");
+        verify(otpService).issue(any(User.class), eq(OtpPurpose.EMAIL_VERIFICATION), anyString(), anyString());
     }
 
     @Test
@@ -109,7 +122,7 @@ class AuthServiceTest {
 
     @Test
     void login_rejectsWrongPassword() {
-        User existingUser = new User("Alice Uwase", "alice@example.com", null, "hashed-password", Role.CUSTOMER);
+        User existingUser = verifiedUser("hashed-password");
         when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(existingUser));
         when(passwordEncoder.matches("wrong-password", "hashed-password")).thenReturn(false);
 
@@ -121,7 +134,7 @@ class AuthServiceTest {
 
     @Test
     void login_rejectsSuspendedAccount() {
-        User suspendedUser = new User("Alice Uwase", "alice@example.com", null, "hashed-password", Role.CUSTOMER);
+        User suspendedUser = verifiedUser("hashed-password");
         suspendedUser.setStatus(UserStatus.SUSPENDED);
         when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(suspendedUser));
         when(passwordEncoder.matches("password123", "hashed-password")).thenReturn(true);
@@ -133,8 +146,21 @@ class AuthServiceTest {
     }
 
     @Test
+    void login_rejectsAnUnverifiedEmail() {
+        User unverifiedUser = new User("Alice Uwase", "alice@example.com", null, "hashed-password", Role.CUSTOMER);
+        unverifiedUser.setEmailVerified(false);
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(unverifiedUser));
+        when(passwordEncoder.matches("password123", "hashed-password")).thenReturn(true);
+
+        LoginRequest request = new LoginRequest("alice@example.com", "password123");
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(EmailNotVerifiedException.class);
+    }
+
+    @Test
     void login_returnsTokenOnCorrectPassword() {
-        User existingUser = new User("Alice Uwase", "alice@example.com", null, "hashed-password", Role.CUSTOMER);
+        User existingUser = verifiedUser("hashed-password");
         when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(existingUser));
         when(passwordEncoder.matches("password123", "hashed-password")).thenReturn(true);
         when(jwtService.generateToken(any(), anyString())).thenReturn("fake-jwt-token");
@@ -142,6 +168,7 @@ class AuthServiceTest {
         AuthResponse response = authService.login(new LoginRequest("alice@example.com", "password123"));
 
         assertThat(response.token()).isEqualTo("fake-jwt-token");
+        assertThat(response.emailVerified()).isTrue();
     }
 
     @Test
@@ -160,73 +187,78 @@ class AuthServiceTest {
     }
 
     @Test
-    void forgotPassword_returnsNoTokenForAnUnknownEmail() {
+    void verifyEmail_marksTheAccountVerifiedOnAValidCode() {
+        UUID userId = UUID.randomUUID();
+        User user = new User("Alice Uwase", "alice@example.com", null, "hash", Role.CUSTOMER);
+        user.setId(userId);
+        user.setEmailVerified(false);
+        when(otpService.verifyAndConsume(userId, OtpPurpose.EMAIL_VERIFICATION, "123456")).thenReturn(true);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        authService.verifyEmail(userId, "123456");
+
+        assertThat(user.isEmailVerified()).isTrue();
+    }
+
+    @Test
+    void verifyEmail_throwsOnAnInvalidCode() {
+        UUID userId = UUID.randomUUID();
+        when(otpService.verifyAndConsume(userId, OtpPurpose.EMAIL_VERIFICATION, "000000")).thenReturn(false);
+
+        assertThatThrownBy(() -> authService.verifyEmail(userId, "000000"))
+                .isInstanceOf(InvalidOtpException.class);
+    }
+
+    @Test
+    void forgotPassword_doesNotIssueAnOtpForAnUnknownEmail() {
         when(userRepository.findByEmail("nobody@example.com")).thenReturn(Optional.empty());
 
         ForgotPasswordResponse response = authService.forgotPassword(new ForgotPasswordRequest("nobody@example.com"));
 
         // The message is identical either way - see forgotPassword's Javadoc
         // for why we never reveal whether the email exists via the response.
-        assertThat(response.devResetToken()).isNull();
-        verify(passwordResetTokenRepository, org.mockito.Mockito.never()).save(any());
+        assertThat(response.message()).isNotBlank();
+        verify(otpService, never()).issue(any(), any(), anyString(), anyString());
     }
 
     @Test
-    void forgotPassword_createsATokenForAKnownEmail() {
-        User existingUser = new User("Alice Uwase", "alice@example.com", null, "hashed-password", Role.CUSTOMER);
+    void forgotPassword_issuesAPasswordResetOtpForAKnownEmail() {
+        User existingUser = verifiedUser("hashed-password");
         when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(existingUser));
 
-        ForgotPasswordResponse response = authService.forgotPassword(new ForgotPasswordRequest("alice@example.com"));
+        authService.forgotPassword(new ForgotPasswordRequest("alice@example.com"));
 
-        assertThat(response.devResetToken()).isNotNull();
-        verify(passwordResetTokenRepository).save(any(PasswordResetToken.class));
+        verify(otpService).issue(eq(existingUser), eq(OtpPurpose.PASSWORD_RESET), anyString(), anyString());
     }
 
     @Test
-    void resetPassword_rejectsAnUnknownToken() {
-        UUID token = UUID.randomUUID();
-        when(passwordResetTokenRepository.findById(token)).thenReturn(Optional.empty());
+    void resetPassword_rejectsAnUnknownEmail() {
+        when(userRepository.findByEmail("nobody@example.com")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authService.resetPassword(new ResetPasswordRequest(token, "newpassword123")))
-                .isInstanceOf(InvalidResetTokenException.class);
+        assertThatThrownBy(() -> authService.resetPassword(new ResetPasswordRequest("nobody@example.com", "123456", "newpassword123")))
+                .isInstanceOf(InvalidOtpException.class);
     }
 
     @Test
-    void resetPassword_rejectsAnAlreadyUsedToken() {
-        UUID userId = UUID.randomUUID();
-        PasswordResetToken usedToken = new PasswordResetToken(userId, Instant.now().plusSeconds(600));
-        usedToken.setUsedAt(Instant.now().minusSeconds(60));
-        when(passwordResetTokenRepository.findById(any())).thenReturn(Optional.of(usedToken));
+    void resetPassword_rejectsAnInvalidCode() {
+        User existingUser = verifiedUser("old-hash");
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(existingUser));
+        when(otpService.verifyAndConsume(existingUser.getId(), OtpPurpose.PASSWORD_RESET, "000000")).thenReturn(false);
 
-        assertThatThrownBy(() -> authService.resetPassword(new ResetPasswordRequest(UUID.randomUUID(), "newpassword123")))
-                .isInstanceOf(InvalidResetTokenException.class);
+        assertThatThrownBy(() -> authService.resetPassword(new ResetPasswordRequest("alice@example.com", "000000", "newpassword123")))
+                .isInstanceOf(InvalidOtpException.class);
     }
 
     @Test
-    void resetPassword_rejectsAnExpiredToken() {
-        UUID userId = UUID.randomUUID();
-        PasswordResetToken expiredToken = new PasswordResetToken(userId, Instant.now().minusSeconds(60));
-        when(passwordResetTokenRepository.findById(any())).thenReturn(Optional.of(expiredToken));
-
-        assertThatThrownBy(() -> authService.resetPassword(new ResetPasswordRequest(UUID.randomUUID(), "newpassword123")))
-                .isInstanceOf(InvalidResetTokenException.class);
-    }
-
-    @Test
-    void resetPassword_updatesThePasswordAndMarksTheTokenUsed() {
-        UUID userId = UUID.randomUUID();
-        User existingUser = new User("Alice Uwase", "alice@example.com", null, "old-hash", Role.CUSTOMER);
-        existingUser.setId(userId);
-        PasswordResetToken validToken = new PasswordResetToken(userId, Instant.now().plusSeconds(600));
-
-        when(passwordResetTokenRepository.findById(any())).thenReturn(Optional.of(validToken));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(existingUser));
+    void resetPassword_updatesThePasswordOnAValidCode() {
+        User existingUser = verifiedUser("old-hash");
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(existingUser));
+        when(otpService.verifyAndConsume(existingUser.getId(), OtpPurpose.PASSWORD_RESET, "123456")).thenReturn(true);
         when(passwordEncoder.encode("newpassword123")).thenReturn("new-hash");
 
-        authService.resetPassword(new ResetPasswordRequest(UUID.randomUUID(), "newpassword123"));
+        authService.resetPassword(new ResetPasswordRequest("alice@example.com", "123456", "newpassword123"));
 
         assertThat(existingUser.getPasswordHash()).isEqualTo("new-hash");
-        assertThat(validToken.getUsedAt()).isNotNull();
     }
 
     private void verifyUserWasSavedWithHash(String expectedHash) {

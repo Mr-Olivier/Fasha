@@ -20,5 +20,18 @@ public enum BookingStatus {
     IN_PROGRESS,
     COMPLETED,
     CANCELLED,
-    REVIEWED
+    REVIEWED;
+
+    /**
+     * Whether the two parties have anything left to coordinate directly -
+     * true from the moment a provider accepts through to after the review.
+     * Shared by both ways they reach each other: the mobile call-contact
+     * row (mirrored client-side per screen, since it's a pure display
+     * decision) and MessageService, which actually enforces this one
+     * server-side since sending a message is a real write, not just a UI
+     * hide.
+     */
+    public boolean allowsContact() {
+        return this == ACCEPTED || this == IN_PROGRESS || this == COMPLETED || this == REVIEWED;
+    }
 }

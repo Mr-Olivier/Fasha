@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/call_contact_row.dart';
 import '../domain/booking.dart';
 import '../domain/booking_status.dart';
 import 'booking_controller.dart';
@@ -71,6 +72,14 @@ class _BookingCard extends ConsumerWidget {
 
   bool get _canReview => booking.status == BookingStatus.completed;
 
+  /// The provider only becomes reachable once they've actually accepted -
+  /// showing their number while still just REQUESTED would be pointless
+  /// (and REJECTED/CANCELLED have nothing left to coordinate).
+  bool get _canCallProvider => switch (booking.status) {
+        BookingStatus.accepted || BookingStatus.inProgress || BookingStatus.completed || BookingStatus.reviewed => true,
+        _ => false,
+      };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
@@ -95,6 +104,10 @@ class _BookingCard extends ConsumerWidget {
             ],
             const SizedBox(height: 4),
             Text('RWF ${booking.servicePrice.toStringAsFixed(0)}', style: textTheme.bodySmall),
+            if (_canCallProvider && booking.providerPhone != null) ...[
+              const SizedBox(height: 4),
+              CallContactRow(name: booking.providerBusinessName, phone: booking.providerPhone!),
+            ],
             if (_canCancel) ...[
               const SizedBox(height: AppSpacing.sm),
               Align(

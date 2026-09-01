@@ -211,6 +211,13 @@ class _AdminHome extends ConsumerWidget {
                 : '$pendingCount application${pendingCount == 1 ? '' : 's'} waiting for review',
             onTap: () => context.push('/admin/providers'),
           ),
+          const SizedBox(height: AppSpacing.sm),
+          _DashboardTile(
+            icon: Icons.category_outlined,
+            title: 'Manage categories',
+            subtitle: 'Add, rename, or remove service categories',
+            onTap: () => context.push('/admin/categories'),
+          ),
         ],
       ),
     );

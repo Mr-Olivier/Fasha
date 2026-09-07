@@ -96,8 +96,31 @@ class AuthController extends AsyncNotifier<AuthUser?> {
       name: name,
       email: current.email,
       role: current.role,
+      emailVerified: current.emailVerified,
       phone: phone,
       profileImageUrl: profileImageUrl,
+    );
+    state = AsyncValue.data(updated);
+    ref.read(authRepositoryProvider).persistUser(updated);
+  }
+
+  /// Flips the cached session's emailVerified to true after
+  /// VerifyEmailController.verify() succeeds - VerifyEmailScreen's cue,
+  /// same pattern as applyAccountUpdate, to leave that screen since
+  /// app_router.dart's redirect no longer forces the user back onto it.
+  void applyEmailVerified() {
+    final current = state.valueOrNull;
+    if (current == null) return;
+
+    final updated = AuthUser(
+      token: current.token,
+      userId: current.userId,
+      name: current.name,
+      email: current.email,
+      role: current.role,
+      emailVerified: true,
+      phone: current.phone,
+      profileImageUrl: current.profileImageUrl,
     );
     state = AsyncValue.data(updated);
     ref.read(authRepositoryProvider).persistUser(updated);

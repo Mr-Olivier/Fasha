@@ -9,9 +9,9 @@ import '../../../core/widgets/app_logo.dart';
 /// underneath usually finishes in well under a second.
 ///
 /// The design reference's splash is the first slide of a swipeable
-/// onboarding carousel (dot indicators, multiple slides) - we only build
-/// this one static slide, since there's no onboarding content behind the
-/// other dots yet.
+/// onboarding carousel - the other slides are their own screen
+/// (OnboardingScreen), shown next for any device that hasn't finished it
+/// yet (see onboardingCompletedProvider), between this and /login.
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
 

@@ -30,10 +30,19 @@ public class ProviderProfileController {
 
     private final ProviderProfileService providerProfileService;
 
-    /** Public search - SecurityConfig permits GET here for everyone, logged in or not. */
+    /**
+     * Public search - SecurityConfig permits GET here for everyone, logged
+     * in or not. [search] matches against business name, location, and
+     * description (see ProviderProfileService.browseProviders); the two
+     * filters combine, so a category tap followed by typing a search term
+     * narrows further rather than replacing the category filter.
+     */
     @GetMapping
-    public List<ProviderProfileResponse> browseProviders(@RequestParam(required = false) UUID categoryId) {
-        return providerProfileService.browseProviders(categoryId);
+    public List<ProviderProfileResponse> browseProviders(
+            @RequestParam(required = false) UUID categoryId,
+            @RequestParam(required = false) String search
+    ) {
+        return providerProfileService.browseProviders(categoryId, search);
     }
 
     /** Public detail page - also permitAll in SecurityConfig. */

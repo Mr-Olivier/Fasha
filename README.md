@@ -1,8 +1,19 @@
-# Fasha
+<div align="center">
+  <img src="mobile/assets/images/logo.png" width="112" alt="Fasha logo" />
 
-**A mobile-first service marketplace connecting customers with trusted local service providers across Rwanda.**
+  # Fasha
 
-> Flutter · Spring Boot · PostgreSQL
+  **A mobile-first service marketplace connecting customers with trusted local service providers across Rwanda.**
+
+  ![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
+  ![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
+  ![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
+  ![Java](https://img.shields.io/badge/Java_21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
+  ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+  ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+</div>
+
+---
 
 > The repository, Java package (`rw.kazilink`), and some internal identifiers predate a rebrand from the project's original name, KaziLink, to **Fasha**. This README reflects the current name and product throughout.
 

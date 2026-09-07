@@ -122,7 +122,7 @@ class ProviderProfileServiceTest {
     void browseProviders_excludesProvidersThatArentApproved() {
         when(providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED)).thenReturn(List.of());
 
-        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null);
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null, null);
 
         assertThat(results).isEmpty();
     }
@@ -132,7 +132,7 @@ class ProviderProfileServiceTest {
         ProviderProfile approved = new ProviderProfile(UUID.randomUUID(), "Alice's Repairs", null, null, null);
         when(providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED)).thenReturn(List.of(approved));
 
-        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null);
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null, null);
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).businessName()).isEqualTo("Alice's Repairs");
@@ -150,7 +150,62 @@ class ProviderProfileServiceTest {
         when(serviceListingRepository.findByCategoryId(categoryId)).thenReturn(List.of(
                 new ServiceListing(inCategory.getId(), categoryId, "Phone repair", null, BigDecimal.TEN)));
 
-        List<ProviderProfileResponse> results = providerProfileService.browseProviders(categoryId);
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(categoryId, null);
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).businessName()).isEqualTo("Alice's Repairs");
+    }
+
+    @Test
+    void browseProviders_searchMatchesBusinessNameCaseInsensitively() {
+        ProviderProfile alice = new ProviderProfile(UUID.randomUUID(), "Alice's Repairs", null, null, null);
+        ProviderProfile bob = new ProviderProfile(UUID.randomUUID(), "Bob's Tailoring", null, null, null);
+        when(providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED))
+                .thenReturn(List.of(alice, bob));
+
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null, "alice");
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).businessName()).isEqualTo("Alice's Repairs");
+    }
+
+    @Test
+    void browseProviders_searchMatchesLocationWhenBusinessNameDoesnt() {
+        ProviderProfile inKigali = new ProviderProfile(UUID.randomUUID(), "Alice's Repairs", null, "Kigali", null);
+        ProviderProfile inHuye = new ProviderProfile(UUID.randomUUID(), "Bob's Tailoring", null, "Huye", null);
+        when(providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED))
+                .thenReturn(List.of(inKigali, inHuye));
+
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null, "kigali");
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).businessName()).isEqualTo("Alice's Repairs");
+    }
+
+    @Test
+    void browseProviders_blankSearchIsTreatedAsNoFilter() {
+        ProviderProfile approved = new ProviderProfile(UUID.randomUUID(), "Alice's Repairs", null, null, null);
+        when(providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED)).thenReturn(List.of(approved));
+
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null, "   ");
+
+        assertThat(results).hasSize(1);
+    }
+
+    @Test
+    void browseProviders_categoryAndSearchCombineRatherThanEitherAlone() {
+        ProviderProfile matchesBoth = new ProviderProfile(UUID.randomUUID(), "Alice's Repairs", null, null, null);
+        matchesBoth.setId(UUID.randomUUID());
+        ProviderProfile matchesCategoryOnly = new ProviderProfile(UUID.randomUUID(), "Bob's Repairs", null, null, null);
+        matchesCategoryOnly.setId(UUID.randomUUID());
+        UUID categoryId = UUID.randomUUID();
+        when(providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED))
+                .thenReturn(List.of(matchesBoth, matchesCategoryOnly));
+        when(serviceListingRepository.findByCategoryId(categoryId)).thenReturn(List.of(
+                new ServiceListing(matchesBoth.getId(), categoryId, "Phone repair", null, BigDecimal.TEN),
+                new ServiceListing(matchesCategoryOnly.getId(), categoryId, "Phone repair", null, BigDecimal.TEN)));
+
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(categoryId, "alice");
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).businessName()).isEqualTo("Alice's Repairs");

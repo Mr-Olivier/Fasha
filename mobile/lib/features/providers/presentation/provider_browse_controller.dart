@@ -6,10 +6,17 @@ import 'provider_profile_controller.dart';
 
 /// Customer-facing search - never mutated from inside the app (there's no
 /// "edit someone else's profile" action), so a plain FutureProvider.family
-/// is enough, same reasoning as categoriesProvider. `.family` because the
-/// result depends on an argument (which category, or null for "all").
-final providerBrowseProvider = FutureProvider.family<List<ProviderProfile>, String?>(
-  (ref, categoryId) => ref.watch(providerProfileRepositoryProvider).browseProviders(categoryId: categoryId),
+/// is enough, same reasoning as categoriesProvider. The family argument is
+/// a record of both filters (rather than two separate `.family` providers)
+/// since they combine into one request - Dart records compare by value, so
+/// ProviderListScreen changing either field re-fetches exactly as if this
+/// were a single argument.
+typedef ProviderBrowseQuery = ({String? categoryId, String? search});
+
+final providerBrowseProvider = FutureProvider.family<List<ProviderProfile>, ProviderBrowseQuery>(
+  (ref, query) => ref
+      .watch(providerProfileRepositoryProvider)
+      .browseProviders(categoryId: query.categoryId, search: query.search),
 );
 
 /// A provider's public detail page - profile plus their services.

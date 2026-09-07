@@ -10,6 +10,7 @@ import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/reset_password_screen.dart';
+import '../../features/auth/presentation/verify_email_screen.dart';
 import '../../features/bookings/domain/booking.dart';
 import '../../features/bookings/presentation/incoming_requests_screen.dart';
 import '../../features/bookings/presentation/my_bookings_screen.dart';
@@ -17,6 +18,8 @@ import '../../features/bookings/presentation/request_booking_screen.dart';
 import '../../features/chat/presentation/chat_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
+import '../../features/onboarding/presentation/onboarding_controller.dart';
+import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/profile/presentation/change_password_screen.dart';
 import '../../features/profile/presentation/edit_profile_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
@@ -45,6 +48,7 @@ class _AuthRefreshNotifier extends ChangeNotifier {
   _AuthRefreshNotifier(Ref ref) {
     ref.listen(authControllerProvider, (previous, next) => notifyListeners());
     ref.listen(splashMinimumDurationProvider, (previous, next) => notifyListeners());
+    ref.listen(onboardingCompletedProvider, (previous, next) => notifyListeners());
   }
 }
 
@@ -57,37 +61,61 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final authState = ref.read(authControllerProvider);
       final splashTimer = ref.read(splashMinimumDurationProvider);
+      final onboardingState = ref.read(onboardingCompletedProvider);
       final isOnSplash = state.matchedLocation == '/splash';
 
-      // Two independent reasons to stay on the splash screen: still
-      // restoring the session from storage (see AuthController.build), OR
-      // the fixed minimum splash duration hasn't elapsed yet (see
-      // splashMinimumDurationProvider) - whichever takes longer wins,
-      // rather than bouncing to /login the instant either one settles.
-      if (authState.isLoading || splashTimer.isLoading) {
+      // Three independent reasons to stay on the splash screen: still
+      // restoring the session from storage (see AuthController.build), the
+      // fixed minimum splash duration hasn't elapsed yet (see
+      // splashMinimumDurationProvider), or we don't know yet whether this
+      // device has ever finished onboarding - whichever takes longest
+      // wins, rather than bouncing forward the instant one settles.
+      if (authState.isLoading || splashTimer.isLoading || onboardingState.isLoading) {
         return isOnSplash ? null : '/splash';
       }
 
-      final isLoggedIn = authState.valueOrNull != null;
+      final user = authState.valueOrNull;
+      final isLoggedIn = user != null;
       // Forgot/reset-password are reachable without being logged in, same
       // as login/register - they're how a locked-out user gets back IN.
       const authScreens = {'/login', '/register', '/forgot-password', '/reset-password'};
       final isOnAuthScreen = authScreens.contains(state.matchedLocation);
+      final isOnVerifyEmail = state.matchedLocation == '/verify-email';
 
-      if (isLoggedIn) return (isOnAuthScreen || isOnSplash) ? '/home' : null;
+      if (isLoggedIn) {
+        // A freshly registered account is logged in immediately (see
+        // AuthService.register's doc comment on the backend) but can't go
+        // anywhere else until its email is verified - VerifyEmailScreen's
+        // own "Log out" button is the only way out of this state besides
+        // actually verifying.
+        if (!user.emailVerified) return isOnVerifyEmail ? null : '/verify-email';
+        return (isOnAuthScreen || isOnSplash || isOnVerifyEmail) ? '/home' : null;
+      }
+
+      final hasSeenOnboarding = onboardingState.valueOrNull ?? false;
+      final isOnOnboarding = state.matchedLocation == '/onboarding';
+
+      // Logged-out and never finished onboarding on this device (see
+      // onboardingCompletedProvider) - shown exactly once, before /login
+      // is ever reachable at all.
+      if (!hasSeenOnboarding) return isOnOnboarding ? null : '/onboarding';
+      // Already seen it - don't let a back-button press land here again.
+      if (isOnOnboarding) return '/login';
       return isOnAuthScreen ? null : '/login'; // covers isOnSplash too, since it's not an auth screen
     },
     routes: [
       GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
+      GoRoute(path: '/onboarding', builder: (context, state) => const OnboardingScreen()),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
       GoRoute(path: '/forgot-password', builder: (context, state) => const ForgotPasswordScreen()),
       GoRoute(
         path: '/reset-password',
-        // `extra` carries the dev-mode token from ForgotPasswordScreen, or
-        // null when reached some other way (e.g. a bookmarked link).
-        builder: (context, state) => ResetPasswordScreen(prefilledToken: state.extra as String?),
+        // `extra` carries the email from ForgotPasswordScreen, or null
+        // when reached some other way (e.g. a bookmarked link).
+        builder: (context, state) => ResetPasswordScreen(prefilledEmail: state.extra as String?),
       ),
+      GoRoute(path: '/verify-email', builder: (context, state) => const VerifyEmailScreen()),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
         branches: [

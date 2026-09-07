@@ -26,7 +26,7 @@ class _FakeProviderProfileRepository implements ProviderProfileRepository {
   }
 
   @override
-  Future<List<ProviderProfile>> browseProviders({String? categoryId}) {
+  Future<List<ProviderProfile>> browseProviders({String? categoryId, String? search}) {
     throw UnimplementedError('not exercised by this test');
   }
 

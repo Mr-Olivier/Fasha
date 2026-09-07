@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/password_reset_result.dart';
 import 'auth_controller.dart';
 
-/// Step 1 of the reset flow: request a reset token for an email address.
+/// Step 1 of the reset flow: request an OTP code for an email address.
 ///
 /// Deliberately a separate controller from [AuthController] - that class's
 /// state means "who is logged in right now", and requesting a password
@@ -24,7 +24,7 @@ class ForgotPasswordController extends AsyncNotifier<ForgotPasswordResult?> {
 final forgotPasswordControllerProvider =
     AsyncNotifierProvider<ForgotPasswordController, ForgotPasswordResult?>(ForgotPasswordController.new);
 
-/// Step 2: spend a reset token to set a new password.
+/// Step 2: spend an OTP code to set a new password.
 ///
 /// State is just "has this succeeded yet" - it flips to true once
 /// resetPassword() completes, which is ResetPasswordScreen's cue to
@@ -33,10 +33,10 @@ class ResetPasswordController extends AsyncNotifier<bool> {
   @override
   Future<bool> build() async => false;
 
-  Future<void> resetPassword({required String token, required String newPassword}) async {
+  Future<void> resetPassword({required String email, required String code, required String newPassword}) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      await ref.read(authRepositoryProvider).resetPassword(token: token, newPassword: newPassword);
+      await ref.read(authRepositoryProvider).resetPassword(email: email, code: code, newPassword: newPassword);
       return true;
     });
   }

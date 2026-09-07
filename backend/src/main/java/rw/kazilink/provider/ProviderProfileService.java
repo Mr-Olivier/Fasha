@@ -32,8 +32,16 @@ public class ProviderProfileService {
      * providers are ever returned - an unverified or rejected provider
      * shouldn't be discoverable by customers, even though their profile
      * still exists in the database.
+     *
+     * categoryId and search combine (AND, not OR) rather than one
+     * overriding the other, so narrowing by category first and then typing
+     * a search term keeps narrowing instead of resetting the category
+     * filter. Filtering happens in memory, same as the categoryId filter
+     * already did - fine at this dataset size, and avoids a second query
+     * mechanism (JPA Specifications) for what's currently a handful of
+     * approved providers.
      */
-    public List<ProviderProfileResponse> browseProviders(UUID categoryId) {
+    public List<ProviderProfileResponse> browseProviders(UUID categoryId, String search) {
         List<ProviderProfile> approved = providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED);
 
         if (categoryId != null) {
@@ -43,7 +51,24 @@ public class ProviderProfileService {
             approved = approved.stream().filter(p -> providerIdsInCategory.contains(p.getId())).toList();
         }
 
+        String trimmedSearch = search == null ? null : search.trim();
+        if (trimmedSearch != null && !trimmedSearch.isEmpty()) {
+            String needle = trimmedSearch.toLowerCase();
+            approved = approved.stream().filter(p -> matchesSearch(p, needle)).toList();
+        }
+
         return approved.stream().map(this::toResponse).toList();
+    }
+
+    /** businessName, location, and description are all customer-visible text a search term could plausibly be typed against. */
+    private boolean matchesSearch(ProviderProfile profile, String lowercaseNeedle) {
+        return containsIgnoreCase(profile.getBusinessName(), lowercaseNeedle)
+                || containsIgnoreCase(profile.getLocation(), lowercaseNeedle)
+                || containsIgnoreCase(profile.getDescription(), lowercaseNeedle);
+    }
+
+    private boolean containsIgnoreCase(String haystack, String lowercaseNeedle) {
+        return haystack != null && haystack.toLowerCase().contains(lowercaseNeedle);
     }
 
     /**

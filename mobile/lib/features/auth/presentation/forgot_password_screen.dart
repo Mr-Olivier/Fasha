@@ -7,14 +7,11 @@ import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_toast.dart';
 import 'password_reset_controller.dart';
 
-/// Step 1 of the reset flow: the user enters their email and we generate a
-/// reset token for it (see AuthService.forgotPassword on the backend).
-///
-/// This project has no real email server, so instead of pretending to send
-/// an email, the response's dev-only token is shown directly on screen,
-/// clearly labelled as a development stand-in - honest about what's
-/// actually happening rather than faking a "check your inbox" message that
-/// would leave the user stuck with no way to actually continue.
+/// Step 1 of the reset flow: the user enters their email and we email a
+/// 6-digit OTP code to it via Brevo (see AuthService.forgotPassword on the
+/// backend) - always with the same "check your inbox" message, whether or
+/// not the email actually belongs to an account (see that method's own
+/// doc comment for why).
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -66,7 +63,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 Text('Reset your password', style: textTheme.headlineSmall),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'Enter the email on your account and we\'ll generate a reset link for it.',
+                  'Enter the email on your account and we\'ll send it a verification code.',
                   style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
                 ),
                 const SizedBox(height: 32),
@@ -82,7 +79,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   onPressed: isLoading ? null : _submit,
                   child: isLoading
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Send reset link'),
+                      : const Text('Send code'),
                 ),
                 if (result != null) ...[
                   const SizedBox(height: 24),
@@ -93,38 +90,11 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(result.message, style: textTheme.bodyMedium),
-                          if (result.devResetToken != null) ...[
-                            const SizedBox(height: 16),
-                            Container(
-                              padding: const EdgeInsets.all(AppSpacing.md),
-                              decoration: BoxDecoration(
-                                color: colorScheme.secondaryContainer,
-                                borderRadius: BorderRadius.circular(AppRadii.field),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'DEV MODE - no email server yet, so here\'s your token directly:',
-                                    style: textTheme.labelSmall?.copyWith(color: colorScheme.onSecondaryContainer),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  SelectableText(
-                                    result.devResetToken!,
-                                    style: textTheme.bodyMedium?.copyWith(
-                                      color: colorScheme.onSecondaryContainer,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            OutlinedButton(
-                              onPressed: () => context.push('/reset-password', extra: result.devResetToken),
-                              child: const Text('Continue to reset password'),
-                            ),
-                          ],
+                          const SizedBox(height: 16),
+                          OutlinedButton(
+                            onPressed: () => context.push('/reset-password', extra: _emailController.text.trim()),
+                            child: const Text('I have my code'),
+                          ),
                         ],
                       ),
                     ),

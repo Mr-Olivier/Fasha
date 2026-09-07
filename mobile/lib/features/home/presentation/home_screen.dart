@@ -77,6 +77,8 @@ class _CustomerHome extends ConsumerWidget {
         children: [
           Text('Muraho, $firstName', style: textTheme.headlineSmall),
           const SizedBox(height: AppSpacing.gutter),
+          _SearchProvidersBar(onTap: () => context.push('/providers')),
+          const SizedBox(height: AppSpacing.gutter),
           Text('Categories', style: textTheme.titleLarge),
           const SizedBox(height: AppSpacing.md),
           categoriesState.when(
@@ -104,6 +106,44 @@ class _CustomerHome extends ConsumerWidget {
             onTap: () => context.push('/my-bookings'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A tap target styled like a search field, not an actual TextField - the
+/// real search input lives on ProviderListScreen (see its own doc comment
+/// for why search and category are independent filters there). This just
+/// gets a customer there without first having to tap a category tile.
+class _SearchProvidersBar extends StatelessWidget {
+  const _SearchProvidersBar({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Material(
+      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+      borderRadius: BorderRadius.circular(AppRadii.field),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadii.field),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 14),
+          child: Row(
+            children: [
+              Icon(Icons.search, color: colorScheme.onSurface.withValues(alpha: 0.6)),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                'Search providers by name or location',
+                style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.6)),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

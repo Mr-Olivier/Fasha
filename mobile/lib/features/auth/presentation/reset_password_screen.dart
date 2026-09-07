@@ -7,16 +7,16 @@ import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_toast.dart';
 import 'password_reset_controller.dart';
 
-/// Step 2 of the reset flow: spend a token (from ForgotPasswordScreen, or
-/// in a real deployment from an emailed link) to set a new password.
+/// Step 2 of the reset flow: spend the emailed OTP code to set a new
+/// password.
 ///
-/// [prefilledToken] pre-fills the token field when arriving straight from
-/// ForgotPasswordScreen's dev-mode token; the field stays editable because
-/// a real user would be typing/pasting a token from an email instead.
+/// [prefilledEmail] pre-fills the email field when arriving straight from
+/// ForgotPasswordScreen (which already knows it); the field stays editable
+/// in case this screen is ever reached another way.
 class ResetPasswordScreen extends ConsumerStatefulWidget {
-  const ResetPasswordScreen({super.key, this.prefilledToken});
+  const ResetPasswordScreen({super.key, this.prefilledEmail});
 
-  final String? prefilledToken;
+  final String? prefilledEmail;
 
   @override
   ConsumerState<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
@@ -24,14 +24,16 @@ class ResetPasswordScreen extends ConsumerStatefulWidget {
 
 class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
-  late final _tokenController = TextEditingController(text: widget.prefilledToken);
+  late final _emailController = TextEditingController(text: widget.prefilledEmail);
+  final _codeController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _tokenController.dispose();
+    _emailController.dispose();
+    _codeController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -40,7 +42,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     await ref.read(resetPasswordControllerProvider.notifier).resetPassword(
-          token: _tokenController.text.trim(),
+          email: _emailController.text.trim(),
+          code: _codeController.text.trim(),
           newPassword: _newPasswordController.text,
         );
   }
@@ -81,15 +84,25 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 Text('Set a new password', style: textTheme.headlineSmall),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'Paste the reset token you were given, then choose a new password.',
+                  'Enter the code we emailed you, then choose a new password.',
                   style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
                 ),
                 const SizedBox(height: 32),
                 TextFormField(
-                  controller: _tokenController,
+                  controller: _emailController,
                   enabled: !isLoading,
-                  decoration: const InputDecoration(labelText: 'Reset token'),
-                  validator: (value) => Validators.required(value, fieldName: 'The reset token'),
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                  validator: Validators.email,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _codeController,
+                  enabled: !isLoading,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  decoration: const InputDecoration(labelText: 'Verification code', counterText: ''),
+                  validator: (value) => Validators.required(value, fieldName: 'The code'),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(

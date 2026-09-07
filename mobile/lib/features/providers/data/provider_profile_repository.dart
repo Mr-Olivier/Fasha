@@ -10,9 +10,9 @@ class ProviderProfileRepository {
 
   final ProviderProfileApi _api;
 
-  Future<List<ProviderProfile>> browseProviders({String? categoryId}) async {
+  Future<List<ProviderProfile>> browseProviders({String? categoryId, String? search}) async {
     try {
-      return await _api.browseProviders(categoryId: categoryId);
+      return await _api.browseProviders(categoryId: categoryId, search: search);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

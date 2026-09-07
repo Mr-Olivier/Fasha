@@ -10,12 +10,15 @@ class ProviderProfileApi {
 
   final Dio _dio;
 
-  /// [categoryId] is optional - omitting it browses every approved
-  /// provider; passing one narrows to providers offering something in it.
-  Future<List<ProviderProfile>> browseProviders({String? categoryId}) async {
+  /// [categoryId] and [search] are both optional and combine (the backend
+  /// ANDs them, not ORs) - omitting both browses every approved provider.
+  Future<List<ProviderProfile>> browseProviders({String? categoryId, String? search}) async {
     final response = await _dio.get<List<dynamic>>(
       '/providers',
-      queryParameters: categoryId != null ? {'categoryId': categoryId} : null,
+      queryParameters: {
+        if (categoryId != null) 'categoryId': categoryId,
+        if (search != null && search.isNotEmpty) 'search': search,
+      },
     );
     return response.data!.map((e) => ProviderProfile.fromJson(e as Map<String, dynamic>)).toList();
   }

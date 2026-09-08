@@ -1,14 +1,10 @@
 # Next Session
 
-_Written 2026-09-07, right after provider search/filters shipped. See `PROJECT_STATUS.md` for the full done/remaining picture — this file is just the actionable punch list for picking up work next._
+_Written 2026-09-07, right after provider search/filters shipped. Updated 2026-09-08 after seed data shipped. See `PROJECT_STATUS.md` for the full done/remaining picture — this file is just the actionable punch list for picking up work next._
 
-## 1. Seed/demo data (recommended starting point)
+## 1. Seed/demo data — done (2026-09-08)
 
-Only `categories` has real seed data (`backend/src/main/resources/db/migration/V5__seed_categories.sql`). A fresh database has zero providers, services, bookings, or reviews — the app looks empty on first run.
-
-**Approach:** either a new Flyway migration (`V15__seed_demo_data.sql`) inserting a handful of realistic `users` (role PROVIDER, pre-verified), `provider_profiles` (APPROVED), `service_listings` per category, plus a few `bookings` in different statuses and matching `reviews` — or a `@Profile("dev")` `CommandLineRunner` that does the same thing in code, if the data should never touch a production database. Flyway is simpler and matches how categories were already seeded; the `CommandLineRunner` route is safer to guarantee it can never run against a real deployment.
-
-Passwords for any seeded users need real bcrypt hashes (see `AuthService`/`PasswordEncoder` for how existing users are hashed) - can't just insert plaintext.
+`backend/src/main/resources/db/migration/V15__seed_demo_data.sql` — 7 providers (5 APPROVED, 1 PENDING, 1 REJECTED), 12 services, 2 customers, 1 admin, 8 bookings across every status, 2 reviews. All seeded users log in with password `Demo1234!`. Verified against a live migration run, the full backend test suite, and the running app on both Chrome and a physical Android phone.
 
 ## 2. Deployment (needs a decision before code)
 
@@ -28,5 +24,6 @@ Once those are picked, the concrete tasks are: write `backend/Dockerfile`, wire 
 
 ## Notes from the last session
 
-- Docker Desktop, Postgres, and the backend (port 8081) may still be running locally from live-testing search/filters - check before assuming a clean environment.
-- A throwaway test customer account exists in the dev database: `test.search.customer@example.com`.
+- Docker Desktop, Postgres, and the backend (port 8081) may still be running locally from live-testing seed data - check before assuming a clean environment.
+- A throwaway test customer account exists in the dev database: `test.search.customer@example.com`. The dev DB also has assorted manually-created test accounts (`bob_*`, `dave*@fasha.rw`, `admin@fasha.rw`, etc.) from earlier manual testing — unrelated to the V15 seed data, which deliberately used a `demo.admin@fasha.rw` email to avoid colliding with the existing `admin@fasha.rw`.
+- If running on a physical Android device over USB, run `adb reverse tcp:8081 tcp:8081` once after connecting so the app can reach the local backend.

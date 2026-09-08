@@ -4,7 +4,7 @@ _Originally snapshotted 2026-09-07 by auditing the actual codebase (controllers,
 
 ## TL;DR
 
-The originally planned MVP is **functionally complete and exceeded** — every planned feature works end-to-end, plus features that went beyond the original plan (chat, notifications, onboarding) got built too. What's left is almost entirely **launch logistics**: demo seed data and deployment.
+The originally planned MVP is **functionally complete and exceeded** — every planned feature works end-to-end, plus features that went beyond the original plan (chat, notifications, onboarding) got built too. What's left is **deployment** — everything else, including demo seed data, is done.
 
 ---
 
@@ -50,13 +50,14 @@ The originally planned MVP is **functionally complete and exceeded** — every p
 - First-run onboarding carousel
 - Email-based OTP verification/reset (the original plan assumed no email server at all — dev-mode token display)
 
+### Seed/demo data
+`V15__seed_demo_data.sql` — 7 providers (5 APPROVED across 5 categories, 1 PENDING, 1 REJECTED so the admin approval screens have real cases), 12 services, 2 customers, 1 admin (`demo.admin@fasha.rw`), and 8 bookings covering every state in the booking state machine, with 2 matching reviews. All seeded users share the password `Demo1234!` (a real BCrypt hash, not a placeholder). Verified live: login, provider search, admin pending/rejected listings, and rating aggregation all checked out against a fresh migration run plus the full backend test suite (96 tests).
+
 ---
 
 ## ⚠️ Partially done
 
-| Item | State | Gap |
-|---|---|---|
-| Seed/demo data | Categories are seeded (`V5__seed_categories.sql`) | No seeded providers, services, bookings, users, or reviews — a fresh DB looks sparse for a demo |
+_Nothing currently partial — seed data (below) moved to Completed._
 
 ## ❌ Not started
 
@@ -68,7 +69,4 @@ The originally planned MVP is **functionally complete and exceeded** — every p
 
 ## Decision points for what's next
 
-1. **Seed data** — highest remaining leverage for demo value. A single Flyway migration or a `CommandLineRunner` dev-profile seeder with realistic providers/services/bookings/reviews.
-2. **Deployment** — biggest unknown/time-sink (hosting choice, env config, building the Flutter app for a target platform). Worth scoping explicitly before starting.
-
-No blockers exist to doing these in any order — they're independent of each other.
+1. **Deployment** — the only remaining item. Biggest unknown/time-sink (hosting choice, env config, building the Flutter app for a target platform). Worth scoping explicitly before starting — see `NEXT_SESSION.md` for the open questions.

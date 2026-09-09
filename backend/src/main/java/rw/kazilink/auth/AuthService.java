@@ -1,5 +1,6 @@
 package rw.kazilink.auth;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +13,7 @@ import rw.kazilink.otp.OtpService;
 import rw.kazilink.security.JwtService;
 import rw.kazilink.security.RevokedToken;
 import rw.kazilink.security.RevokedTokenRepository;
+import rw.kazilink.user.AuthProvider;
 import rw.kazilink.user.Role;
 import rw.kazilink.user.User;
 import rw.kazilink.user.UserNotFoundException;
@@ -38,6 +40,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final RevokedTokenRepository revokedTokenRepository;
     private final OtpService otpService;
+    private final GoogleTokenService googleTokenService;
 
     /**
      * emailVerified starts false for every self-registered account - see
@@ -89,6 +92,63 @@ public class AuthService {
         }
         if (!user.isEmailVerified()) {
             throw new EmailNotVerifiedException();
+        }
+
+        String token = jwtService.generateToken(user.getId(), user.getRole().name());
+        return toAuthResponse(user, token);
+    }
+
+    /**
+     * Signs in with a Google-issued ID token, creating a new account the
+     * first time this Google user is seen. Deliberately shares the same
+     * response shape (and JWT-issuing tail end) as login()/register() -
+     * from the Flutter app's point of view this is just another way to end
+     * up with a valid session.
+     *
+     * An existing LOCAL account with a matching email gets linked (its
+     * google_sub is filled in) rather than creating a duplicate user -
+     * someone who registered with a password can start using "Continue
+     * with Google" on the same account without losing anything, and their
+     * password keeps working too.
+     */
+    @Transactional
+    public AuthResponse googleAuth(GoogleAuthRequest request) {
+        GoogleIdToken.Payload payload = googleTokenService.verify(request.idToken());
+        if (!Boolean.TRUE.equals(payload.getEmailVerified())) {
+            throw new GoogleTokenVerificationException();
+        }
+
+        String sub = payload.getSubject();
+        String email = payload.getEmail();
+
+        User user = userRepository.findByGoogleSub(sub)
+                .or(() -> userRepository.findByEmail(email))
+                .orElse(null);
+
+        if (user == null) {
+            if (request.role() == Role.ADMIN) {
+                throw new InvalidRegistrationRoleException();
+            }
+            String name = (String) payload.get("name");
+
+            user = new User();
+            user.setName((name == null || name.isBlank()) ? email : name);
+            user.setEmail(email);
+            user.setRole(request.role() == null ? Role.CUSTOMER : request.role());
+            user.setStatus(UserStatus.ACTIVE);
+            user.setAuthProvider(AuthProvider.GOOGLE);
+            user.setGoogleSub(sub);
+            // Google already verified this address, so there's no OTP step
+            // to send the user through, unlike register()'s local accounts.
+            user.setEmailVerified(true);
+        } else if (user.getGoogleSub() == null) {
+            user.setGoogleSub(sub);
+            user.setEmailVerified(true);
+        }
+        userRepository.save(user);
+
+        if (user.getStatus() == UserStatus.SUSPENDED) {
+            throw new SuspendedAccountException();
         }
 
         String token = jwtService.generateToken(user.getId(), user.getRole().name());

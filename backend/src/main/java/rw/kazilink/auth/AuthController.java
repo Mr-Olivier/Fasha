@@ -15,9 +15,9 @@ import rw.kazilink.security.JwtService;
 import java.util.UUID;
 
 /**
- * register/login/forgot-password/reset-password are the endpoints that
- * don't require a JWT (see SecurityConfig) - all four are things a user
- * does specifically because they AREN'T authenticated yet. logout,
+ * register/login/google/forgot-password/reset-password are the endpoints
+ * that don't require a JWT (see SecurityConfig) - all five are things a
+ * user does specifically because they AREN'T authenticated yet. logout,
  * verify-email, and resend-verification DO require one - the latter two
  * because register() already hands back a usable JWT (see AuthService's
  * doc comment) that they act on.
@@ -37,6 +37,11 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> google(@Valid @RequestBody GoogleAuthRequest request) {
+        return ResponseEntity.ok(authService.googleAuth(request));
     }
 
     @PostMapping("/logout")

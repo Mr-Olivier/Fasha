@@ -72,6 +72,19 @@ app:
     sender-email: ${BREVO_SENDER_EMAIL:no-reply@kazilink.rw}
     sender-name: ${BREVO_SENDER_NAME:KaziLink Rwanda}
 
+  google:
+    # The OAuth "Web application" client ID from Google Cloud Console - see
+    # NEXT_SESSION.md for the full setup checklist. Every platform's Google
+    # Sign-In (Android, web, ...) requests an ID token audienced to THIS
+    # one client ID (via serverClientId/clientId on the Flutter side, see
+    # GoogleAuthService), so a single value here verifies all of them - no
+    # per-platform backend config, and the exact same code runs in local
+    # dev and production; only this value differs. Leave unset and every
+    # OTHER endpoint still works fine - only POST /api/auth/google fails,
+    # with a clear GoogleSignInNotConfiguredException, until it's set (see
+    # GoogleTokenService).
+    client-id: ${GOOGLE_OAUTH_CLIENT_ID:}
+
 logging:
   level:
     rw.kazilink: DEBUG

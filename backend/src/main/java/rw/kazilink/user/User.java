@@ -43,12 +43,21 @@ public class User {
     @Column(length = 30)
     private String phone;
 
-    @Column(name = "password_hash", nullable = false, length = 100)
+    /** Null for a GOOGLE-authenticated account - see [authProvider]. */
+    @Column(name = "password_hash", length = 100)
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", nullable = false, length = 20)
+    private AuthProvider authProvider = AuthProvider.LOCAL;
+
+    /** Google's stable per-account identifier ("sub" claim). Null for a LOCAL account, or a LOCAL account that has never signed in with Google. */
+    @Column(name = "google_sub")
+    private String googleSub;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

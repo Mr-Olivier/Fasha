@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/auth_header.dart';
+import '../../../core/widgets/google_sign_in_button.dart';
 import '../domain/user_role.dart';
 import 'auth_controller.dart';
 
@@ -52,10 +54,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (!_agreedToTerms) return; // the Create account button is already disabled in this case; this is just a safety net
+    // the Create account button is already disabled in this case; this is just a safety net
+    if (!_agreedToTerms) return;
 
     final phone = _phoneController.text.trim();
-    await ref.read(authControllerProvider.notifier).register(
+    await ref
+        .read(authControllerProvider.notifier)
+        .register(
           name: _nameController.text.trim(),
           email: _emailController.text.trim(),
           // Rwanda-only app - a fixed "+250" prefix (shown via the field's
@@ -94,24 +99,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.gutter),
-        child: _step == _RegisterStep.roleChoice ? _buildRoleChoiceStep() : _buildDetailsStep(isLoading),
+        child:
+            _step == _RegisterStep.roleChoice
+                ? _buildRoleChoiceStep(isLoading)
+                : _buildDetailsStep(isLoading),
       ),
     );
   }
 
-  Widget _buildRoleChoiceStep() {
+  Widget _buildRoleChoiceStep(bool isLoading) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('How will you use Fasha?', style: textTheme.headlineSmall),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          'You can only pick one - this sets your role.',
-          style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
-        ),
+        const AuthHeader(title: 'How will you use Fasha?', subtitle: 'You can only pick one - this sets your role.'),
         const SizedBox(height: 24),
         _RoleCard(
           initials: 'CU',
@@ -142,8 +145,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ),
         const SizedBox(height: 24),
         FilledButton(
-          onPressed: () => setState(() => _step = _RegisterStep.details),
+          onPressed: isLoading ? null : () => setState(() => _step = _RegisterStep.details),
           child: const Text('Continue'),
+        ),
+        GoogleSignInSection(
+          isLoading: isLoading,
+          // Skips the "Your details" step entirely - Google already gives
+          // us a name and a verified email, so the only thing left to
+          // decide is the role, which the user already picked above.
+          onPressed: () => ref.read(authControllerProvider.notifier).loginWithGoogle(role: _selectedRole),
         ),
       ],
     );
@@ -156,7 +166,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Your details', style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            'Your details',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
           const SizedBox(height: 24),
           TextFormField(
             controller: _nameController,
@@ -167,7 +180,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           TextFormField(
             controller: _phoneController,
             keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Phone (optional)', prefixText: '+250 '),
+            decoration: const InputDecoration(
+              labelText: 'Phone (optional)',
+              prefixText: '+250 ',
+            ),
             validator: Validators.phone,
           ),
           const SizedBox(height: 16),
@@ -185,7 +201,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               labelText: 'Password',
               helperText: 'Must be at least 8 characters',
               suffixIcon: TextButton(
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                onPressed:
+                    () => setState(() => _obscurePassword = !_obscurePassword),
                 child: Text(_obscurePassword ? 'Show' : 'Hide'),
               ),
             ),
@@ -194,21 +211,25 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           const SizedBox(height: 8),
           CheckboxListTile(
             value: _agreedToTerms,
-            onChanged: (value) => setState(() => _agreedToTerms = value ?? false),
+            onChanged:
+                (value) => setState(() => _agreedToTerms = value ?? false),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
-            title: const Text('I agree to the Terms of Service and Privacy Policy.'),
+            title: const Text(
+              'I agree to the Terms of Service and Privacy Policy.',
+            ),
           ),
           const SizedBox(height: 16),
           FilledButton(
             onPressed: (isLoading || !_agreedToTerms) ? null : _submit,
-            child: isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Create account'),
+            child:
+                isLoading
+                    ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                    : const Text('Create account'),
           ),
           const SizedBox(height: 12),
           TextButton(
@@ -249,14 +270,24 @@ class _RoleCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? colorScheme.primaryContainer : colorScheme.surface,
           borderRadius: BorderRadius.circular(AppRadii.card),
-          border: Border.all(color: selected ? colorScheme.primary : colorScheme.outline, width: selected ? 2 : 1),
+          border: Border.all(
+            color: selected ? colorScheme.primary : colorScheme.outline,
+            width: selected ? 2 : 1,
+          ),
         ),
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: selected ? colorScheme.primary : colorScheme.secondaryContainer,
-              foregroundColor: selected ? Colors.white : colorScheme.onSecondaryContainer,
-              child: Text(initials, style: const TextStyle(fontWeight: FontWeight.w700)),
+              backgroundColor:
+                  selected
+                      ? colorScheme.primary
+                      : colorScheme.secondaryContainer,
+              foregroundColor:
+                  selected ? Colors.white : colorScheme.onSecondaryContainer,
+              child: Text(
+                initials,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(

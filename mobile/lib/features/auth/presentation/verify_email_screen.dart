@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/auth_header.dart';
 import 'auth_controller.dart';
 import 'verify_email_controller.dart';
 
@@ -41,7 +42,6 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
     final isVerifying = verifyState.isLoading;
     final isResending = resendState.isLoading;
     final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
 
     ref.listen(verifyEmailControllerProvider, (previous, next) {
       final error = next.error;
@@ -85,11 +85,9 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Check your inbox', style: textTheme.headlineSmall),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'We sent a 6-digit code to $email. Enter it below to verify your account.',
-                  style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
+                AuthHeader(
+                  title: 'Check your inbox',
+                  subtitle: 'We sent a 6-digit code to $email. Enter it below to verify your account.',
                 ),
                 const SizedBox(height: 32),
                 TextFormField(

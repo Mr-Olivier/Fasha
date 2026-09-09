@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/auth_header.dart';
 import 'password_reset_controller.dart';
 
 /// Step 1 of the reset flow: the user enters their email and we email a
@@ -38,7 +39,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(forgotPasswordControllerProvider);
     final isLoading = state.isLoading;
-    final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final result = state.valueOrNull;
 
@@ -60,11 +60,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Reset your password', style: textTheme.headlineSmall),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Enter the email on your account and we\'ll send it a verification code.',
-                  style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
+                const AuthHeader(
+                  title: 'Reset your password',
+                  subtitle: "Enter the email on your account and we'll send it a verification code.",
                 ),
                 const SizedBox(height: 32),
                 TextFormField(

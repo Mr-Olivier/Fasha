@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/auth_header.dart';
+import '../../../core/widgets/google_sign_in_button.dart';
 import 'auth_controller.dart';
 
 /// ConsumerStatefulWidget: a StatefulWidget that can also read/watch
@@ -50,8 +52,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final isLoading = authState.isLoading;
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
 
     // Show a SnackBar exactly once per new error, instead of on every
     // rebuild - ref.listen (as opposed to ref.watch) is Riverpod's way of
@@ -65,24 +65,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       // No AppBar here on purpose - the design's login screen is a plain,
-      // chrome-less page; the big "Welcome back" heading below does the
-      // job an app bar title normally would.
+      // chrome-less page; the AuthHeader below does the job an app bar
+      // title normally would.
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.gutter),
           child: Form(
             key: _formKey,
             autovalidateMode: AutovalidateMode.onUserInteraction,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Welcome back', style: textTheme.headlineMedium),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Log in to manage your bookings',
-                  style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
-                ),
+                const SizedBox(height: 24),
+                const AuthHeader(title: 'Welcome back', subtitle: 'Log in to manage your bookings'),
                 const SizedBox(height: 32),
                 TextFormField(
                   controller: _emailController,
@@ -120,6 +115,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Text('Log in'),
+                ),
+                GoogleSignInSection(
+                  isLoading: isLoading,
+                  onPressed: () => ref.read(authControllerProvider.notifier).loginWithGoogle(),
                 ),
                 const SizedBox(height: 12),
                 TextButton(

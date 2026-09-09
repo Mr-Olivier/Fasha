@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/auth_header.dart';
 import 'password_reset_controller.dart';
 
 /// Step 2 of the reset flow: spend the emailed OTP code to set a new
@@ -52,8 +53,6 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(resetPasswordControllerProvider);
     final isLoading = state.isLoading;
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
 
     ref.listen(resetPasswordControllerProvider, (previous, next) {
       final error = next.error;
@@ -81,11 +80,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Set a new password', style: textTheme.headlineSmall),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Enter the code we emailed you, then choose a new password.',
-                  style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
+                const AuthHeader(
+                  title: 'Set a new password',
+                  subtitle: 'Enter the code we emailed you, then choose a new password.',
                 ),
                 const SizedBox(height: 32),
                 TextFormField(

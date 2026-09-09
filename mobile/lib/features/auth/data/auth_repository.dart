@@ -49,6 +49,16 @@ class AuthRepository {
     }
   }
 
+  Future<AuthUser> googleAuth({required String idToken, UserRole? role}) async {
+    try {
+      final user = await _api.googleAuth(idToken: idToken, role: role);
+      await _storage.save(user);
+      return user;
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   /// Logs out both server-side (revokes the token, so it stops working
   /// immediately instead of just sitting valid until it expires) and
   /// locally (clears the cached session so the app itself forgets you).

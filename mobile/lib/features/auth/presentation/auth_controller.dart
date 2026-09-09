@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../data/auth_api.dart';
 import '../data/auth_repository.dart';
 import '../data/auth_session_storage.dart';
+import '../data/google_auth_service.dart';
 import '../domain/auth_user.dart';
 import '../domain/user_role.dart';
 
@@ -25,6 +28,8 @@ final authApiProvider = Provider<AuthApi>(
 final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => AuthRepository(ref.watch(authApiProvider), ref.watch(authSessionStorageProvider)),
 );
+
+final googleAuthServiceProvider = Provider<GoogleAuthService>((ref) => GoogleAuthService());
 
 /// The app's single source of truth for "who is logged in right now".
 ///
@@ -72,8 +77,41 @@ class AuthController extends AsyncNotifier<AuthUser?> {
     );
   }
 
+  /// Runs Google's account picker, then signs in (or signs up, for a
+  /// first-time Google account) with the ID token it returns. Leaves state
+  /// untouched if the user closes the picker without choosing an account -
+  /// that's not an error, just "never mind", so no loading/error state
+  /// should flash for it.
+  ///
+  /// [role] is only used by the backend the first time this Google account
+  /// is seen; ignored for an existing account, whose role is already set.
+  Future<void> loginWithGoogle({UserRole? role}) async {
+    final String? idToken;
+    try {
+      idToken = await ref.read(googleAuthServiceProvider).signInAndGetIdToken();
+    } catch (error, stackTrace) {
+      // Surfaced the same way a failed login/register would be (picked up
+      // by ref.listen in the screen) - covers "not configured yet" and any
+      // failure from the Google SDK itself (network, misconfigured
+      // console credentials, ...).
+      state = AsyncValue.error(error, stackTrace);
+      return;
+    }
+    final resolvedIdToken = idToken;
+    if (resolvedIdToken == null) return;
+
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref.read(authRepositoryProvider).googleAuth(idToken: resolvedIdToken, role: role),
+    );
+  }
+
   Future<void> logout() async {
     await ref.read(authRepositoryProvider).logout();
+    // Best-effort, like the repository's own server-side revoke - clears
+    // Google's cached account choice so the next "Continue with Google"
+    // shows the picker again instead of silently reusing this session.
+    unawaited(ref.read(googleAuthServiceProvider).signOut());
     state = const AsyncValue.data(null);
   }
 

@@ -45,6 +45,17 @@ class AuthApi {
     return AuthUser.fromJson(response.data!);
   }
 
+  /// [role] is only used by the backend the first time this Google account
+  /// is seen (a brand-new user) - ignored for an existing account, whose
+  /// role is already set. See AuthService.googleAuth on the backend.
+  Future<AuthUser> googleAuth({required String idToken, UserRole? role}) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/auth/google',
+      data: {'idToken': idToken, if (role != null) 'role': role.toWire()},
+    );
+    return AuthUser.fromJson(response.data!);
+  }
+
   /// No body, no return value - the "Authorization: Bearer" header is
   /// enough for the backend to know which token to revoke (added
   /// automatically by ApiClient's interceptor, same as every other call).

@@ -79,37 +79,62 @@ class _CustomerHome extends ConsumerWidget {
           const SizedBox(height: AppSpacing.gutter),
           _SearchProvidersBar(onTap: () => context.push('/providers')),
           const SizedBox(height: AppSpacing.gutter),
-          Text('Categories', style: textTheme.titleLarge),
+          Row(
+            children: [
+              Expanded(child: Text('Categories', style: textTheme.titleLarge)),
+              InkWell(
+                onTap: () => context.push('/categories'),
+                borderRadius: BorderRadius.circular(AppRadii.chip),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
+                  child: Text(
+                    'See all',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: AppSpacing.sm),
-          // A horizontally scrolling rail, not a wrapped grid - the same
-          // layout Instagram uses for its Stories row and Facebook/most
-          // delivery apps use for their category shortcuts. It keeps every
-          // category reachable in one swipe instead of pushing the rest of
-          // Home down as more categories get added.
+          // A 4-column grid capped at 7 categories (+1 "more" tile) rather
+          // than showing every category - matches the "Categories" section
+          // of the project's own design reference (fasha-app-final-ui.html,
+          // screen B1); the full, searchable list lives on AllCategoriesScreen
+          // ("See all" above, or the "+N" tile below).
           categoriesState.when(
             loading: () => const SizedBox(
               height: 96,
               child: Center(child: CircularProgressIndicator()),
             ),
             error: (error, _) => const Text('Could not load categories.'),
-            data: (categories) => SizedBox(
-              height: 108,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                clipBehavior: Clip.none,
-                itemCount: categories.length,
-                separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.xs),
-                itemBuilder: (context, index) {
-                  final category = categories[index];
-                  return CategoryTile(
-                    category: category,
-                    onTap: () => context.push(
-                      '/providers?categoryId=${category.id}&categoryName=${Uri.encodeComponent(category.name)}',
+            data: (categories) {
+              const maxShown = 7;
+              final showMoreTile = categories.length > maxShown;
+              final shown = showMoreTile ? categories.take(maxShown).toList() : categories;
+
+              return GridView.count(
+                crossAxisCount: 4,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: AppSpacing.md,
+                crossAxisSpacing: AppSpacing.md,
+                childAspectRatio: 0.78,
+                children: [
+                  for (final category in shown)
+                    CategoryTile(
+                      category: category,
+                      onTap: () => context.push(
+                        '/providers?categoryId=${category.id}&categoryName=${Uri.encodeComponent(category.name)}',
+                      ),
                     ),
-                  );
-                },
-              ),
-            ),
+                  if (showMoreTile)
+                    _MoreCategoriesTile(count: categories.length - maxShown, onTap: () => context.push('/categories')),
+                ],
+              );
+            },
           ),
           const SizedBox(height: AppSpacing.gutter),
           _DashboardTile(
@@ -118,6 +143,50 @@ class _CustomerHome extends ConsumerWidget {
             subtitle: 'Track requests you\'ve sent to providers',
             onTap: () => context.push('/my-bookings'),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The 8th cell of the category grid when there are more categories than
+/// fit - same tile shape as [CategoryTile] (so it doesn't stick out), but a
+/// neutral badge and a "+N" count instead of an icon, leading to
+/// AllCategoriesScreen for the rest.
+class _MoreCategoriesTile extends StatelessWidget {
+  const _MoreCategoriesTile({required this.count, required this.onTap});
+
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadii.field),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AspectRatio(
+            aspectRatio: 1,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(AppRadii.field),
+              ),
+              child: Center(
+                child: Text(
+                  '+$count',
+                  style: textTheme.titleMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text('More', style: textTheme.labelSmall, textAlign: TextAlign.center),
         ],
       ),
     );

@@ -1,59 +1,41 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../domain/category.dart';
-import 'category_style.dart';
+import 'category_icon_badge.dart';
 
-/// A "bubble" tile for the Home category rail: a circular icon avatar in
-/// the category's own accent colour, name underneath. This is the same
-/// visual pattern Instagram uses for Stories and most delivery/marketplace
-/// apps (Jiji, Urban Company, Glovo) use for their category rail - a row of
-/// coloured circles is instantly scannable in a way a row of plain text
-/// labels isn't, which matters here since Home shows every category at
-/// once. See [CategoryStyle] for the icon/colour lookup.
+/// One cell of Home's category grid: a square icon badge (see
+/// [CategoryIconBadge]) with the category's name underneath - the same
+/// tile shape (`aspect-ratio:1`, `border-radius:16`) as the "Categories"
+/// section of the project's own design reference
+/// (`fasha-app-final-ui.html`, screen B1), just with a real icon in the
+/// badge instead of that mockup's two-letter placeholder text.
 class CategoryTile extends StatelessWidget {
   const CategoryTile({super.key, required this.category, required this.onTap});
 
   final Category category;
   final VoidCallback onTap;
 
-  static const double _bubbleSize = 64;
-
   @override
   Widget build(BuildContext context) {
-    final style = CategoryStyle.of(category.name);
     final textTheme = Theme.of(context).textTheme;
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(_bubbleSize / 2 + 6),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: SizedBox(
-          width: 76,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: _bubbleSize,
-                height: _bubbleSize,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: style.color.withValues(alpha: 0.14),
-                  border: Border.all(color: style.color.withValues(alpha: 0.4), width: 1.5),
-                ),
-                child: Icon(style.icon, color: style.color, size: 28),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                category.name,
-                style: textTheme.labelSmall,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+      borderRadius: BorderRadius.circular(AppRadii.field),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AspectRatio(aspectRatio: 1, child: CategoryIconBadge(category: category)),
+          const SizedBox(height: 6),
+          Text(
+            category.name.split(RegExp(r'[\s&]+')).first,
+            style: textTheme.labelSmall,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-        ),
+        ],
       ),
     );
   }

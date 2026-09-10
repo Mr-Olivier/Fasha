@@ -29,6 +29,7 @@ import '../../features/providers/presentation/provider_profile_screen.dart';
 import '../../features/reviews/presentation/write_review_screen.dart';
 import '../../features/services/domain/category.dart';
 import '../../features/services/domain/service_listing.dart';
+import '../../features/services/presentation/all_categories_screen.dart';
 import '../../features/services/presentation/my_services_screen.dart';
 import '../../features/services/presentation/service_form_screen.dart';
 import '../../features/splash/presentation/splash_controller.dart';
@@ -133,6 +134,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         // adding a new one - see ServiceFormScreen's doc comment for why.
         builder: (context, state) => ServiceFormScreen(existing: state.extra as ServiceListing?),
       ),
+      GoRoute(path: '/categories', builder: (context, state) => const AllCategoriesScreen()),
       GoRoute(
         path: '/providers',
         // Real query params (not `extra`) so this URL survives a browser

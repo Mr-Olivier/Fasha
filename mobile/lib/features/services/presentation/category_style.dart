@@ -22,7 +22,11 @@ class CategoryStyle {
     'Electrician': CategoryStyle(icon: Icons.electrical_services, color: Color(0xFFE8A33D)),
     'Plumber': CategoryStyle(icon: Icons.plumbing, color: Color(0xFF3B82C4)),
     'Mechanic': CategoryStyle(icon: Icons.build, color: Color(0xFF6B7280)),
-    'Cleaner': CategoryStyle(icon: Icons.cleaning_services, color: Color(0xFF0B6B4F)),
+    // Deliberately NOT the app's own primary green (#0B6B4F) - that colour
+    // means "selected/primary action" everywhere else in the app (see
+    // AppTheme), so reusing it here would make this bubble look like a
+    // selected state instead of just one more category among many.
+    'Cleaner': CategoryStyle(icon: Icons.cleaning_services, color: Color(0xFF0D9488)),
     'Painter': CategoryStyle(icon: Icons.format_paint, color: Color(0xFFC2410C)),
     'Tutor': CategoryStyle(icon: Icons.menu_book, color: Color(0xFF7C3AED)),
     'Tailor': CategoryStyle(icon: Icons.checkroom, color: Color(0xFFDB2777)),

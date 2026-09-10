@@ -80,22 +80,35 @@ class _CustomerHome extends ConsumerWidget {
           _SearchProvidersBar(onTap: () => context.push('/providers')),
           const SizedBox(height: AppSpacing.gutter),
           Text('Categories', style: textTheme.titleLarge),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
+          // A horizontally scrolling rail, not a wrapped grid - the same
+          // layout Instagram uses for its Stories row and Facebook/most
+          // delivery apps use for their category shortcuts. It keeps every
+          // category reachable in one swipe instead of pushing the rest of
+          // Home down as more categories get added.
           categoriesState.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const SizedBox(
+              height: 96,
+              child: Center(child: CircularProgressIndicator()),
+            ),
             error: (error, _) => const Text('Could not load categories.'),
-            data: (categories) => Wrap(
-              spacing: AppSpacing.md,
-              runSpacing: AppSpacing.md,
-              children: [
-                for (final category in categories)
-                  CategoryTile(
+            data: (categories) => SizedBox(
+              height: 108,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                clipBehavior: Clip.none,
+                itemCount: categories.length,
+                separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.xs),
+                itemBuilder: (context, index) {
+                  final category = categories[index];
+                  return CategoryTile(
                     category: category,
                     onTap: () => context.push(
                       '/providers?categoryId=${category.id}&categoryName=${Uri.encodeComponent(category.name)}',
                     ),
-                  ),
-              ],
+                  );
+                },
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.gutter),

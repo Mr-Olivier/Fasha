@@ -3,7 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/status_colors.dart';
+import '../../admin/domain/pending_provider.dart';
+import '../../admin/presentation/admin_dashboard_charts.dart';
 import '../../admin/presentation/admin_provider_controller.dart';
+import '../../admin/presentation/admin_stats_controller.dart';
 import '../../auth/domain/auth_user.dart';
 import '../../auth/domain/user_role.dart';
 import '../../auth/presentation/auth_controller.dart';
@@ -309,38 +313,245 @@ class _ProviderHome extends ConsumerWidget {
   }
 }
 
+/// Matches the "Admin Overview" screen from the project's design reference
+/// (E1): a 2x2 stat row backed by GET /api/admin/stats, then a "Needs your
+/// action" queue of pending provider applications. The design also shows a
+/// reported-review item in that queue - left out here since nothing in the
+/// app yet lets anyone report a review (a separate feature, not an admin
+/// screen restyle - see PROJECT_STATUS.md).
 class _AdminHome extends ConsumerWidget {
   const _AdminHome();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final statsState = ref.watch(adminStatsProvider);
     final pendingState = ref.watch(pendingProvidersProvider);
     final textTheme = Theme.of(context).textTheme;
-    final pendingCount = pendingState.valueOrNull?.length;
+    final colorScheme = Theme.of(context).colorScheme;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.gutter),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Admin', style: textTheme.headlineSmall),
-          const SizedBox(height: AppSpacing.gutter),
-          _DashboardTile(
-            icon: Icons.fact_check_outlined,
-            title: 'Provider approvals',
-            subtitle: pendingCount == null
-                ? 'Review new provider applications'
-                : '$pendingCount application${pendingCount == 1 ? '' : 's'} waiting for review',
-            onTap: () => context.push('/admin/providers'),
+    return RefreshIndicator(
+      onRefresh: () => Future.wait([
+        ref.refresh(adminStatsProvider.future),
+        ref.refresh(pendingProvidersProvider.future),
+      ]),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(AppSpacing.gutter),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'ADMIN',
+              style: textTheme.labelSmall?.copyWith(
+                color: colorScheme.onSurface.withValues(alpha: 0.6),
+                letterSpacing: 1.2,
+              ),
+            ),
+            Text('Overview', style: textTheme.headlineSmall),
+            const SizedBox(height: AppSpacing.gutter),
+            statsState.when(
+              loading: () => const SizedBox(
+                height: 160,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, _) => const Text('Could not load stats.'),
+              data: (stats) => Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatCard(
+                          value: '${stats.pendingApprovals}',
+                          label: 'Pending approvals',
+                          color: colorScheme.secondary,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: _StatCard(
+                          value: '${stats.activeProviders}',
+                          label: 'Active providers',
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Row(
+                    children: [
+                      Expanded(child: _StatCard(value: '${stats.totalCustomers}', label: 'Customers')),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(child: _StatCard(value: '${stats.bookingsLast30Days}', label: 'Bookings (30d)')),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.gutter),
+            const AdminDashboardCharts(),
+            const SizedBox(height: AppSpacing.gutter),
+            Row(
+              children: [
+                Expanded(child: Text('Needs your action', style: textTheme.titleLarge)),
+                InkWell(
+                  onTap: () => context.go('/admin/providers'),
+                  borderRadius: BorderRadius.circular(AppRadii.chip),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
+                    child: Text(
+                      'All',
+                      style: textTheme.labelSmall?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            pendingState.when(
+              loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
+              error: (error, _) => const Text('Could not load pending applications.'),
+              data: (pending) {
+                if (pending.isEmpty) {
+                  return Text(
+                    'Nothing needs your review right now.',
+                    style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.6)),
+                  );
+                }
+                return Column(
+                  children: [
+                    for (final provider in pending.take(3)) ...[
+                      _NeedsActionTile(provider: provider, onTap: () => context.go('/admin/providers')),
+                      const SizedBox(height: AppSpacing.sm),
+                    ],
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: AppSpacing.gutter),
+            _DashboardTile(
+              icon: Icons.history,
+              title: 'Activity log',
+              subtitle: 'See recent admin actions - approvals, suspensions, deletes',
+              onTap: () => context.push('/admin/audit-log'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One cell of the admin Overview's 2x2 stat row. [color] tints the card
+/// like the design's amber "Pending approvals" / green "Active providers"
+/// cells; leaving it null gives the plain surface card the other two cells
+/// use, matching the design's flat white "Customers"/"Bookings" cells.
+class _StatCard extends StatelessWidget {
+  const _StatCard({required this.value, required this.label, this.color});
+
+  final String value;
+  final String label;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final tint = color;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: tint != null ? tint.withValues(alpha: 0.14) : colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(color: tint != null ? tint.withValues(alpha: 0.3) : colorScheme.outline),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(value, style: textTheme.headlineSmall?.copyWith(color: tint ?? colorScheme.onSurface)),
+            const SizedBox(height: 2),
+            Text(label, style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7))),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One row in the admin Overview's "Needs your action" queue - a pending
+/// provider application, styled like the design's list cards (avatar
+/// initial, name, "location · applied X" subtitle, a status chip).
+class _NeedsActionTile extends StatelessWidget {
+  const _NeedsActionTile({required this.provider, required this.onTap});
+
+  final PendingProvider provider;
+  final VoidCallback onTap;
+
+  static String _relative(DateTime date) {
+    final days = DateTime.now().difference(date).inDays;
+    if (days <= 0) return 'today';
+    if (days == 1) return '1 day ago';
+    return '$days days ago';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Card(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: colorScheme.surfaceContainerHighest,
+                foregroundColor: colorScheme.onSurfaceVariant,
+                child: Text(
+                  provider.businessName.isNotEmpty ? provider.businessName[0].toUpperCase() : '?',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(provider.businessName, style: textTheme.titleMedium),
+                    const SizedBox(height: 2),
+                    Text(
+                      [provider.location, _relative(provider.appliedAt)]
+                          .where((part) => part != null && part.isNotEmpty)
+                          .join(' · '),
+                      style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.6)),
+                    ),
+                  ],
+                ),
+              ),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: StatusColors.pending(context).withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(AppRadii.chip),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+                  child: Text(
+                    'PENDING',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: StatusColors.pending(context),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.sm),
-          _DashboardTile(
-            icon: Icons.category_outlined,
-            title: 'Manage categories',
-            subtitle: 'Add, rename, or remove service categories',
-            onTap: () => context.push('/admin/categories'),
-          ),
-        ],
+        ),
       ),
     );
   }

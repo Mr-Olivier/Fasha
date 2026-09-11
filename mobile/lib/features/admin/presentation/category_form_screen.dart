@@ -55,6 +55,32 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
     context.pop();
   }
 
+  Future<void> _delete() async {
+    final category = widget.existing;
+    if (category == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete category?'),
+        content: Text('"${category.name}" will be removed. This can\'t be undone.'),
+        actions: [
+          TextButton(onPressed: () => context.pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => context.pop(true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    await ref.read(adminCategoryControllerProvider.notifier).deleteCategory(category.id);
+
+    final state = ref.read(adminCategoryControllerProvider);
+    if (state.hasError) return;
+    if (!mounted) return;
+    AppToast.success(context, 'Category deleted.');
+    context.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isSaving = ref.watch(adminCategoryControllerProvider).isLoading;
@@ -99,6 +125,17 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
                       )
                     : Text(isEditing ? 'Save changes' : 'Add category'),
               ),
+              if (isEditing) ...[
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: isSaving ? null : _delete,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
+                    side: BorderSide(color: Theme.of(context).colorScheme.error),
+                  ),
+                  child: const Text('Delete category'),
+                ),
+              ],
             ],
           ),
         ),

@@ -45,6 +45,7 @@ dependencies:
   image_picker: ^1.1.2       # picking an avatar image from the device's gallery
   url_launcher: ^6.3.1       # opening the phone dialer for a booking's "Call" button
   google_sign_in: ^6.2.2     # "Continue with Google" on the auth screens
+  fl_chart: ^0.69.2          # admin dashboard charts (bookings trend, providers by category, user growth)
 
 dev_dependencies:
   flutter_test:

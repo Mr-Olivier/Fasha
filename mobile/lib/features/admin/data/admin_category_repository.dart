@@ -2,12 +2,29 @@ import 'package:dio/dio.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../services/domain/category.dart';
+import '../domain/admin_category.dart';
 import 'admin_category_api.dart';
 
 class AdminCategoryRepository {
   const AdminCategoryRepository(this._api);
 
   final AdminCategoryApi _api;
+
+  Future<List<AdminCategory>> listAll() async {
+    try {
+      return await _api.listAll();
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<AdminCategory> setVisibility({required String categoryId, required bool active}) async {
+    try {
+      return await _api.setVisibility(categoryId: categoryId, active: active);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
 
   Future<Category> create({required String name, String? description}) async {
     try {

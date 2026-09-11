@@ -31,6 +31,10 @@ public class Category {
     @Column(length = 500)
     private String description;
 
+    /** Hidden categories still exist (services can reference them) but drop out of the public GET /api/categories list - see CategoryService.listAll. */
+    @Column(name = "is_active", nullable = false)
+    private boolean active = true;
+
     public Category(String name, String description) {
         this.name = name;
         this.description = description;
@@ -39,5 +43,9 @@ public class Category {
     public void rename(String name, String description) {
         this.name = name;
         this.description = description;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }

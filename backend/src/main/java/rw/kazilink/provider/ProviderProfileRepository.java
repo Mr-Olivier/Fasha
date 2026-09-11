@@ -12,4 +12,7 @@ public interface ProviderProfileRepository extends JpaRepository<ProviderProfile
 
     /** Powers GET /api/providers - only APPROVED providers are ever publicly browsable. */
     List<ProviderProfile> findByVerificationStatus(VerificationStatus verificationStatus);
+
+    /** Powers the admin overview's "Pending approvals"/"Active providers" stats. */
+    long countByVerificationStatus(VerificationStatus verificationStatus);
 }

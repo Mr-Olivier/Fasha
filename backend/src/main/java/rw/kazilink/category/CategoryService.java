@@ -12,7 +12,7 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
 
     public List<CategoryResponse> listAll() {
-        return categoryRepository.findAllByOrderByNameAsc().stream()
+        return categoryRepository.findByActiveTrueOrderByNameAsc().stream()
                 .map(category -> new CategoryResponse(category.getId(), category.getName(), category.getDescription()))
                 .toList();
     }

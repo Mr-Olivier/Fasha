@@ -2,6 +2,8 @@ package rw.kazilink.user;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,4 +24,13 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByEmail(String email);
 
     Optional<User> findByGoogleSub(String googleSub);
+
+    /** Powers the admin overview's "Customers" stat. */
+    long countByRole(Role role);
+
+    /** Powers the admin Customers/Providers account list (GET /api/admin/users?role=...). */
+    List<User> findByRoleOrderByCreatedAtDesc(Role role);
+
+    /** Powers the admin "user growth" chart - new accounts per role since a given date. */
+    List<User> findByCreatedAtAfter(Instant createdAfter);
 }

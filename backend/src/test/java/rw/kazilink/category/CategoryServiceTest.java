@@ -22,7 +22,7 @@ class CategoryServiceTest {
 
     @Test
     void listAll_mapsEntitiesToResponsesInRepositoryOrder() {
-        when(categoryRepository.findAllByOrderByNameAsc()).thenReturn(List.of(
+        when(categoryRepository.findByActiveTrueOrderByNameAsc()).thenReturn(List.of(
                 new Category("Cleaner", "Home and office cleaning"),
                 new Category("Electrician", "Electrical repairs")
         ));

@@ -24,6 +24,7 @@ public class AdminProviderService {
     private final UserRepository userRepository;
     private final ServiceListingRepository serviceListingRepository;
     private final NotificationService notificationService;
+    private final AdminAuditService adminAuditService;
 
     /**
      * status is optional - omitting it (plain GET /api/admin/providers) lists
@@ -39,7 +40,7 @@ public class AdminProviderService {
     }
 
     @Transactional
-    public PendingProviderResponse decide(UUID providerProfileId, boolean approved) {
+    public PendingProviderResponse decide(UUID adminUserId, UUID providerProfileId, boolean approved) {
         ProviderProfile profile = providerProfileRepository.findById(providerProfileId)
                 .orElseThrow(ProviderProfileNotFoundException::new);
         profile.setVerificationStatus(approved ? VerificationStatus.APPROVED : VerificationStatus.REJECTED);
@@ -52,6 +53,8 @@ public class AdminProviderService {
                         ? "Your provider application for " + profile.getBusinessName() + " was approved - you're now visible in search."
                         : "Your provider application for " + profile.getBusinessName() + " wasn't approved this time.",
                 null);
+        adminAuditService.record(adminUserId, approved ? "PROVIDER_APPROVED" : "PROVIDER_REJECTED", "PROVIDER_PROFILE",
+                profile.getId(), profile.getBusinessName());
 
         return toResponse(profile);
     }
@@ -67,9 +70,11 @@ public class AdminProviderService {
                 profile.getLocation(),
                 profile.getVerificationStatus(),
                 profile.getCreatedAt(),
+                owner.getId(),
                 owner.getName(),
                 owner.getEmail(),
                 owner.getPhone(),
+                owner.getStatus(),
                 serviceCount
         );
     }

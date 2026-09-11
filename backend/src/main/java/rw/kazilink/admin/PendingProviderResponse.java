@@ -1,6 +1,7 @@
 package rw.kazilink.admin;
 
 import rw.kazilink.provider.VerificationStatus;
+import rw.kazilink.user.UserStatus;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -11,6 +12,10 @@ import java.util.UUID;
  * name/email/phone and their service count so the admin app never needs a
  * second round-trip per provider just to render the list - same reasoning
  * as BookingResponse's denormalized fields.
+ *
+ * [ownerUserId]/[ownerAccountStatus] let the admin app suspend/resume/
+ * delete this provider's underlying account (AdminUserController) right
+ * from this same screen, without a second fetch.
  */
 public record PendingProviderResponse(
         UUID id,
@@ -19,9 +24,11 @@ public record PendingProviderResponse(
         String location,
         VerificationStatus verificationStatus,
         Instant appliedAt,
+        UUID ownerUserId,
         String ownerName,
         String ownerEmail,
         String ownerPhone,
+        UserStatus ownerAccountStatus,
         long serviceCount
 ) {
 }

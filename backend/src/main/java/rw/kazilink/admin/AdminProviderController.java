@@ -3,6 +3,7 @@ package rw.kazilink.admin;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,7 +36,11 @@ public class AdminProviderController {
     }
 
     @PatchMapping("/{id}/approve")
-    public PendingProviderResponse decide(@PathVariable UUID id, @Valid @RequestBody ProviderDecisionRequest request) {
-        return adminProviderService.decide(id, request.approved());
+    public PendingProviderResponse decide(
+            @AuthenticationPrincipal UUID adminUserId,
+            @PathVariable UUID id,
+            @Valid @RequestBody ProviderDecisionRequest request
+    ) {
+        return adminProviderService.decide(adminUserId, id, request.approved());
     }
 }

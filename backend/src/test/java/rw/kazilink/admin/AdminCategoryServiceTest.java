@@ -6,14 +6,21 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import rw.kazilink.booking.BookingRepository;
 import rw.kazilink.category.Category;
 import rw.kazilink.category.CategoryInUseException;
 import rw.kazilink.category.CategoryNameAlreadyExistsException;
 import rw.kazilink.category.CategoryNotFoundException;
 import rw.kazilink.category.CategoryRepository;
 import rw.kazilink.category.CategoryResponse;
+import rw.kazilink.provider.ProviderProfile;
+import rw.kazilink.provider.ProviderProfileRepository;
+import rw.kazilink.provider.VerificationStatus;
+import rw.kazilink.service.ServiceListing;
 import rw.kazilink.service.ServiceListingRepository;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,17 +40,27 @@ class AdminCategoryServiceTest {
     @Mock
     private ServiceListingRepository serviceListingRepository;
 
+    @Mock
+    private ProviderProfileRepository providerProfileRepository;
+
+    @Mock
+    private BookingRepository bookingRepository;
+
+    @Mock
+    private AdminAuditService adminAuditService;
+
     @InjectMocks
     private AdminCategoryService adminCategoryService;
 
     private final UUID categoryId = UUID.randomUUID();
+    private final UUID adminUserId = UUID.randomUUID();
 
     @Test
     void create_savesANewCategoryWhenTheNameIsFree() {
         when(categoryRepository.existsByNameIgnoreCase("Plumber")).thenReturn(false);
         when(categoryRepository.save(any(Category.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        CategoryResponse response = adminCategoryService.create("Plumber", "Pipe and tap repairs");
+        CategoryResponse response = adminCategoryService.create(adminUserId, "Plumber", "Pipe and tap repairs");
 
         assertThat(response.name()).isEqualTo("Plumber");
         assertThat(response.description()).isEqualTo("Pipe and tap repairs");
@@ -53,7 +70,7 @@ class AdminCategoryServiceTest {
     void create_throwsWhenTheNameAlreadyExists() {
         when(categoryRepository.existsByNameIgnoreCase("Plumber")).thenReturn(true);
 
-        assertThatThrownBy(() -> adminCategoryService.create("Plumber", null))
+        assertThatThrownBy(() -> adminCategoryService.create(adminUserId, "Plumber", null))
                 .isInstanceOf(CategoryNameAlreadyExistsException.class);
         verify(categoryRepository, never()).save(any());
     }
@@ -65,7 +82,7 @@ class AdminCategoryServiceTest {
         when(categoryRepository.existsByNameIgnoreCaseAndIdNot("Home Cleaner", categoryId)).thenReturn(false);
         when(categoryRepository.save(any(Category.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        CategoryResponse response = adminCategoryService.update(categoryId, "Home Cleaner", "New description");
+        CategoryResponse response = adminCategoryService.update(adminUserId, categoryId, "Home Cleaner", "New description");
 
         assertThat(response.name()).isEqualTo("Home Cleaner");
         assertThat(response.description()).isEqualTo("New description");
@@ -75,7 +92,7 @@ class AdminCategoryServiceTest {
     void update_throwsWhenTheCategoryDoesNotExist() {
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> adminCategoryService.update(categoryId, "Whatever", null))
+        assertThatThrownBy(() -> adminCategoryService.update(adminUserId, categoryId, "Whatever", null))
                 .isInstanceOf(CategoryNotFoundException.class);
     }
 
@@ -85,7 +102,7 @@ class AdminCategoryServiceTest {
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
         when(categoryRepository.existsByNameIgnoreCaseAndIdNot("Electrician", categoryId)).thenReturn(true);
 
-        assertThatThrownBy(() -> adminCategoryService.update(categoryId, "Electrician", null))
+        assertThatThrownBy(() -> adminCategoryService.update(adminUserId, categoryId, "Electrician", null))
                 .isInstanceOf(CategoryNameAlreadyExistsException.class);
     }
 
@@ -95,7 +112,7 @@ class AdminCategoryServiceTest {
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
         when(serviceListingRepository.existsByCategoryId(categoryId)).thenReturn(false);
 
-        adminCategoryService.delete(categoryId);
+        adminCategoryService.delete(adminUserId, categoryId);
 
         ArgumentCaptor<Category> captor = ArgumentCaptor.forClass(Category.class);
         verify(categoryRepository).delete(captor.capture());
@@ -108,7 +125,7 @@ class AdminCategoryServiceTest {
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
         when(serviceListingRepository.existsByCategoryId(categoryId)).thenReturn(true);
 
-        assertThatThrownBy(() -> adminCategoryService.delete(categoryId))
+        assertThatThrownBy(() -> adminCategoryService.delete(adminUserId, categoryId))
                 .isInstanceOf(CategoryInUseException.class);
         verify(categoryRepository, never()).delete(any());
     }
@@ -117,7 +134,71 @@ class AdminCategoryServiceTest {
     void delete_throwsWhenTheCategoryDoesNotExist() {
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> adminCategoryService.delete(categoryId))
+        assertThatThrownBy(() -> adminCategoryService.delete(adminUserId, categoryId))
+                .isInstanceOf(CategoryNotFoundException.class);
+    }
+
+    @Test
+    void listAllForAdmin_countsOnlyApprovedProvidersButEveryBooking() {
+        Category category = new Category("Plumber", "Pipe repairs");
+        when(categoryRepository.findAllByOrderByNameAsc()).thenReturn(List.of(category));
+
+        UUID approvedProviderId = UUID.randomUUID();
+        UUID pendingProviderId = UUID.randomUUID();
+        ServiceListing approvedProviderService = new ServiceListing(approvedProviderId, category.getId(), "Tap fix", null, BigDecimal.TEN);
+        ServiceListing pendingProviderService = new ServiceListing(pendingProviderId, category.getId(), "Pipe fix", null, BigDecimal.TEN);
+        when(serviceListingRepository.findByCategoryId(category.getId()))
+                .thenReturn(List.of(approvedProviderService, pendingProviderService));
+
+        ProviderProfile approvedProvider = new ProviderProfile(UUID.randomUUID(), "Approved Co", null, null, null);
+        approvedProvider.setVerificationStatus(VerificationStatus.APPROVED);
+        ProviderProfile pendingProvider = new ProviderProfile(UUID.randomUUID(), "Pending Co", null, null, null);
+        pendingProvider.setVerificationStatus(VerificationStatus.PENDING);
+        when(providerProfileRepository.findAllById(List.of(approvedProviderId, pendingProviderId)))
+                .thenReturn(List.of(approvedProvider, pendingProvider));
+
+        when(bookingRepository.countByServiceListingIdIn(any())).thenReturn(5L);
+
+        List<AdminCategoryResponse> result = adminCategoryService.listAllForAdmin();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).providerCount()).isEqualTo(1);
+        assertThat(result.get(0).bookingCount()).isEqualTo(5);
+        assertThat(result.get(0).active()).isTrue();
+    }
+
+    @Test
+    void listAllForAdmin_zeroesCountsWhenNoServiceUsesTheCategory() {
+        Category category = new Category("Empty", null);
+        when(categoryRepository.findAllByOrderByNameAsc()).thenReturn(List.of(category));
+        when(serviceListingRepository.findByCategoryId(category.getId())).thenReturn(List.of());
+
+        List<AdminCategoryResponse> result = adminCategoryService.listAllForAdmin();
+
+        assertThat(result.get(0).providerCount()).isZero();
+        assertThat(result.get(0).bookingCount()).isZero();
+        verify(providerProfileRepository, never()).findAllById(any());
+        verify(bookingRepository, never()).countByServiceListingIdIn(any());
+    }
+
+    @Test
+    void setActive_hidesACategoryFromCustomers() {
+        Category category = new Category("Plumber", null);
+        when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
+        when(categoryRepository.save(category)).thenReturn(category);
+        when(serviceListingRepository.findByCategoryId(category.getId())).thenReturn(List.of());
+
+        AdminCategoryResponse response = adminCategoryService.setActive(adminUserId, categoryId, false);
+
+        assertThat(response.active()).isFalse();
+        assertThat(category.isActive()).isFalse();
+    }
+
+    @Test
+    void setActive_throwsWhenTheCategoryDoesNotExist() {
+        when(categoryRepository.findById(categoryId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> adminCategoryService.setActive(adminUserId, categoryId, false))
                 .isInstanceOf(CategoryNotFoundException.class);
     }
 }

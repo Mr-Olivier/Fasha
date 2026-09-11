@@ -38,11 +38,15 @@ class AdminProviderServiceTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private AdminAuditService adminAuditService;
+
     @InjectMocks
     private AdminProviderService adminProviderService;
 
     private final UUID userId = UUID.randomUUID();
     private final UUID profileId = UUID.randomUUID();
+    private final UUID adminUserId = UUID.randomUUID();
 
     private ProviderProfile pendingProfile() {
         ProviderProfile profile = new ProviderProfile(userId, "Kigali Cool Fridges", "Fridge repair", "Gasabo", null);
@@ -74,7 +78,7 @@ class AdminProviderServiceTest {
                 .thenReturn(Optional.of(new User("Patrick N.", "patrick@example.com", "0788456123", "hash", Role.PROVIDER)));
         when(serviceListingRepository.countByProviderProfileId(profileId)).thenReturn(0L);
 
-        PendingProviderResponse response = adminProviderService.decide(profileId, true);
+        PendingProviderResponse response = adminProviderService.decide(adminUserId, profileId, true);
 
         assertThat(response.verificationStatus()).isEqualTo(VerificationStatus.APPROVED);
         assertThat(profile.getVerificationStatus()).isEqualTo(VerificationStatus.APPROVED);
@@ -88,7 +92,7 @@ class AdminProviderServiceTest {
                 .thenReturn(Optional.of(new User("Patrick N.", "patrick@example.com", "0788456123", "hash", Role.PROVIDER)));
         when(serviceListingRepository.countByProviderProfileId(profileId)).thenReturn(0L);
 
-        PendingProviderResponse response = adminProviderService.decide(profileId, false);
+        PendingProviderResponse response = adminProviderService.decide(adminUserId, profileId, false);
 
         assertThat(response.verificationStatus()).isEqualTo(VerificationStatus.REJECTED);
     }
@@ -97,7 +101,7 @@ class AdminProviderServiceTest {
     void decide_throwsWhenTheProviderProfileDoesNotExist() {
         when(providerProfileRepository.findById(profileId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> adminProviderService.decide(profileId, true))
+        assertThatThrownBy(() -> adminProviderService.decide(adminUserId, profileId, true))
                 .isInstanceOf(ProviderProfileNotFoundException.class);
     }
 }

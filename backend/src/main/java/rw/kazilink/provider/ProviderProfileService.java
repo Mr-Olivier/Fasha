@@ -7,6 +7,9 @@ import rw.kazilink.review.ReviewRepository;
 import rw.kazilink.service.ServiceListing;
 import rw.kazilink.service.ServiceListingRepository;
 import rw.kazilink.service.ServiceListingResponse;
+import rw.kazilink.user.User;
+import rw.kazilink.user.UserRepository;
+import rw.kazilink.user.UserStatus;
 
 import java.util.List;
 import java.util.Set;
@@ -20,6 +23,7 @@ public class ProviderProfileService {
     private final ProviderProfileRepository providerProfileRepository;
     private final ServiceListingRepository serviceListingRepository;
     private final ReviewRepository reviewRepository;
+    private final UserRepository userRepository;
 
     public ProviderProfileResponse getMyProfile(UUID userId) {
         ProviderProfile profile = providerProfileRepository.findByUserId(userId)
@@ -43,6 +47,7 @@ public class ProviderProfileService {
      */
     public List<ProviderProfileResponse> browseProviders(UUID categoryId, String search) {
         List<ProviderProfile> approved = providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED);
+        approved = excludeSuspendedOwners(approved);
 
         if (categoryId != null) {
             Set<UUID> providerIdsInCategory = serviceListingRepository.findByCategoryId(categoryId).stream()
@@ -58,6 +63,30 @@ public class ProviderProfileService {
         }
 
         return approved.stream().map(this::toResponse).toList();
+    }
+
+    /**
+     * A suspended provider's profile stays APPROVED (suspension is an
+     * account-level action, not a re-review of their business - see
+     * AdminUserService) but must still disappear from customer-facing
+     * search/detail alongside their login being blocked (AuthService.login),
+     * or "suspended" wouldn't actually mean anything from a customer's
+     * point of view.
+     */
+    private List<ProviderProfile> excludeSuspendedOwners(List<ProviderProfile> profiles) {
+        if (profiles.isEmpty()) return profiles;
+        Set<UUID> suspendedOwnerIds = userRepository.findAllById(profiles.stream().map(ProviderProfile::getUserId).distinct().toList())
+                .stream()
+                .filter(user -> user.getStatus() == UserStatus.SUSPENDED)
+                .map(User::getId)
+                .collect(Collectors.toSet());
+        return profiles.stream().filter(p -> !suspendedOwnerIds.contains(p.getUserId())).toList();
+    }
+
+    private boolean isOwnerSuspended(ProviderProfile profile) {
+        return userRepository.findById(profile.getUserId())
+                .map(user -> user.getStatus() == UserStatus.SUSPENDED)
+                .orElse(false);
     }
 
     /** businessName, location, and description are all customer-visible text a search term could plausibly be typed against. */
@@ -80,6 +109,7 @@ public class ProviderProfileService {
     public ProviderDetailResponse getProviderDetail(UUID providerProfileId) {
         ProviderProfile profile = providerProfileRepository.findById(providerProfileId)
                 .filter(p -> p.getVerificationStatus() == VerificationStatus.APPROVED)
+                .filter(p -> !isOwnerSuspended(p))
                 .orElseThrow(ProviderNotFoundException::new);
 
         List<ServiceListingResponse> services = serviceListingRepository.findByProviderProfileId(providerProfileId).stream()

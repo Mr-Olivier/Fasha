@@ -9,6 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import rw.kazilink.review.ReviewRepository;
 import rw.kazilink.service.ServiceListing;
 import rw.kazilink.service.ServiceListingRepository;
+import rw.kazilink.user.UserRepository;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -31,6 +32,9 @@ class ProviderProfileServiceTest {
 
     @Mock
     private ReviewRepository reviewRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private ProviderProfileService providerProfileService;
@@ -209,6 +213,46 @@ class ProviderProfileServiceTest {
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).businessName()).isEqualTo("Alice's Repairs");
+    }
+
+    @Test
+    void browseProviders_excludesAnApprovedProviderWhoseOwnerAccountIsSuspended() {
+        UUID activeOwnerId = UUID.randomUUID();
+        UUID suspendedOwnerId = UUID.randomUUID();
+        ProviderProfile activeProvider = new ProviderProfile(activeOwnerId, "Alice's Repairs", null, null, null);
+        ProviderProfile suspendedProvider = new ProviderProfile(suspendedOwnerId, "Bob's Tailoring", null, null, null);
+        when(providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED))
+                .thenReturn(List.of(activeProvider, suspendedProvider));
+        when(userRepository.findAllById(List.of(activeOwnerId, suspendedOwnerId))).thenReturn(List.of(
+                new rw.kazilink.user.User("Alice", "alice@example.com", null, "hash", rw.kazilink.user.Role.PROVIDER),
+                suspendedUser(suspendedOwnerId)
+        ));
+
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null, null);
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).businessName()).isEqualTo("Alice's Repairs");
+    }
+
+    @Test
+    void getProviderDetail_throwsWhenTheOwnerAccountIsSuspended() {
+        UUID providerProfileId = UUID.randomUUID();
+        UUID ownerId = UUID.randomUUID();
+        ProviderProfile approved = new ProviderProfile(ownerId, "Alice's Repairs", null, null, null);
+        approved.setId(providerProfileId);
+        approved.setVerificationStatus(VerificationStatus.APPROVED);
+        when(providerProfileRepository.findById(providerProfileId)).thenReturn(Optional.of(approved));
+        when(userRepository.findById(ownerId)).thenReturn(Optional.of(suspendedUser(ownerId)));
+
+        assertThatThrownBy(() -> providerProfileService.getProviderDetail(providerProfileId))
+                .isInstanceOf(ProviderNotFoundException.class);
+    }
+
+    private rw.kazilink.user.User suspendedUser(UUID id) {
+        rw.kazilink.user.User user = new rw.kazilink.user.User("Bob", "bob@example.com", null, "hash", rw.kazilink.user.Role.PROVIDER);
+        user.setId(id);
+        user.setStatus(rw.kazilink.user.UserStatus.SUSPENDED);
+        return user;
     }
 
     @Test

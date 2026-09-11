@@ -15,9 +15,19 @@ final adminProviderRepositoryProvider = Provider<AdminProviderRepository>(
 );
 
 /// The approval queue - only PENDING providers, since an approved/rejected
-/// one has nothing left for the admin to decide.
+/// one has nothing left for the admin to decide. Used by the admin
+/// Overview's "Needs your action" section.
 final pendingProvidersProvider = FutureProvider<List<PendingProvider>>(
   (ref) => ref.watch(adminProviderRepositoryProvider).listProviders(status: VerificationStatus.pending),
+);
+
+/// The full Providers management screen's data - a `.family` keyed by the
+/// status filter chip the admin currently has selected (null = "All"), so
+/// switching chips is just watching a different, independently-cached
+/// instance of this same provider rather than refetching/losing scroll
+/// position on every tap.
+final adminProvidersByStatusProvider = FutureProvider.family<List<PendingProvider>, VerificationStatus?>(
+  (ref, status) => ref.watch(adminProviderRepositoryProvider).listProviders(status: status),
 );
 
 /// Approving/rejecting one application - its own dedicated `AsyncNotifier<bool>`

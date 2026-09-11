@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/admin/presentation/admin_categories_screen.dart';
+import '../../features/admin/presentation/admin_customers_screen.dart';
 import '../../features/admin/presentation/admin_providers_screen.dart';
+import '../../features/admin/presentation/audit_log_screen.dart';
 import '../../features/admin/presentation/category_form_screen.dart';
 import '../../features/auth/presentation/auth_controller.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
@@ -117,10 +119,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => ResetPasswordScreen(prefilledEmail: state.extra as String?),
       ),
       GoRoute(path: '/verify-email', builder: (context, state) => const VerifyEmailScreen()),
+      // Branch order/count is fixed - it's what AppShell's tuples
+      // (_home/_providers/_customers/_categories/_profile) index into by
+      // position, regardless of which of these a given role actually shows
+      // as a visible tab. See AppShell's doc comment for the full reasoning.
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
         branches: [
           StatefulShellBranch(routes: [GoRoute(path: '/home', builder: (context, state) => const HomeScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/admin/providers', builder: (context, state) => const AdminProvidersScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/admin/customers', builder: (context, state) => const AdminCustomersScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/admin/categories', builder: (context, state) => const AdminCategoriesScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen())]),
         ],
       ),
@@ -161,14 +170,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         // name) - see ChatEntryRow's onTap.
         builder: (context, state) => ChatScreen(args: state.extra as ChatScreenArgs),
       ),
-      GoRoute(path: '/admin/providers', builder: (context, state) => const AdminProvidersScreen()),
-      GoRoute(path: '/admin/categories', builder: (context, state) => const AdminCategoriesScreen()),
       GoRoute(
         path: '/admin/categories/form',
         // `extra` carries the Category being edited, or null when adding a
         // new one - see CategoryFormScreen's doc comment for why.
         builder: (context, state) => CategoryFormScreen(existing: state.extra as Category?),
       ),
+      GoRoute(path: '/admin/audit-log', builder: (context, state) => const AuditLogScreen()),
       GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen()),
       GoRoute(path: '/incoming-requests', builder: (context, state) => const IncomingRequestsScreen()),
       GoRoute(

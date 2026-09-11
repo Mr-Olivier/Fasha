@@ -56,7 +56,13 @@ app:
     # A long random string used to sign JWTs. NEVER commit a real one -
     # always override this with the JWT_SECRET environment variable.
     secret: ${JWT_SECRET:dev-only-secret-change-me-please-make-me-long-and-random}
-    expiration-ms: 86400000 # 24 hours, in milliseconds
+    # Short-lived on purpose now that refresh-token rotation exists
+    # (RefreshTokenService) - a leaked access token is only useful for this
+    # long. The mobile app transparently trades an expired one in for a new
+    # pair via POST /api/auth/refresh, so this being short doesn't mean
+    # "log the user out every 15 minutes".
+    expiration-ms: 900000 # 15 minutes, in milliseconds
+    refresh-expiration-ms: 2592000000 # 30 days, in milliseconds
 
   # Where AvatarStorageService writes uploaded avatar files, and where
   # StaticResourceConfig serves them back from. Relative to wherever the

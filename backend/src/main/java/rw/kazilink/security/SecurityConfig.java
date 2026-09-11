@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -73,6 +74,25 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(Customizer.withDefaults())
+                // Defense-in-depth response headers - meaningful even for a
+                // JSON API, since anything served under this origin (including
+                // the public /uploads/** avatar images and any error page)
+                // benefits from them. X-Content-Type-Options and X-Frame-Options
+                // are already ON by Spring Security's own defaults; the three
+                // below are NOT, so they're spelled out explicitly.
+                .headers(headers -> headers
+                        // 'none' is safe for a pure JSON API that serves no HTML of
+                        // its own to render - the only non-JSON responses are
+                        // static avatar images, which don't execute scripts anyway.
+                        .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; frame-ancestors 'none'"))
+                        // Tells browsers to only ever talk to this host over HTTPS
+                        // from now on, even if a link/redirect somehow says HTTP -
+                        // closes the window for a downgrade attack on a real
+                        // deployment. Harmless on this machine's local HTTP dev
+                        // server: browsers don't act on it for plain HTTP responses.
+                        .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000))
+                        .referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+                )
                 // CSRF protection defends against a browser being tricked into
                 // submitting a form using a logged-in user's session cookie.
                 // We have no sessions/cookies at all - every request is
@@ -90,7 +110,14 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/google",
                                 "/api/auth/forgot-password",
-                                "/api/auth/reset-password"
+                                "/api/auth/reset-password",
+                                // The whole point of a refresh token is getting a new
+                                // access token once the old one has EXPIRED - requiring
+                                // a valid access token to call this would defeat it.
+                                // RefreshTokenService.rotate() is what actually
+                                // authenticates this request, via the refresh token
+                                // itself.
+                                "/api/auth/refresh"
                         ).permitAll()
                         // Only the read side is public - scoped to GET
                         // specifically, so admin-only writes on

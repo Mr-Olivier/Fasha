@@ -11,6 +11,7 @@ import rw.kazilink.otp.InvalidOtpException;
 import rw.kazilink.otp.OtpPurpose;
 import rw.kazilink.otp.OtpService;
 import rw.kazilink.security.JwtService;
+import rw.kazilink.security.RefreshTokenService;
 import rw.kazilink.security.RevokedToken;
 import rw.kazilink.security.RevokedTokenRepository;
 import rw.kazilink.user.AuthProvider;
@@ -38,9 +39,11 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
     private final RevokedTokenRepository revokedTokenRepository;
     private final OtpService otpService;
     private final GoogleTokenService googleTokenService;
+    private final LoginAttemptService loginAttemptService;
 
     /**
      * emailVerified starts false for every self-registered account - see
@@ -76,17 +79,27 @@ public class AuthService {
         otpService.issue(user, OtpPurpose.EMAIL_VERIFICATION,
                 "Verify your KaziLink email", "Welcome to KaziLink! Use this code to verify your email:");
 
-        String token = jwtService.generateToken(user.getId(), user.getRole().name());
-        return toAuthResponse(user, token);
+        return toAuthResponse(user);
     }
 
+    /**
+     * Fails closed BEFORE touching the database at all if this email is
+     * currently locked out (see LoginAttemptService) - a locked-out
+     * attacker doesn't even get the timing signal of a real credential
+     * check running. Every wrong-password/unknown-email attempt counts
+     * toward that lockout; a successful one clears it.
+     */
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.email())
-                .orElseThrow(InvalidCredentialsException::new);
+        loginAttemptService.assertNotLocked(request.email());
 
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+        Optional<User> maybeUser = userRepository.findByEmail(request.email());
+        if (maybeUser.isEmpty() || !passwordEncoder.matches(request.password(), maybeUser.get().getPasswordHash())) {
+            loginAttemptService.recordFailure(request.email());
             throw new InvalidCredentialsException();
         }
+        User user = maybeUser.get();
+        loginAttemptService.recordSuccess(request.email());
+
         if (user.getStatus() == UserStatus.SUSPENDED) {
             throw new SuspendedAccountException();
         }
@@ -94,8 +107,7 @@ public class AuthService {
             throw new EmailNotVerifiedException();
         }
 
-        String token = jwtService.generateToken(user.getId(), user.getRole().name());
-        return toAuthResponse(user, token);
+        return toAuthResponse(user);
     }
 
     /**
@@ -151,8 +163,28 @@ public class AuthService {
             throw new SuspendedAccountException();
         }
 
-        String token = jwtService.generateToken(user.getId(), user.getRole().name());
-        return toAuthResponse(user, token);
+        return toAuthResponse(user);
+    }
+
+    /**
+     * Trades a still-valid refresh token for a brand new access+refresh
+     * pair, rotating the refresh token in the process (see
+     * RefreshTokenService.rotate's Javadoc for what "rotating" means and
+     * why). Public (see SecurityConfig) since the access token that would
+     * normally authenticate a request is exactly what's expired here.
+     */
+    public AuthResponse refresh(String refreshToken) {
+        RefreshTokenService.RotatedToken rotated = refreshTokenService.rotate(refreshToken);
+        User user = userRepository.findById(rotated.userId()).orElseThrow(UserNotFoundException::new);
+        if (user.getStatus() == UserStatus.SUSPENDED) {
+            throw new SuspendedAccountException();
+        }
+
+        String accessToken = jwtService.generateToken(user.getId(), user.getRole().name());
+        return new AuthResponse(
+                accessToken, rotated.plaintextToken(), user.getId(), user.getName(), user.getEmail(),
+                user.getPhone(), user.getProfileImageUrl(), user.getRole(), user.isEmailVerified()
+        );
     }
 
     /** Called from the "verify your email" screen when the original register() code expired or never arrived - issues a fresh one for the same account. */
@@ -180,10 +212,15 @@ public class AuthService {
      * this exact token on any future request, even though it hasn't
      * naturally expired yet.
      */
-    public void logout(String token) {
+    public void logout(String token, String refreshToken) {
         UUID jti = jwtService.extractJti(token);
         Instant expiresAt = jwtService.extractExpiration(token);
         revokedTokenRepository.save(new RevokedToken(jti, expiresAt));
+        // Optional for backward compatibility with a client that hasn't
+        // updated yet - the access token above is still revoked either way.
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            refreshTokenService.revoke(refreshToken);
+        }
     }
 
     /**
@@ -221,7 +258,12 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    private AuthResponse toAuthResponse(User user, String token) {
-        return new AuthResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole(), user.isEmailVerified());
+    private AuthResponse toAuthResponse(User user) {
+        String accessToken = jwtService.generateToken(user.getId(), user.getRole().name());
+        String refreshToken = refreshTokenService.issue(user.getId());
+        return new AuthResponse(
+                accessToken, refreshToken, user.getId(), user.getName(), user.getEmail(),
+                user.getPhone(), user.getProfileImageUrl(), user.getRole(), user.isEmailVerified()
+        );
     }
 }

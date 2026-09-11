@@ -12,5 +12,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @ConfigurationPropertiesScan on BackendApplication).
  */
 @ConfigurationProperties(prefix = "app.jwt")
-public record JwtProperties(String secret, long expirationMs) {
+public record JwtProperties(String secret, long expirationMs, long refreshExpirationMs) {
 }

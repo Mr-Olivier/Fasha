@@ -11,6 +11,7 @@ import rw.kazilink.otp.InvalidOtpException;
 import rw.kazilink.otp.OtpPurpose;
 import rw.kazilink.otp.OtpService;
 import rw.kazilink.security.JwtService;
+import rw.kazilink.security.RefreshTokenService;
 import rw.kazilink.security.RevokedToken;
 import rw.kazilink.security.RevokedTokenRepository;
 import rw.kazilink.user.Role;
@@ -54,10 +55,16 @@ class AuthServiceTest {
     private JwtService jwtService;
 
     @Mock
+    private RefreshTokenService refreshTokenService;
+
+    @Mock
     private RevokedTokenRepository revokedTokenRepository;
 
     @Mock
     private OtpService otpService;
+
+    @Mock
+    private LoginAttemptService loginAttemptService;
 
     @InjectMocks
     private AuthService authService;
@@ -164,11 +171,65 @@ class AuthServiceTest {
         when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(existingUser));
         when(passwordEncoder.matches("password123", "hashed-password")).thenReturn(true);
         when(jwtService.generateToken(any(), anyString())).thenReturn("fake-jwt-token");
+        when(refreshTokenService.issue(any())).thenReturn("fake-refresh-token");
 
         AuthResponse response = authService.login(new LoginRequest("alice@example.com", "password123"));
 
         assertThat(response.token()).isEqualTo("fake-jwt-token");
+        assertThat(response.refreshToken()).isEqualTo("fake-refresh-token");
         assertThat(response.emailVerified()).isTrue();
+        verify(loginAttemptService).recordSuccess("alice@example.com");
+    }
+
+    @Test
+    void login_checksForAnExistingLockoutBeforeTouchingCredentials() {
+        org.mockito.Mockito.doThrow(new AccountLockedException(5)).when(loginAttemptService).assertNotLocked("alice@example.com");
+
+        assertThatThrownBy(() -> authService.login(new LoginRequest("alice@example.com", "password123")))
+                .isInstanceOf(AccountLockedException.class);
+        verify(userRepository, never()).findByEmail(any());
+    }
+
+    @Test
+    void login_recordsAFailedAttemptOnWrongPassword() {
+        User existingUser = verifiedUser("hashed-password");
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(existingUser));
+        when(passwordEncoder.matches("wrong-password", "hashed-password")).thenReturn(false);
+
+        assertThatThrownBy(() -> authService.login(new LoginRequest("alice@example.com", "wrong-password")))
+                .isInstanceOf(InvalidCredentialsException.class);
+
+        verify(loginAttemptService).recordFailure("alice@example.com");
+        verify(loginAttemptService, never()).recordSuccess(any());
+    }
+
+    @Test
+    void refresh_rotatesTheRefreshTokenAndReturnsTheUsersCurrentDetails() {
+        User existingUser = verifiedUser("hashed-password");
+        existingUser.setId(UUID.randomUUID());
+        when(refreshTokenService.rotate("old-refresh-token"))
+                .thenReturn(new RefreshTokenService.RotatedToken(existingUser.getId(), "new-refresh-token"));
+        when(userRepository.findById(existingUser.getId())).thenReturn(Optional.of(existingUser));
+        when(jwtService.generateToken(existingUser.getId(), "CUSTOMER")).thenReturn("new-access-token");
+
+        AuthResponse response = authService.refresh("old-refresh-token");
+
+        assertThat(response.token()).isEqualTo("new-access-token");
+        assertThat(response.refreshToken()).isEqualTo("new-refresh-token");
+        assertThat(response.email()).isEqualTo("alice@example.com");
+    }
+
+    @Test
+    void refresh_rejectsASuspendedAccountEvenWithAValidRefreshToken() {
+        User suspendedUser = verifiedUser("hashed-password");
+        suspendedUser.setId(UUID.randomUUID());
+        suspendedUser.setStatus(UserStatus.SUSPENDED);
+        when(refreshTokenService.rotate("old-refresh-token"))
+                .thenReturn(new RefreshTokenService.RotatedToken(suspendedUser.getId(), "new-refresh-token"));
+        when(userRepository.findById(suspendedUser.getId())).thenReturn(Optional.of(suspendedUser));
+
+        assertThatThrownBy(() -> authService.refresh("old-refresh-token"))
+                .isInstanceOf(SuspendedAccountException.class);
     }
 
     @Test
@@ -178,7 +239,7 @@ class AuthServiceTest {
         when(jwtService.extractJti("some-jwt")).thenReturn(jti);
         when(jwtService.extractExpiration("some-jwt")).thenReturn(expiresAt);
 
-        authService.logout("some-jwt");
+        authService.logout("some-jwt", null);
 
         var captor = org.mockito.ArgumentCaptor.forClass(RevokedToken.class);
         verify(revokedTokenRepository).save(captor.capture());

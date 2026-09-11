@@ -45,10 +45,19 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String authorizationHeader) {
+    public ResponseEntity<Void> logout(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestBody(required = false) LogoutRequest request
+    ) {
         String token = JwtService.extractBearerToken(authorizationHeader);
-        authService.logout(token);
+        authService.logout(token, request == null ? null : request.refreshToken());
         return ResponseEntity.noContent().build();
+    }
+
+    /** Public (see SecurityConfig) - the access token that would normally authenticate this request is exactly what's expired by the time a client needs this. */
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request) {
+        return ResponseEntity.ok(authService.refresh(request.refreshToken()));
     }
 
     @PostMapping("/forgot-password")

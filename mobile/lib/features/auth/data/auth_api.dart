@@ -56,10 +56,20 @@ class AuthApi {
     return AuthUser.fromJson(response.data!);
   }
 
-  /// No body, no return value - the "Authorization: Bearer" header is
-  /// enough for the backend to know which token to revoke (added
-  /// automatically by ApiClient's interceptor, same as every other call).
-  Future<void> logout() => _dio.post<void>('/auth/logout');
+  /// The "Authorization: Bearer" header (added automatically by
+  /// ApiClient's interceptor, same as every other call) tells the backend
+  /// which ACCESS token to revoke; [refreshToken] in the body lets it
+  /// revoke that too, so neither half of this session can be used again
+  /// after logout.
+  Future<void> logout({required String refreshToken}) => _dio.post<void>('/auth/logout', data: {'refreshToken': refreshToken});
+
+  /// Trades a still-valid refresh token for a brand new access+refresh
+  /// pair - see ApiClient's interceptor for where this actually gets
+  /// called (transparently, on any 401).
+  Future<AuthUser> refresh({required String refreshToken}) async {
+    final response = await _dio.post<Map<String, dynamic>>('/auth/refresh', data: {'refreshToken': refreshToken});
+    return AuthUser.fromJson(response.data!);
+  }
 
   /// Always succeeds (even for an email that doesn't exist - see the
   /// backend's own doc comment on AuthService.forgotPassword for why).

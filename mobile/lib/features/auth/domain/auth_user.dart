@@ -1,19 +1,23 @@
 import 'user_role.dart';
 
-/// The logged-in user, mirroring the backend's AuthResponse DTO (plus
-/// [phone]/[profileImageUrl], which only GET /api/users/me and the profile
-/// edit endpoints return - register/login don't, so they start out null
-/// right after login and get filled in the first time ProfileScreen loads).
+/// The logged-in user, mirroring the backend's AuthResponse DTO. As of the
+/// backend's refresh-token rotation work, register/login/refresh all
+/// include [phone]/[profileImageUrl] directly - a freshly logged-in
+/// session (even on a brand new device) shows the right avatar immediately,
+/// instead of only after ProfileScreen loads once.
 ///
-/// We deliberately keep the JWT [token] as part of this model (rather than
-/// storing it separately) so that AuthSessionStorage only has one thing to
-/// save/load, and so every screen that needs "who's logged in" (HomeScreen's
-/// greeting, ProfileScreen, ...) reads the same single source of truth -
-/// see AuthController.applyAccountUpdate for how a profile edit flows back
-/// into this cached copy.
+/// We deliberately keep both [token] (short-lived access token) and
+/// [refreshToken] as part of this model (rather than storing them
+/// separately) so that AuthSessionStorage only has one thing to save/load,
+/// and so every screen that needs "who's logged in" (HomeScreen's greeting,
+/// ProfileScreen, ...) reads the same single source of truth - see
+/// AuthController.applyAccountUpdate for how a profile edit flows back into
+/// this cached copy, and ApiClient's interceptor for how [refreshToken]
+/// gets traded in for a new pair once [token] expires.
 class AuthUser {
   const AuthUser({
     required this.token,
+    required this.refreshToken,
     required this.userId,
     required this.name,
     required this.email,
@@ -24,6 +28,7 @@ class AuthUser {
   });
 
   final String token;
+  final String refreshToken;
   final String userId;
   final String name;
   final String email;
@@ -34,6 +39,7 @@ class AuthUser {
 
   factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
         token: json['token'] as String,
+        refreshToken: json['refreshToken'] as String,
         userId: json['userId'] as String,
         name: json['name'] as String,
         email: json['email'] as String,
@@ -45,6 +51,7 @@ class AuthUser {
 
   Map<String, dynamic> toJson() => {
         'token': token,
+        'refreshToken': refreshToken,
         'userId': userId,
         'name': name,
         'email': email,

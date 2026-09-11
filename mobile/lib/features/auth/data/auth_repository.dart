@@ -71,7 +71,10 @@ class AuthRepository {
   /// "can't log out" state.
   Future<void> logout() async {
     try {
-      await _api.logout();
+      final session = await _storage.read();
+      if (session != null) {
+        await _api.logout(refreshToken: session.refreshToken);
+      }
     } on DioException {
       // Deliberately ignored - see doc comment above.
     }

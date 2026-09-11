@@ -124,12 +124,22 @@ class AuthController extends AsyncNotifier<AuthUser?> {
   /// Takes plain fields rather than a UserAccount object on purpose - this
   /// class belongs to the auth feature and shouldn't need to import the
   /// profile feature's domain types just to accept an update.
-  void applyAccountUpdate({required String name, String? phone, String? profileImageUrl}) {
+  ///
+  /// Re-reads token/refreshToken from STORAGE rather than trusting
+  /// `state.valueOrNull`'s copy: ApiClient's interceptor can silently
+  /// rotate both in the background (see its doc comment) without this
+  /// controller's in-memory state knowing. Copying the in-memory (possibly
+  /// stale) tokens here would overwrite a freshly-rotated, still-good
+  /// session with an already-revoked one - a real bug this exact shape
+  /// caused during the refresh-token rotation work.
+  Future<void> applyAccountUpdate({required String name, String? phone, String? profileImageUrl}) async {
     final current = state.valueOrNull;
     if (current == null) return;
+    final persisted = await ref.read(authRepositoryProvider).restoreSession() ?? current;
 
     final updated = AuthUser(
-      token: current.token,
+      token: persisted.token,
+      refreshToken: persisted.refreshToken,
       userId: current.userId,
       name: name,
       email: current.email,
@@ -144,14 +154,18 @@ class AuthController extends AsyncNotifier<AuthUser?> {
 
   /// Flips the cached session's emailVerified to true after
   /// VerifyEmailController.verify() succeeds - VerifyEmailScreen's cue,
-  /// same pattern as applyAccountUpdate, to leave that screen since
-  /// app_router.dart's redirect no longer forces the user back onto it.
-  void applyEmailVerified() {
+  /// same pattern as applyAccountUpdate (including reading token/
+  /// refreshToken fresh from storage - see that method's doc comment for
+  /// why), to leave that screen since app_router.dart's redirect no longer
+  /// forces the user back onto it.
+  Future<void> applyEmailVerified() async {
     final current = state.valueOrNull;
     if (current == null) return;
+    final persisted = await ref.read(authRepositoryProvider).restoreSession() ?? current;
 
     final updated = AuthUser(
-      token: current.token,
+      token: persisted.token,
+      refreshToken: persisted.refreshToken,
       userId: current.userId,
       name: current.name,
       email: current.email,
@@ -162,6 +176,27 @@ class AuthController extends AsyncNotifier<AuthUser?> {
     );
     state = AsyncValue.data(updated);
     ref.read(authRepositoryProvider).persistUser(updated);
+  }
+
+  /// Called by ApiClient when a background token refresh fails
+  /// irrecoverably (the refresh token itself is expired/revoked - e.g. an
+  /// admin suspended this account, or it was used on another device after
+  /// reuse-detection revoked every session - see RefreshTokenService).
+  /// Immediately reflects "logged out" so app_router.dart's redirect takes
+  /// the user to the login screen, instead of leaving stale state around
+  /// until they notice requests failing.
+  void forceSignOut() {
+    state = const AsyncValue.data(null);
+  }
+
+  /// Called by ApiClient right after a successful background token
+  /// refresh, so this controller's in-memory state (not just
+  /// AuthSessionStorage) reflects the new token/refreshToken pair -
+  /// without this, applyAccountUpdate/applyEmailVerified would still see
+  /// the OLD tokens via `state.valueOrNull` (only their fallback path,
+  /// restoreSession(), reads the truly current ones).
+  void applyRefreshedSession(AuthUser refreshed) {
+    state = AsyncValue.data(refreshed);
   }
 }
 

@@ -33,7 +33,19 @@ class AuthSessionStorage {
   Future<AuthUser?> read() async {
     final raw = await _storage.read(key: _sessionKey);
     if (raw == null) return null;
-    return AuthUser.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    try {
+      return AuthUser.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      // A session saved by an older build of the app (different AuthUser
+      // shape) can't be parsed with today's model. Since this is read on
+      // every single request (see ApiClient's auth interceptor), leaving
+      // this unhandled would silently break every API call - login
+      // included - until the user manually cleared app storage. Treating
+      // it as "logged out" instead just sends them back to the login
+      // screen, which is what a corrupt/outdated session should do anyway.
+      await clear();
+      return null;
+    }
   }
 
   Future<void> clear() {

@@ -29,6 +29,8 @@ public record PendingProviderResponse(
         String ownerEmail,
         String ownerPhone,
         UserStatus ownerAccountStatus,
-        long serviceCount
+        long serviceCount,
+        /** Whether this provider has ever hit "Submit for review" on their KYC documents (D7) - just a hint for the admin queue, not a gate on approving. */
+        boolean documentsSubmitted
 ) {
 }

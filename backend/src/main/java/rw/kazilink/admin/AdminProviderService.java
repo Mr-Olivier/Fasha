@@ -75,7 +75,8 @@ public class AdminProviderService {
                 owner.getEmail(),
                 owner.getPhone(),
                 owner.getStatus(),
-                serviceCount
+                serviceCount,
+                profile.getDocumentsSubmittedAt() != null
         );
     }
 }

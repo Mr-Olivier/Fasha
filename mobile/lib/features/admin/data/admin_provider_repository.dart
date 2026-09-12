@@ -25,4 +25,12 @@ class AdminProviderRepository {
       throw ApiException.fromDioException(e);
     }
   }
+
+  Future<void> deleteDocument({required String providerId, required String documentType}) async {
+    try {
+      await _api.deleteDocument(providerId: providerId, documentType: documentType);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
 }

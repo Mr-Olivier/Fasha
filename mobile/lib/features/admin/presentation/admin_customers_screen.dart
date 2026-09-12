@@ -26,6 +26,24 @@ class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
   // in-flight mutation at a time, not which account it belongs to.
   String? _busyUserId;
 
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  /// Client-side, same reasoning as AdminProvidersScreen's own search - this
+  /// account list is small enough that a second in-memory pass over
+  /// whatever's already fetched costs nothing noticeable.
+  List<AdminUser> _applySearch(List<AdminUser> users) {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return users;
+    return users.where((u) => u.name.toLowerCase().contains(query) || u.email.toLowerCase().contains(query)).toList();
+  }
+
   Future<void> _handle(AdminUser user, AccountAction action) async {
     if (action == AccountAction.delete) {
       final confirmed = await confirmDeleteAccount(context, user.name);
@@ -71,39 +89,66 @@ class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Customers')),
-      body: usersState.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => const Center(child: Text('Could not load customers.')),
-        data: (users) {
-          if (users.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.gutter),
-                child: Text(
-                  'No customers yet.',
-                  style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
-                ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(AppSpacing.gutter, AppSpacing.sm, AppSpacing.gutter, 0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search by name or email',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      ),
               ),
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: () => ref.refresh(adminUsersByRoleProvider(UserRole.customer).future),
-            child: ListView.separated(
-              padding: const EdgeInsets.all(AppSpacing.gutter),
-              itemCount: users.length,
-              separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
-              itemBuilder: (context, index) {
-                final user = users[index];
-                final isBusy = actionState.isLoading && _busyUserId == user.userId;
-                return _CustomerRow(
-                  user: user,
-                  isBusy: isBusy,
-                  onAction: (action) => _handle(user, action),
+              onChanged: (value) => setState(() => _searchQuery = value),
+            ),
+          ),
+          Expanded(
+            child: usersState.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => const Center(child: Text('Could not load customers.')),
+              data: (allUsers) {
+                final users = _applySearch(allUsers);
+                if (users.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.gutter),
+                      child: Text(
+                        allUsers.isEmpty ? 'No customers yet.' : 'No customers match your search.',
+                        style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
+                      ),
+                    ),
+                  );
+                }
+                return RefreshIndicator(
+                  onRefresh: () => ref.refresh(adminUsersByRoleProvider(UserRole.customer).future),
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(AppSpacing.gutter),
+                    itemCount: users.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+                    itemBuilder: (context, index) {
+                      final user = users[index];
+                      final isBusy = actionState.isLoading && _busyUserId == user.userId;
+                      return _CustomerRow(
+                        user: user,
+                        isBusy: isBusy,
+                        onAction: (action) => _handle(user, action),
+                      );
+                    },
+                  ),
                 );
               },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }

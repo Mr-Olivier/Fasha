@@ -55,3 +55,22 @@ class DecideProviderController extends AsyncNotifier<bool> {
 
 final decideProviderControllerProvider =
     AsyncNotifierProvider<DecideProviderController, bool>(DecideProviderController.new);
+
+/// Admin deleting one of a provider's KYC documents to free storage - its
+/// own dedicated controller, same "was loading, now has a value" ambiguity
+/// reasoning as DecideProviderController above.
+class AdminDeleteDocumentController extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() async => false;
+
+  Future<void> delete({required String providerId, required String documentType}) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(adminProviderRepositoryProvider).deleteDocument(providerId: providerId, documentType: documentType);
+      return true;
+    });
+  }
+}
+
+final adminDeleteDocumentControllerProvider =
+    AsyncNotifierProvider<AdminDeleteDocumentController, bool>(AdminDeleteDocumentController.new);

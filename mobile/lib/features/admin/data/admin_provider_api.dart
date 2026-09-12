@@ -25,4 +25,10 @@ class AdminProviderApi {
     );
     return PendingProvider.fromJson(response.data!);
   }
+
+  /// [documentType] is the backend's wire name for the slot - "ID",
+  /// "TRADE_CERTIFICATE", or "SELFIE" (see DocumentType.java).
+  Future<void> deleteDocument({required String providerId, required String documentType}) {
+    return _dio.delete('/providers/$providerId/documents/$documentType');
+  }
 }

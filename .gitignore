@@ -39,6 +39,7 @@ backend/HELP.md
 backend/*.jar
 backend/*.war
 backend/uploads/
+backend/secure-uploads/
 
 # ---- Environment / secrets ----
 .env

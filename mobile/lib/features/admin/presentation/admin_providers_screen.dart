@@ -36,6 +36,42 @@ class _AdminProvidersScreenState extends ConsumerState<AdminProvidersScreen> {
   String? _busyAccountUserId;
   VerificationStatus? _filter;
 
+  /// null = "All", true = only providers who've submitted KYC documents,
+  /// false = only those who haven't - lets admin jump straight to whichever
+  /// group they need without scrolling past the other one. Applied
+  /// client-side on top of whatever _filter already fetched, same as
+  /// _searchQuery below - the account list this screen shows is small
+  /// enough that a second in-memory pass costs nothing noticeable.
+  bool? _docsFilter;
+
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  /// Matches on whatever's actually unique enough to find one specific
+  /// provider in a long list - business name, owner name, or owner email.
+  List<PendingProvider> _applyFilters(List<PendingProvider> providers) {
+    var result = providers;
+    if (_docsFilter != null) {
+      result = result.where((p) => p.documentsSubmitted == _docsFilter).toList();
+    }
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isNotEmpty) {
+      result = result
+          .where((p) =>
+              p.businessName.toLowerCase().contains(query) ||
+              p.ownerName.toLowerCase().contains(query) ||
+              p.ownerEmail.toLowerCase().contains(query))
+          .toList();
+    }
+    return result;
+  }
+
   Future<void> _decide(PendingProvider provider, bool approved) async {
     _busyProviderId = provider.id;
     await ref.read(decideProviderControllerProvider.notifier).decide(providerId: provider.id, approved: approved);
@@ -108,6 +144,26 @@ class _AdminProvidersScreenState extends ConsumerState<AdminProvidersScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(AppSpacing.gutter, AppSpacing.sm, AppSpacing.gutter, 0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search by business name, owner, or email',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      ),
+              ),
+              onChanged: (value) => setState(() => _searchQuery = value),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(AppSpacing.gutter, AppSpacing.sm, AppSpacing.gutter, 0),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -130,19 +186,45 @@ class _AdminProvidersScreenState extends ConsumerState<AdminProvidersScreen> {
               ),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(AppSpacing.gutter, AppSpacing.sm, AppSpacing.gutter, 0),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final entry in const [
+                    (null, 'All docs'),
+                    (true, 'Submitted'),
+                    (false, 'Not submitted'),
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.only(right: AppSpacing.sm),
+                      child: ChoiceChip(
+                        label: Text(entry.$2),
+                        selected: _docsFilter == entry.$1,
+                        onSelected: (_) => setState(() => _docsFilter = entry.$1),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
           Expanded(
             child: providersState.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => const Center(child: Text('Could not load providers.')),
-              data: (providers) {
+              data: (allProviders) {
+                final providers = _applyFilters(allProviders);
                 if (providers.isEmpty) {
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(AppSpacing.gutter),
                       child: Text(
-                        _filter == VerificationStatus.pending
-                            ? 'No pending applications. New provider sign-ups will show up here for review.'
-                            : 'No providers here yet.',
+                        allProviders.isEmpty
+                            ? (_filter == VerificationStatus.pending
+                                ? 'No pending applications. New provider sign-ups will show up here for review.'
+                                : 'No providers here yet.')
+                            : 'No providers match your search or filters.',
                         textAlign: TextAlign.center,
                         style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
                       ),
@@ -399,13 +481,59 @@ class _InfoRow extends StatelessWidget {
 /// to D7, viewed here rather than uploaded. Missing slots (e.g. no trade
 /// certificate) just don't render a tile, since a 404 from
 /// GET /api/providers/{id}/documents/{type} isn't a real error here.
-class _DocumentsDialog extends StatelessWidget {
+///
+/// Also where admin frees storage once they're done reviewing - deleting a
+/// slot removes it from disk server-side; this dialog just swaps that
+/// tile's image for a "Deleted" placeholder locally rather than closing,
+/// so admin can clear more than one slot in the same pass.
+class _DocumentsDialog extends ConsumerStatefulWidget {
   const _DocumentsDialog({required this.providerId});
 
   final String providerId;
 
   @override
+  ConsumerState<_DocumentsDialog> createState() => _DocumentsDialogState();
+}
+
+class _DocumentsDialogState extends ConsumerState<_DocumentsDialog> {
+  final _deleted = <String>{};
+
+  Future<void> _delete(String documentType, String label) async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Delete this document?'),
+            content: Text('This permanently removes "$label" from the server. The provider will need to re-upload it if asked to.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed) return;
+
+    await ref
+        .read(adminDeleteDocumentControllerProvider.notifier)
+        .delete(providerId: widget.providerId, documentType: documentType);
+
+    if (!mounted) return;
+    final state = ref.read(adminDeleteDocumentControllerProvider);
+    if (state.hasError) {
+      AppToast.apiError(context, state.error!);
+      return;
+    }
+    setState(() => _deleted.add(documentType));
+    AppToast.success(context, 'Document deleted.');
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isDeleting = ref.watch(adminDeleteDocumentControllerProvider).isLoading;
+
     return AlertDialog(
       title: const Text('Verification documents'),
       content: SingleChildScrollView(
@@ -413,11 +541,29 @@ class _DocumentsDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _DocumentTile(label: 'National ID or passport', path: '/providers/$providerId/documents/ID'),
+            _DocumentTile(
+              label: 'National ID or passport',
+              providerId: widget.providerId,
+              documentType: 'ID',
+              deleted: _deleted.contains('ID'),
+              onDelete: isDeleting ? null : () => _delete('ID', 'National ID or passport'),
+            ),
             const SizedBox(height: AppSpacing.md),
-            _DocumentTile(label: 'Trade certificate', path: '/providers/$providerId/documents/TRADE_CERTIFICATE'),
+            _DocumentTile(
+              label: 'Trade certificate',
+              providerId: widget.providerId,
+              documentType: 'TRADE_CERTIFICATE',
+              deleted: _deleted.contains('TRADE_CERTIFICATE'),
+              onDelete: isDeleting ? null : () => _delete('TRADE_CERTIFICATE', 'Trade certificate'),
+            ),
             const SizedBox(height: AppSpacing.md),
-            _DocumentTile(label: 'Selfie holding ID', path: '/providers/$providerId/documents/SELFIE'),
+            _DocumentTile(
+              label: 'Selfie holding ID',
+              providerId: widget.providerId,
+              documentType: 'SELFIE',
+              deleted: _deleted.contains('SELFIE'),
+              onDelete: isDeleting ? null : () => _delete('SELFIE', 'Selfie holding ID'),
+            ),
           ],
         ),
       ),
@@ -427,22 +573,62 @@ class _DocumentsDialog extends StatelessWidget {
 }
 
 class _DocumentTile extends StatelessWidget {
-  const _DocumentTile({required this.label, required this.path});
+  const _DocumentTile({
+    required this.label,
+    required this.providerId,
+    required this.documentType,
+    required this.deleted,
+    required this.onDelete,
+  });
 
   final String label;
-  final String path;
+  final String providerId;
+  final String documentType;
+  final bool deleted;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(height: 4),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(AppRadii.field),
-          child: SecureNetworkImage(path: path, width: 240, height: 160),
+        Row(
+          children: [
+            Expanded(child: Text(label, style: Theme.of(context).textTheme.labelLarge)),
+            if (!deleted)
+              IconButton(
+                tooltip: 'Delete this document',
+                icon: Icon(Icons.delete_outline, color: colorScheme.error, size: 20),
+                onPressed: onDelete,
+              ),
+          ],
         ),
+        const SizedBox(height: 4),
+        if (deleted)
+          Container(
+            width: 240,
+            height: 160,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              border: Border.all(color: colorScheme.outline),
+              borderRadius: BorderRadius.circular(AppRadii.field),
+            ),
+            child: Text(
+              'Deleted',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.5)),
+            ),
+          )
+        else
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadii.field),
+            child: SecureNetworkImage(
+              path: '/providers/$providerId/documents/$documentType',
+              width: 240,
+              height: 160,
+            ),
+          ),
       ],
     );
   }

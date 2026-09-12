@@ -49,7 +49,15 @@ class RequestCard extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              Text('from ${booking.customerName}', style: textTheme.bodyMedium),
+              Row(
+                children: [
+                  Expanded(child: Text('from ${booking.customerName}', style: textTheme.bodyMedium)),
+                  Text(
+                    _relativeTime(booking.createdAt),
+                    style: textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+                  ),
+                ],
+              ),
               if (booking.note != null && booking.note!.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(booking.note!, style: textTheme.bodySmall),
@@ -113,3 +121,14 @@ class RequestCard extends ConsumerWidget {
 /// content-sized button - needed anywhere a FilledButton sits inside a Row
 /// (e.g. this card's action row) instead of a stretched Column.
 final ButtonStyle compactButtonStyle = FilledButton.styleFrom(minimumSize: const Size(64, 36));
+
+/// "12 min ago" / "3 days ago" - matches D1's mockup, which shows this next
+/// to each request's status badge.
+String _relativeTime(DateTime dateTime) {
+  final elapsed = DateTime.now().difference(dateTime);
+  if (elapsed.inMinutes < 1) return 'just now';
+  if (elapsed.inMinutes < 60) return '${elapsed.inMinutes} min ago';
+  if (elapsed.inHours < 24) return '${elapsed.inHours}h ago';
+  final days = elapsed.inDays;
+  return days == 1 ? '1 day ago' : '$days days ago';
+}

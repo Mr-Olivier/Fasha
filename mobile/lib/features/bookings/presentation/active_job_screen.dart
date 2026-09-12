@@ -66,7 +66,14 @@ class _ActiveJobScreenState extends ConsumerState<ActiveJobScreen> {
 
   Future<void> _markComplete() async {
     setState(() => _completing = true);
-    await ref.read(incomingRequestsControllerProvider.notifier).complete(widget.booking.id);
+    final notifier = ref.read(incomingRequestsControllerProvider.notifier);
+    // Send whatever note is currently typed first - a provider who types a
+    // note and taps this button directly, without a separate tap on "Save
+    // note", must not silently lose it.
+    await notifier.updateWorkNote(widget.booking.id, _noteController.text.trim());
+    if (!ref.read(incomingRequestsControllerProvider).hasError) {
+      await notifier.complete(widget.booking.id);
+    }
     if (!mounted) return;
     setState(() => _completing = false);
     final state = ref.read(incomingRequestsControllerProvider);

@@ -70,6 +70,14 @@ app:
   # would point this at a persistent volume or object storage instead.
   uploads-dir: uploads
 
+  # Where SecureFileStorageService writes KYC documents and booking photos -
+  # a SIBLING directory to uploads-dir, not nested under it, so those files
+  # can never become reachable through StaticResourceConfig's public
+  # "/uploads/**" handler no matter how that glob changes later. Only ever
+  # served back through an authenticated controller endpoint that checks
+  # the caller owns (or, for KYC documents, administers) the resource.
+  secure-uploads-dir: secure-uploads
+
   brevo:
     # From https://app.brevo.com/settings/keys/api - leave unset and
     # BrevoEmailService just logs each OTP code instead of emailing it,

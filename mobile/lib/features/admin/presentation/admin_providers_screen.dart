@@ -192,17 +192,16 @@ class _AdminProvidersScreenState extends ConsumerState<AdminProvidersScreen> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  for (final entry in const [
-                    (null, 'All docs'),
-                    (true, 'Submitted'),
-                    (false, 'Not submitted'),
-                  ])
+                  for (final entry in const [(true, 'Submitted'), (false, 'Not submitted')])
                     Padding(
                       padding: const EdgeInsets.only(right: AppSpacing.sm),
+                      // No separate "All docs" chip - tapping a selected
+                      // chip again clears it back to null (both groups
+                      // shown), same as tapping it the first time sets it.
                       child: ChoiceChip(
                         label: Text(entry.$2),
                         selected: _docsFilter == entry.$1,
-                        onSelected: (_) => setState(() => _docsFilter = entry.$1),
+                        onSelected: (_) => setState(() => _docsFilter = _docsFilter == entry.$1 ? null : entry.$1),
                       ),
                     ),
                 ],

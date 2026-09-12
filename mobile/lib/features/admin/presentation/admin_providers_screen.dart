@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/status_colors.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/secure_network_image.dart';
 import '../../providers/domain/verification_status.dart';
+import '../../providers/presentation/admin_verification_chat_screen.dart';
 import '../domain/account_status.dart';
 import '../domain/pending_provider.dart';
 import 'account_actions_menu.dart';
@@ -317,6 +319,15 @@ class _ProviderCard extends StatelessWidget {
                   label: const Text('View verification documents'),
                 ),
               ],
+              const SizedBox(height: AppSpacing.sm),
+              OutlinedButton.icon(
+                onPressed: () => context.push(
+                  '/admin-verification-chat',
+                  extra: AdminVerificationChatArgs(providerProfileId: provider.id, providerName: provider.businessName),
+                ),
+                icon: const Icon(Icons.chat_outlined),
+                label: const Text('Message provider'),
+              ),
               if (provider.verificationStatus == VerificationStatus.pending) ...[
                 const SizedBox(height: AppSpacing.md),
                 if (isBusyDeciding)

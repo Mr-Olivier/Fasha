@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_theme.dart';
@@ -34,7 +35,16 @@ class GetVerifiedScreen extends ConsumerWidget {
     final notifier = ref.read(providerDocumentsControllerProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Get verified')),
+      appBar: AppBar(
+        title: const Text('Get verified'),
+        actions: [
+          IconButton(
+            tooltip: 'Message admin',
+            icon: const Icon(Icons.chat_outlined),
+            onPressed: () => context.push('/verification-chat'),
+          ),
+        ],
+      ),
       body: documentsState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(

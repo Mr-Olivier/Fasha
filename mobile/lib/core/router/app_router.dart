@@ -28,10 +28,12 @@ import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/bookings/presentation/active_job_screen.dart';
 import '../../features/bookings/presentation/earnings_screen.dart';
 import '../../features/bookings/presentation/request_detail_screen.dart';
+import '../../features/providers/presentation/admin_verification_chat_screen.dart';
 import '../../features/providers/presentation/get_verified_screen.dart';
 import '../../features/providers/presentation/provider_detail_screen.dart';
 import '../../features/providers/presentation/provider_list_screen.dart';
 import '../../features/providers/presentation/provider_profile_screen.dart';
+import '../../features/providers/presentation/verification_chat_screen.dart';
 import '../../features/reviews/presentation/provider_reviews_screen.dart';
 import '../../features/reviews/presentation/write_review_screen.dart';
 import '../../features/services/domain/category.dart';
@@ -146,6 +148,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/profile/change-password', builder: (context, state) => const ChangePasswordScreen()),
       GoRoute(path: '/provider-profile', builder: (context, state) => const ProviderProfileScreen()),
       GoRoute(path: '/get-verified', builder: (context, state) => const GetVerifiedScreen()),
+      GoRoute(path: '/verification-chat', builder: (context, state) => const VerificationChatScreen()),
+      GoRoute(
+        path: '/admin-verification-chat',
+        // `extra` carries an AdminVerificationChatArgs - see its own doc
+        // comment for why (same pattern as ChatScreenArgs).
+        builder: (context, state) {
+          final args = state.extra as AdminVerificationChatArgs;
+          return AdminVerificationChatScreen(providerProfileId: args.providerProfileId, providerName: args.providerName);
+        },
+      ),
       GoRoute(
         path: '/request-detail',
         // `extra` carries the Booking being viewed - the caller (a

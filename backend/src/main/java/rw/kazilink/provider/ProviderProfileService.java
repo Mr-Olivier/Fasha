@@ -3,10 +3,12 @@ package rw.kazilink.provider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import rw.kazilink.review.ReviewRepository;
 import rw.kazilink.service.ServiceListing;
 import rw.kazilink.service.ServiceListingRepository;
 import rw.kazilink.service.ServiceListingResponse;
+import rw.kazilink.user.AvatarStorageService;
 import rw.kazilink.user.User;
 import rw.kazilink.user.UserRepository;
 import rw.kazilink.user.UserStatus;
@@ -24,6 +26,7 @@ public class ProviderProfileService {
     private final ServiceListingRepository serviceListingRepository;
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
+    private final AvatarStorageService avatarStorageService;
 
     public ProviderProfileResponse getMyProfile(UUID userId) {
         ProviderProfile profile = providerProfileRepository.findByUserId(userId)
@@ -136,6 +139,8 @@ public class ProviderProfileService {
         profile.setDescription(request.description());
         profile.setLocation(request.location());
         profile.setProfileImageUrl(request.profileImageUrl());
+        profile.setCategoryId(request.categoryId());
+        profile.setYearsExperience(request.yearsExperience());
 
         // saveAndFlush, not save: the @PreUpdate callback on ProviderProfile
         // that bumps updatedAt only actually runs when Hibernate flushes to
@@ -144,6 +149,21 @@ public class ProviderProfileService {
         // toResponse() below would read updatedAt's STALE in-memory value
         // (this bit us during manual testing: the response showed the old
         // timestamp even though the correct new one was already in Postgres).
+        providerProfileRepository.saveAndFlush(profile);
+        return toResponse(profile);
+    }
+
+    /**
+     * A provider's public business photo - same trust level as a user
+     * avatar (shown on their public profile, anyone can view), so this
+     * deliberately reuses AvatarStorageService rather than the private
+     * SecureFileStorageService KYC documents use.
+     */
+    @Transactional
+    public ProviderProfileResponse updatePhoto(UUID userId, MultipartFile file) {
+        ProviderProfile profile = providerProfileRepository.findByUserId(userId)
+                .orElseThrow(ProviderProfileNotFoundException::new);
+        profile.setProfileImageUrl(avatarStorageService.store(userId, file));
         providerProfileRepository.saveAndFlush(profile);
         return toResponse(profile);
     }
@@ -159,6 +179,8 @@ public class ProviderProfileService {
                 profile.getDescription(),
                 profile.getLocation(),
                 profile.getProfileImageUrl(),
+                profile.getCategoryId(),
+                profile.getYearsExperience(),
                 profile.getVerificationStatus(),
                 averageRating,
                 reviewCount,

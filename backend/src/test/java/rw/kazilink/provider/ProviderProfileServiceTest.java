@@ -93,7 +93,7 @@ class ProviderProfileServiceTest {
         UUID userId = UUID.randomUUID();
         when(providerProfileRepository.findByUserId(userId)).thenReturn(Optional.empty());
 
-        var request = new UpsertProviderProfileRequest("Alice's Repairs", "Phone repair", "Kigali", null);
+        var request = new UpsertProviderProfileRequest("Alice's Repairs", "Phone repair", "Kigali", null, null, null);
         ProviderProfileResponse response = providerProfileService.upsertMyProfile(userId, request);
 
         assertThat(response.userId()).isEqualTo(userId);
@@ -111,7 +111,7 @@ class ProviderProfileServiceTest {
         ProviderProfile existing = new ProviderProfile(userId, "Old Name", "Old description", "Huye", null);
         when(providerProfileRepository.findByUserId(userId)).thenReturn(Optional.of(existing));
 
-        var request = new UpsertProviderProfileRequest("New Name", "New description", "Kigali", "https://example.com/pic.jpg");
+        var request = new UpsertProviderProfileRequest("New Name", "New description", "Kigali", "https://example.com/pic.jpg", null, null);
         providerProfileService.upsertMyProfile(userId, request);
 
         var captor = ArgumentCaptor.forClass(ProviderProfile.class);

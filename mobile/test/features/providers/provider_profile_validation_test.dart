@@ -1,12 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:kazilink_rwanda/features/providers/data/provider_profile_repository.dart';
 import 'package:kazilink_rwanda/features/providers/domain/provider_detail.dart';
 import 'package:kazilink_rwanda/features/providers/domain/provider_profile.dart';
 import 'package:kazilink_rwanda/features/providers/presentation/provider_profile_controller.dart';
 import 'package:kazilink_rwanda/features/providers/presentation/provider_profile_screen.dart';
+import 'package:kazilink_rwanda/features/services/data/category_repository.dart';
+import 'package:kazilink_rwanda/features/services/domain/category.dart';
+import 'package:kazilink_rwanda/features/services/presentation/category_controller.dart';
+
+/// ProviderProfileScreen now shows a category dropdown (D6) - without this
+/// override, categoriesProvider would try a real network call that never
+/// resolves in a widget test, hanging pumpAndSettle.
+class _FakeCategoryRepository implements CategoryRepository {
+  @override
+  Future<List<Category>> fetchCategories() async => const [Category(id: 'cat-1', name: 'Plumber')];
+}
 
 /// Only fetchMyProfile is exercised by this test (the screen calls it once,
 /// on build) - returning null means "no profile yet", the same as a fresh
@@ -21,7 +33,14 @@ class _FakeProviderProfileRepository implements ProviderProfileRepository {
     String? description,
     String? location,
     String? profileImageUrl,
+    String? categoryId,
+    int? yearsExperience,
   }) {
+    throw UnimplementedError('not exercised by this test');
+  }
+
+  @override
+  Future<ProviderProfile> uploadPhoto(XFile image) {
     throw UnimplementedError('not exercised by this test');
   }
 
@@ -42,13 +61,16 @@ void main() {
       ProviderScope(
         overrides: [
           providerProfileRepositoryProvider.overrideWithValue(_FakeProviderProfileRepository()),
+          categoryRepositoryProvider.overrideWithValue(_FakeCategoryRepository()),
         ],
         child: const MaterialApp(home: ProviderProfileScreen()),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Create profile'));
+    // Save moved into the AppBar (a TextButton, always labelled "Save") -
+    // see provider_profile_screen.dart's D6 rework.
+    await tester.tap(find.widgetWithText(TextButton, 'Save'));
     await tester.pump();
 
     expect(find.text('Business name is required'), findsOneWidget);

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../domain/provider_detail.dart';
 import '../domain/provider_profile.dart';
@@ -41,6 +42,8 @@ class ProviderProfileApi {
     String? description,
     String? location,
     String? profileImageUrl,
+    String? categoryId,
+    int? yearsExperience,
   }) async {
     final response = await _dio.put<Map<String, dynamic>>(
       '/providers/me',
@@ -49,8 +52,19 @@ class ProviderProfileApi {
         'description': description,
         'location': location,
         'profileImageUrl': profileImageUrl,
+        'categoryId': categoryId,
+        'yearsExperience': yearsExperience,
       },
     );
+    return ProviderProfile.fromJson(response.data!);
+  }
+
+  Future<ProviderProfile> uploadPhoto(XFile image) async {
+    final bytes = await image.readAsBytes();
+    final formData = FormData.fromMap({
+      'file': MultipartFile.fromBytes(bytes, filename: image.name),
+    });
+    final response = await _dio.post<Map<String, dynamic>>('/providers/me/photo', data: formData);
     return ProviderProfile.fromJson(response.data!);
   }
 }

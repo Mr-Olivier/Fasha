@@ -1,7 +1,10 @@
 package rw.kazilink.provider;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+
+import java.util.UUID;
 
 /**
  * Body for PUT /api/providers/me. Deliberately has no verificationStatus
@@ -20,6 +23,12 @@ public record UpsertProviderProfileRequest(
         @Size(max = 150, message = "Location must be at most 150 characters")
         String location,
 
-        String profileImageUrl
+        String profileImageUrl,
+
+        /** Optional - which category this business mainly belongs to. */
+        UUID categoryId,
+
+        @Min(value = 0, message = "Years of experience can't be negative")
+        Integer yearsExperience
 ) {
 }

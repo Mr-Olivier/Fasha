@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/network/api_client.dart';
 import '../data/provider_profile_api.dart';
@@ -27,6 +28,8 @@ class ProviderProfileController extends AsyncNotifier<ProviderProfile?> {
     String? description,
     String? location,
     String? profileImageUrl,
+    String? categoryId,
+    int? yearsExperience,
   }) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
@@ -35,8 +38,15 @@ class ProviderProfileController extends AsyncNotifier<ProviderProfile?> {
             description: description,
             location: location,
             profileImageUrl: profileImageUrl,
+            categoryId: categoryId,
+            yearsExperience: yearsExperience,
           ),
     );
+  }
+
+  Future<void> uploadPhoto(XFile image) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => ref.read(providerProfileRepositoryProvider).uploadPhoto(image));
   }
 }
 

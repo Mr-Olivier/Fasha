@@ -9,6 +9,8 @@ class ProviderProfile {
     this.description,
     this.location,
     this.profileImageUrl,
+    this.categoryId,
+    this.yearsExperience,
     required this.verificationStatus,
     this.averageRating,
     this.reviewCount = 0,
@@ -20,6 +22,8 @@ class ProviderProfile {
   final String? description;
   final String? location;
   final String? profileImageUrl;
+  final String? categoryId;
+  final int? yearsExperience;
   final VerificationStatus verificationStatus;
   /// Null (not 0) when the provider has no reviews yet.
   final double? averageRating;
@@ -32,6 +36,8 @@ class ProviderProfile {
         description: json['description'] as String?,
         location: json['location'] as String?,
         profileImageUrl: json['profileImageUrl'] as String?,
+        categoryId: json['categoryId'] as String?,
+        yearsExperience: (json['yearsExperience'] as num?)?.toInt(),
         verificationStatus: VerificationStatusJson.fromWire(json['verificationStatus'] as String),
         averageRating: (json['averageRating'] as num?)?.toDouble(),
         reviewCount: (json['reviewCount'] as num?)?.toInt() ?? 0,

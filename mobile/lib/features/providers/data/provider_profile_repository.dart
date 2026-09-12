@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../domain/provider_detail.dart';
@@ -47,6 +48,8 @@ class ProviderProfileRepository {
     String? description,
     String? location,
     String? profileImageUrl,
+    String? categoryId,
+    int? yearsExperience,
   }) async {
     try {
       return await _api.upsertMyProfile(
@@ -54,7 +57,17 @@ class ProviderProfileRepository {
         description: description,
         location: location,
         profileImageUrl: profileImageUrl,
+        categoryId: categoryId,
+        yearsExperience: yearsExperience,
       );
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<ProviderProfile> uploadPhoto(XFile image) async {
+    try {
+      return await _api.uploadPhoto(image);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

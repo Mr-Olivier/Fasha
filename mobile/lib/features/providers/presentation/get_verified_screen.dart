@@ -45,28 +45,6 @@ class GetVerifiedScreen extends ConsumerWidget {
         ),
         data: (documents) {
           final isSaving = documentsState.isLoading;
-          final isApproved = documents.verificationStatus == VerificationStatus.approved;
-
-          if (isApproved) {
-            // Nothing left to do here once approved - no upload fields, no
-            // submit button. A provider who genuinely needs to replace an
-            // approved document (lost ID, renewed passport) would need a
-            // separate "request changes" flow, not this screen re-opened.
-            return Padding(
-              padding: const EdgeInsets.all(AppSpacing.gutter),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _StatusBanner(documents: documents),
-                  const SizedBox(height: AppSpacing.gutter),
-                  Text(
-                    'Your identity is verified - nothing else to do here.',
-                    style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
-                  ),
-                ],
-              ),
-            );
-          }
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.gutter),

@@ -31,27 +31,47 @@ public class ServiceListingService {
         requireCategoryExists(request.categoryId());
 
         ServiceListing listing = new ServiceListing(
-                providerProfileId, request.categoryId(), request.name(), request.description(), request.price());
+                providerProfileId,
+                request.categoryId(),
+                request.name(),
+                request.description(),
+                request.price(),
+                request.duration(),
+                request.visible());
         serviceListingRepository.save(listing);
         return toResponse(listing);
     }
 
     @Transactional
     public ServiceListingResponse updateService(UUID userId, UUID serviceId, UpsertServiceListingRequest request) {
-        UUID providerProfileId = resolveProviderProfileId(userId);
+        ServiceListing listing = findOwned(userId, serviceId);
         requireCategoryExists(request.categoryId());
-
-        ServiceListing listing = serviceListingRepository.findById(serviceId)
-                .filter(existing -> existing.getProviderProfileId().equals(providerProfileId))
-                .orElseThrow(ServiceListingNotFoundException::new);
 
         listing.setCategoryId(request.categoryId());
         listing.setName(request.name());
         listing.setDescription(request.description());
         listing.setPrice(request.price());
+        listing.setDuration(request.duration());
+        listing.setVisible(request.visible());
 
         serviceListingRepository.save(listing);
         return toResponse(listing);
+    }
+
+    /** The quick on/off toggle on My Services - doesn't touch any of the service's other fields. */
+    @Transactional
+    public ServiceListingResponse setVisibility(UUID userId, UUID serviceId, boolean visible) {
+        ServiceListing listing = findOwned(userId, serviceId);
+        listing.setVisible(visible);
+        serviceListingRepository.save(listing);
+        return toResponse(listing);
+    }
+
+    private ServiceListing findOwned(UUID userId, UUID serviceId) {
+        UUID providerProfileId = resolveProviderProfileId(userId);
+        return serviceListingRepository.findById(serviceId)
+                .filter(existing -> existing.getProviderProfileId().equals(providerProfileId))
+                .orElseThrow(ServiceListingNotFoundException::new);
     }
 
     /** A provider must have created their profile (Feature 3) before they can list any services. */

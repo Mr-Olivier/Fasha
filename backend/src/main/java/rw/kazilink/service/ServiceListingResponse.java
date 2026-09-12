@@ -11,6 +11,8 @@ public record ServiceListingResponse(
         String name,
         String description,
         BigDecimal price,
+        ServiceDuration duration,
+        boolean visible,
         Instant createdAt
 ) {
 
@@ -22,6 +24,8 @@ public record ServiceListingResponse(
                 listing.getName(),
                 listing.getDescription(),
                 listing.getPrice(),
+                listing.getDuration(),
+                listing.isVisible(),
                 listing.getCreatedAt()
         );
     }

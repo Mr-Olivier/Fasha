@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../domain/service_duration.dart';
 import '../domain/service_listing.dart';
 import 'service_listing_api.dart';
 
@@ -22,9 +23,18 @@ class ServiceListingRepository {
     required String name,
     String? description,
     required double price,
+    required ServiceDuration duration,
+    required bool visible,
   }) async {
     try {
-      return await _api.addService(categoryId: categoryId, name: name, description: description, price: price);
+      return await _api.addService(
+        categoryId: categoryId,
+        name: name,
+        description: description,
+        price: price,
+        duration: duration,
+        visible: visible,
+      );
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
@@ -36,6 +46,8 @@ class ServiceListingRepository {
     required String name,
     String? description,
     required double price,
+    required ServiceDuration duration,
+    required bool visible,
   }) async {
     try {
       return await _api.updateService(
@@ -44,7 +56,17 @@ class ServiceListingRepository {
         name: name,
         description: description,
         price: price,
+        duration: duration,
+        visible: visible,
       );
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<ServiceListing> setVisibility({required String serviceId, required bool visible}) async {
+    try {
+      return await _api.setVisibility(serviceId: serviceId, visible: visible);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

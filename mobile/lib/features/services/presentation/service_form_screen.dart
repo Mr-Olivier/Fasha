@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../domain/service_duration.dart';
 import '../domain/service_listing.dart';
 import 'category_controller.dart';
 import 'service_listing_controller.dart';
@@ -30,11 +31,15 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
   late final _priceController =
       TextEditingController(text: widget.existing != null ? widget.existing!.price.toString() : '');
   String? _selectedCategoryId;
+  late ServiceDuration _duration;
+  late bool _visible;
 
   @override
   void initState() {
     super.initState();
     _selectedCategoryId = widget.existing?.categoryId;
+    _duration = widget.existing?.duration ?? ServiceDuration.oneToTwoHours;
+    _visible = widget.existing?.visible ?? true;
   }
 
   @override
@@ -58,6 +63,8 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
         name: _nameController.text.trim(),
         description: description,
         price: price,
+        duration: _duration,
+        visible: _visible,
       );
     } else {
       await controller.updateService(
@@ -66,6 +73,8 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
         name: _nameController.text.trim(),
         description: description,
         price: price,
+        duration: _duration,
+        visible: _visible,
       );
     }
 
@@ -134,6 +143,28 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(labelText: 'Price', prefixText: 'RWF '),
                 validator: Validators.price,
+              ),
+              const SizedBox(height: 16),
+              Text('Duration', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: AppSpacing.sm,
+                children: [
+                  for (final option in ServiceDuration.values)
+                    ChoiceChip(
+                      label: Text(option.label),
+                      selected: _duration == option,
+                      onSelected: (_) => setState(() => _duration = option),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Show in search'),
+                subtitle: const Text('Turn off to pause bookings'),
+                value: _visible,
+                onChanged: (value) => setState(() => _visible = value),
               ),
               const SizedBox(height: 24),
               FilledButton(

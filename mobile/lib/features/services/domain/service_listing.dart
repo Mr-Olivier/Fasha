@@ -1,3 +1,5 @@
+import 'service_duration.dart';
+
 /// Mirrors the backend's ServiceListingResponse DTO.
 ///
 /// [price] is a `double` here, not a fixed-point/decimal type. The backend
@@ -15,6 +17,8 @@ class ServiceListing {
     required this.name,
     this.description,
     required this.price,
+    required this.duration,
+    required this.visible,
   });
 
   final String id;
@@ -23,6 +27,11 @@ class ServiceListing {
   final String name;
   final String? description;
   final double price;
+  final ServiceDuration duration;
+
+  /// Whether this service shows up in customer-facing browse/search - the
+  /// "Show in search" toggle on the Add/Edit service form.
+  final bool visible;
 
   factory ServiceListing.fromJson(Map<String, dynamic> json) => ServiceListing(
         id: json['id'] as String,
@@ -31,5 +40,7 @@ class ServiceListing {
         name: json['name'] as String,
         description: json['description'] as String?,
         price: (json['price'] as num).toDouble(),
+        duration: ServiceDuration.fromWireName(json['duration'] as String),
+        visible: json['visible'] as bool,
       );
 }

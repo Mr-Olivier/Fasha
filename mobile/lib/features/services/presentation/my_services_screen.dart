@@ -44,10 +44,31 @@ class MyServicesScreen extends ConsumerWidget {
             itemBuilder: (context, index) {
               final service = services[index];
               final categoryName = categoriesById[service.categoryId]?.name;
-              return ListTile(
-                title: Text(service.name),
-                subtitle: Text(categoryName == null ? 'RWF ${service.price}' : '$categoryName · RWF ${service.price}'),
-                onTap: () => context.push('/my-services/form', extra: service),
+              final subtitleParts = [
+                if (categoryName != null) categoryName,
+                service.duration.label,
+                if (!service.visible) 'HIDDEN FROM SEARCH',
+              ];
+
+              return Opacity(
+                opacity: service.visible ? 1 : 0.6,
+                child: ListTile(
+                  title: Text(service.name),
+                  subtitle: Text(subtitleParts.join(' · ')),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('RWF ${service.price}'),
+                      Switch(
+                        value: service.visible,
+                        onChanged: (value) => ref
+                            .read(serviceListingControllerProvider.notifier)
+                            .setVisibility(serviceId: service.id, visible: value),
+                      ),
+                    ],
+                  ),
+                  onTap: () => context.push('/my-services/form', extra: service),
+                ),
               );
             },
           );

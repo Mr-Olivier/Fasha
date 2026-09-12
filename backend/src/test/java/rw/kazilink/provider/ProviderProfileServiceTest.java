@@ -151,7 +151,7 @@ class ProviderProfileServiceTest {
         UUID categoryId = UUID.randomUUID();
         when(providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED))
                 .thenReturn(List.of(inCategory, notInCategory));
-        when(serviceListingRepository.findByCategoryId(categoryId)).thenReturn(List.of(
+        when(serviceListingRepository.findByCategoryIdAndVisibleTrue(categoryId)).thenReturn(List.of(
                 new ServiceListing(inCategory.getId(), categoryId, "Phone repair", null, BigDecimal.TEN)));
 
         List<ProviderProfileResponse> results = providerProfileService.browseProviders(categoryId, null);
@@ -205,7 +205,7 @@ class ProviderProfileServiceTest {
         UUID categoryId = UUID.randomUUID();
         when(providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED))
                 .thenReturn(List.of(matchesBoth, matchesCategoryOnly));
-        when(serviceListingRepository.findByCategoryId(categoryId)).thenReturn(List.of(
+        when(serviceListingRepository.findByCategoryIdAndVisibleTrue(categoryId)).thenReturn(List.of(
                 new ServiceListing(matchesBoth.getId(), categoryId, "Phone repair", null, BigDecimal.TEN),
                 new ServiceListing(matchesCategoryOnly.getId(), categoryId, "Phone repair", null, BigDecimal.TEN)));
 
@@ -272,7 +272,7 @@ class ProviderProfileServiceTest {
         approved.setId(providerProfileId);
         approved.setVerificationStatus(VerificationStatus.APPROVED);
         when(providerProfileRepository.findById(providerProfileId)).thenReturn(Optional.of(approved));
-        when(serviceListingRepository.findByProviderProfileId(providerProfileId)).thenReturn(List.of(
+        when(serviceListingRepository.findByProviderProfileIdAndVisibleTrue(providerProfileId)).thenReturn(List.of(
                 new ServiceListing(providerProfileId, UUID.randomUUID(), "Phone repair", "Screens & batteries", BigDecimal.TEN)));
 
         ProviderDetailResponse detail = providerProfileService.getProviderDetail(providerProfileId);

@@ -23,6 +23,11 @@ public record UpsertServiceListingRequest(
 
         @NotNull(message = "Price is required")
         @DecimalMin(value = "0", message = "Price cannot be negative")
-        BigDecimal price
+        BigDecimal price,
+
+        @NotNull(message = "Duration is required")
+        ServiceDuration duration,
+
+        boolean visible
 ) {
 }

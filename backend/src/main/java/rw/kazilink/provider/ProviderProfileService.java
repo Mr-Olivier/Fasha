@@ -50,7 +50,7 @@ public class ProviderProfileService {
         approved = excludeSuspendedOwners(approved);
 
         if (categoryId != null) {
-            Set<UUID> providerIdsInCategory = serviceListingRepository.findByCategoryId(categoryId).stream()
+            Set<UUID> providerIdsInCategory = serviceListingRepository.findByCategoryIdAndVisibleTrue(categoryId).stream()
                     .map(ServiceListing::getProviderProfileId)
                     .collect(Collectors.toSet());
             approved = approved.stream().filter(p -> providerIdsInCategory.contains(p.getId())).toList();
@@ -112,7 +112,7 @@ public class ProviderProfileService {
                 .filter(p -> !isOwnerSuspended(p))
                 .orElseThrow(ProviderNotFoundException::new);
 
-        List<ServiceListingResponse> services = serviceListingRepository.findByProviderProfileId(providerProfileId).stream()
+        List<ServiceListingResponse> services = serviceListingRepository.findByProviderProfileIdAndVisibleTrue(providerProfileId).stream()
                 .map(ServiceListingResponse::from)
                 .toList();
 

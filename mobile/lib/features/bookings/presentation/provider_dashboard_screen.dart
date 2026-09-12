@@ -53,6 +53,15 @@ class ProviderDashboardScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.gutter),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.payments_outlined),
+                title: const Text('Completed jobs & earnings'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/earnings'),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.gutter),
             Row(
               children: [
                 Expanded(child: Text('Incoming requests', style: textTheme.titleLarge)),

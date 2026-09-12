@@ -26,6 +26,7 @@ import '../../features/profile/presentation/change_password_screen.dart';
 import '../../features/profile/presentation/edit_profile_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/bookings/presentation/active_job_screen.dart';
+import '../../features/bookings/presentation/earnings_screen.dart';
 import '../../features/bookings/presentation/request_detail_screen.dart';
 import '../../features/providers/presentation/get_verified_screen.dart';
 import '../../features/providers/presentation/provider_detail_screen.dart';
@@ -156,6 +157,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/active-job',
         builder: (context, state) => ActiveJobScreen(booking: state.extra as Booking),
       ),
+      GoRoute(path: '/earnings', builder: (context, state) => const EarningsScreen()),
       GoRoute(
         path: '/my-services/form',
         // `extra` carries the ServiceListing being edited, or null when

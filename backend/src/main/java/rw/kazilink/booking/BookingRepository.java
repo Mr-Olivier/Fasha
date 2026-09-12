@@ -13,6 +13,9 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
     List<Booking> findByProviderProfileIdOrderByCreatedAtDesc(UUID providerProfileId);
 
+    /** Powers the provider's "completed jobs & earnings" screen (D8). */
+    List<Booking> findByProviderProfileIdAndStatusOrderByUpdatedAtDesc(UUID providerProfileId, BookingStatus status);
+
     /** Guards AdminUserService.delete() for a CUSTOMER account - one with any booking history can't be permanently removed, only suspended. */
     boolean existsByCustomerId(UUID customerId);
 

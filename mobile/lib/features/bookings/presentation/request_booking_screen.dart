@@ -1,11 +1,16 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../services/domain/service_listing.dart';
 import 'booking_controller.dart';
+import 'booking_photo_controller.dart';
 
 /// A customer requesting a specific service from ProviderDetailScreen.
 /// [service] arrives via GoRoute's `extra` - same pattern ServiceFormScreen
@@ -22,11 +27,33 @@ class RequestBookingScreen extends ConsumerStatefulWidget {
 class _RequestBookingScreenState extends ConsumerState<RequestBookingScreen> {
   final _noteController = TextEditingController();
   DateTime? _requestedDate;
+  final List<XFile> _selectedPhotos = [];
 
   @override
   void dispose() {
     _noteController.dispose();
     super.dispose();
+  }
+
+  Future<void> _addPhoto() async {
+    final image = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 1600, imageQuality: 85);
+    if (image == null) return;
+    setState(() => _selectedPhotos.add(image));
+  }
+
+  /// Best-effort: the booking itself is already created by the time this
+  /// runs, so a photo upload failure here shouldn't block the customer
+  /// from moving on - it just means "Photos from customer" stays empty on
+  /// the provider's side for this request.
+  Future<void> _uploadSelectedPhotos(String bookingId) async {
+    final repository = ref.read(bookingPhotoRepositoryProvider);
+    for (final photo in _selectedPhotos) {
+      try {
+        await repository.upload(bookingId, photo);
+      } catch (_) {
+        // Swallowed deliberately - see this method's doc comment.
+      }
+    }
   }
 
   Future<void> _pickDate() async {
@@ -66,6 +93,10 @@ class _RequestBookingScreenState extends ConsumerState<RequestBookingScreen> {
       // screen's very first frame, which is not a successful submission.
       if (next.valueOrNull == true && previous?.valueOrNull != true) {
         AppToast.success(context, 'Request sent.');
+        final bookingId = ref.read(requestBookingControllerProvider.notifier).lastCreatedBookingId;
+        if (bookingId != null && _selectedPhotos.isNotEmpty) {
+          unawaited(_uploadSelectedPhotos(bookingId));
+        }
         context.go('/my-bookings');
       }
     });
@@ -114,6 +145,31 @@ class _RequestBookingScreenState extends ConsumerState<RequestBookingScreen> {
                       ? 'Pick a preferred date (optional)'
                       : '${_requestedDate!.year}-${_requestedDate!.month.toString().padLeft(2, '0')}-${_requestedDate!.day.toString().padLeft(2, '0')}',
                 ),
+              ),
+              const SizedBox(height: 16),
+              Text('Add photos (optional)', style: textTheme.titleMedium),
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: [
+                  for (final photo in _selectedPhotos)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadii.field),
+                      child: Image.file(File(photo.path), width: 72, height: 72, fit: BoxFit.cover),
+                    ),
+                  InkWell(
+                    onTap: isLoading ? null : _addPhoto,
+                    borderRadius: BorderRadius.circular(AppRadii.field),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: colorScheme.outline),
+                        borderRadius: BorderRadius.circular(AppRadii.field),
+                      ),
+                      child: const SizedBox(height: 72, width: 72, child: Icon(Icons.add_a_photo_outlined)),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
               FilledButton(

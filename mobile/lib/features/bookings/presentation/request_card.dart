@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/call_contact_row.dart';
@@ -94,8 +95,8 @@ class RequestCard extends ConsumerWidget {
                     ),
                   BookingStatus.inProgress => FilledButton(
                       style: compactButtonStyle,
-                      onPressed: () => notifier.complete(booking.id),
-                      child: const Text('Mark complete'),
+                      onPressed: () => context.push('/active-job', extra: booking),
+                      child: const Text('Continue job'),
                     ),
                   _ => const SizedBox.shrink(),
                 },

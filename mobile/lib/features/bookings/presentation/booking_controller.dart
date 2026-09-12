@@ -54,15 +54,22 @@ final myBookingsControllerProvider = AsyncNotifierProvider<MyBookingsController,
 /// true-once-on-success bool (same shape as auth's ResetPasswordController)
 /// has no such ambiguity.
 class RequestBookingController extends AsyncNotifier<bool> {
+  /// The booking `submit` just created - NOT Riverpod state (nothing
+  /// should rebuild off it), just a place RequestBookingScreen can read
+  /// the new id from right after a successful submit, to attach any
+  /// photos the customer picked (see D2's "Photos from customer").
+  String? lastCreatedBookingId;
+
   @override
   Future<bool> build() async => false;
 
   Future<void> submit({required String serviceListingId, String? note, DateTime? requestedDate}) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      await ref
+      final booking = await ref
           .read(bookingRepositoryProvider)
           .create(serviceListingId: serviceListingId, note: note, requestedDate: requestedDate);
+      lastCreatedBookingId = booking.id;
       // So "My Bookings" shows the new request next time it's opened,
       // without this controller needing to know anything about that one's
       // internal state.
@@ -91,6 +98,9 @@ class IncomingRequestsController extends AsyncNotifier<List<Booking>> {
   Future<void> start(String bookingId) => _mutate((repository) => repository.start(bookingId));
 
   Future<void> complete(String bookingId) => _mutate((repository) => repository.complete(bookingId));
+
+  Future<void> updateWorkNote(String bookingId, String? note) =>
+      _mutate((repository) => repository.updateWorkNote(bookingId, note));
 
   Future<void> _mutate(Future<Booking> Function(BookingRepository repository) action) async {
     state = const AsyncValue.loading();

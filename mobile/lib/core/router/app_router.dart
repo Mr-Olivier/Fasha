@@ -25,6 +25,7 @@ import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/profile/presentation/change_password_screen.dart';
 import '../../features/profile/presentation/edit_profile_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/bookings/presentation/active_job_screen.dart';
 import '../../features/bookings/presentation/request_detail_screen.dart';
 import '../../features/providers/presentation/provider_detail_screen.dart';
 import '../../features/providers/presentation/provider_list_screen.dart';
@@ -148,6 +149,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         // RequestCard) already has the full object in hand, so re-fetching
         // it by id would just be a wasted round trip.
         builder: (context, state) => RequestDetailScreen(booking: state.extra as Booking),
+      ),
+      GoRoute(
+        path: '/active-job',
+        builder: (context, state) => ActiveJobScreen(booking: state.extra as Booking),
       ),
       GoRoute(
         path: '/my-services/form',

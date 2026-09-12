@@ -19,7 +19,9 @@ class Booking {
     this.note,
     this.requestedDate,
     required this.status,
+    this.workNote,
     required this.createdAt,
+    required this.updatedAt,
   });
 
   final String id;
@@ -35,7 +37,15 @@ class Booking {
   final String? note;
   final DateTime? requestedDate;
   final BookingStatus status;
+  final String? workNote;
   final DateTime createdAt;
+
+  /// When this booking last changed status - e.g. the moment a provider
+  /// tapped "Start job" (ACCEPTED -> IN_PROGRESS), since a COMPLETED
+  /// booking never updates again after that. Used to compute "elapsed"
+  /// time on ActiveJobScreen (D3) - createdAt would be when the REQUEST
+  /// was made, not when work actually started.
+  final DateTime updatedAt;
 
   factory Booking.fromJson(Map<String, dynamic> json) => Booking(
         id: json['id'] as String,
@@ -51,6 +61,8 @@ class Booking {
         note: json['note'] as String?,
         requestedDate: json['requestedDate'] != null ? DateTime.parse(json['requestedDate'] as String) : null,
         status: BookingStatusJson.fromWire(json['status'] as String),
+        workNote: json['workNote'] as String?,
         createdAt: DateTime.parse(json['createdAt'] as String),
+        updatedAt: DateTime.parse(json['updatedAt'] as String),
       );
 }

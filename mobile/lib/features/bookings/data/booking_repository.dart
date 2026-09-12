@@ -28,6 +28,8 @@ class BookingRepository {
 
   Future<Booking> cancel(String bookingId) => _guard(() => _api.cancel(bookingId));
 
+  Future<Booking> updateWorkNote(String bookingId, String? note) => _guard(() => _api.updateWorkNote(bookingId, note));
+
   Future<T> _guard<T>(Future<T> Function() action) async {
     try {
       return await action();

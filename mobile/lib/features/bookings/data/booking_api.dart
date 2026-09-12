@@ -35,6 +35,11 @@ class BookingApi {
 
   Future<Booking> cancel(String bookingId) => _transition(bookingId, 'cancel');
 
+  Future<Booking> updateWorkNote(String bookingId, String? note) async {
+    final response = await _dio.patch<Map<String, dynamic>>('/bookings/$bookingId/work-note', data: {'note': note});
+    return Booking.fromJson(response.data!);
+  }
+
   Future<List<Booking>> _list(String role) async {
     final response = await _dio.get<List<dynamic>>('/bookings', queryParameters: {'role': role});
     return response.data!.map((e) => Booking.fromJson(e as Map<String, dynamic>)).toList();

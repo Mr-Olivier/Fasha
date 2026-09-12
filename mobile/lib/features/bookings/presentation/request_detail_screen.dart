@@ -6,9 +6,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/status_colors.dart';
+import '../../../core/widgets/secure_network_image.dart';
 import '../domain/booking.dart';
 import '../domain/booking_status.dart';
 import 'booking_controller.dart';
+import 'booking_photo_controller.dart';
 import 'request_card.dart';
 
 /// How long a provider has to respond to a fresh request before D2's
@@ -125,6 +127,7 @@ class _RequestDetailScreenState extends ConsumerState<RequestDetailScreen> {
                 ),
               ),
             ],
+            _PhotosFromCustomerSection(bookingId: booking.id),
             if (booking.status == BookingStatus.requested) ...[
               const SizedBox(height: AppSpacing.gutter),
               Row(
@@ -157,6 +160,50 @@ class _RequestDetailScreenState extends ConsumerState<RequestDetailScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// "Photos from customer" - only ever shows something once
+/// RequestBookingScreen's own optional photo-attach step has been used;
+/// renders nothing (not even a heading) when there aren't any, so an
+/// old-style request with no photos doesn't show an empty section.
+class _PhotosFromCustomerSection extends ConsumerWidget {
+  const _PhotosFromCustomerSection({required this.bookingId});
+
+  final String bookingId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final photosState = ref.watch(bookingPhotoControllerProvider(bookingId));
+    final textTheme = Theme.of(context).textTheme;
+
+    return photosState.maybeWhen(
+      data: (photos) {
+        if (photos.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.gutter),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Photos from customer', style: textTheme.titleMedium),
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: [
+                  for (final photo in photos)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadii.field),
+                      child: SecureNetworkImage(path: '/bookings/$bookingId/photos/${photo.id}', width: 88, height: 88),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
     );
   }
 }

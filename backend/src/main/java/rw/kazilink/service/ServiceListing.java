@@ -2,6 +2,8 @@ package rw.kazilink.service;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
@@ -51,6 +53,14 @@ public class ServiceListing {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal price;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private ServiceDuration duration = ServiceDuration.ONE_TO_TWO_HOURS;
+
+    /** Whether this service shows up in customer-facing browse/search - see V22's doc comment. */
+    @Column(name = "is_visible", nullable = false)
+    private boolean visible = true;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -60,6 +70,20 @@ public class ServiceListing {
         this.name = name;
         this.description = description;
         this.price = price;
+    }
+
+    public ServiceListing(
+            UUID providerProfileId,
+            UUID categoryId,
+            String name,
+            String description,
+            BigDecimal price,
+            ServiceDuration duration,
+            boolean visible
+    ) {
+        this(providerProfileId, categoryId, name, description, price);
+        this.duration = duration;
+        this.visible = visible;
     }
 
     @PrePersist

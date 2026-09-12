@@ -13,6 +13,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -56,6 +57,18 @@ public class Booking {
     @Column(nullable = false, length = 20)
     private BookingStatus status = BookingStatus.REQUESTED;
 
+    /**
+     * The service's price at the moment this booking was created - see
+     * V23__add_price_snapshot_and_work_note_to_bookings.sql's doc comment
+     * for why this is snapshotted rather than always looked up live.
+     */
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal price;
+
+    /** A short note the provider leaves when finishing the job - shown to the customer. */
+    @Column(name = "work_note", columnDefinition = "TEXT")
+    private String workNote;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -69,6 +82,18 @@ public class Booking {
         this.note = note;
         this.requestedDate = requestedDate;
         this.status = BookingStatus.REQUESTED;
+    }
+
+    public Booking(
+            UUID customerId,
+            UUID providerProfileId,
+            UUID serviceListingId,
+            String note,
+            LocalDate requestedDate,
+            BigDecimal price
+    ) {
+        this(customerId, providerProfileId, serviceListingId, note, requestedDate);
+        this.price = price;
     }
 
     @PrePersist

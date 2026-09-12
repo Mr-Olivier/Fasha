@@ -55,6 +55,31 @@ public class ProviderProfile {
     @Column(name = "verification_status", nullable = false, length = 20)
     private VerificationStatus verificationStatus = VerificationStatus.PENDING;
 
+    // --- KYC documents (see ProviderDocumentService) - all nullable, since
+    // a provider may not have submitted any of these yet. Every path is
+    // opaque, into the PRIVATE upload directory (SecureFileStorageService),
+    // never the public /uploads/** one avatars use - see
+    // V25__add_kyc_documents_to_provider_profiles.sql's doc comment. ---
+
+    @Column(name = "id_document_path", length = 500)
+    private String idDocumentPath;
+
+    @Column(name = "trade_certificate_path", length = 500)
+    private String tradeCertificatePath;
+
+    @Column(name = "selfie_with_id_path", length = 500)
+    private String selfieWithIdPath;
+
+    @Column(name = "documents_submitted_at")
+    private Instant documentsSubmittedAt;
+
+    /** Optional - which category this business mainly belongs to. Plain UUID, same reasoning as ServiceListing.categoryId. */
+    @Column(name = "category_id")
+    private UUID categoryId;
+
+    @Column(name = "years_experience")
+    private Integer yearsExperience;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

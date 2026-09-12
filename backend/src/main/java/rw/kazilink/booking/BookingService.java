@@ -44,7 +44,12 @@ public class BookingService {
         User customer = userRepository.findById(customerId).orElseThrow(UserNotFoundException::new);
 
         Booking booking = new Booking(
-                customerId, service.getProviderProfileId(), service.getId(), request.note(), request.requestedDate());
+                customerId,
+                service.getProviderProfileId(),
+                service.getId(),
+                request.note(),
+                request.requestedDate(),
+                service.getPrice());
         bookingRepository.save(booking);
 
         notificationService.create(
@@ -191,7 +196,7 @@ public class BookingService {
                 providerOwner.getPhone(),
                 booking.getServiceListingId(),
                 service.getName(),
-                service.getPrice(),
+                booking.getPrice(),
                 booking.getNote(),
                 booking.getRequestedDate(),
                 booking.getStatus(),

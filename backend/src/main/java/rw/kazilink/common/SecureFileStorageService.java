@@ -67,6 +67,22 @@ public class SecureFileStorageService {
         return new FileSystemResource(rootDir.resolve(relativePath));
     }
 
+    /**
+     * Removes a previously-stored file from disk - e.g. admin clearing out
+     * a reviewed KYC document to free space. Silently does nothing if the
+     * file is already gone, so callers never need a separate existence
+     * check first.
+     *
+     * @param relativePath exactly what {@link #store} returned
+     */
+    public void delete(String relativePath) {
+        try {
+            Files.deleteIfExists(rootDir.resolve(relativePath));
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to delete stored file", e);
+        }
+    }
+
     private String extensionFor(String contentType) {
         return switch (contentType) {
             case "image/png" -> ".png";

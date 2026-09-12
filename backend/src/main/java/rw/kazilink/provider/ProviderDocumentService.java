@@ -5,6 +5,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import rw.kazilink.admin.AdminAuditService;
 import rw.kazilink.common.SecureFileStorageService;
 
 import java.time.Instant;
@@ -23,6 +24,7 @@ public class ProviderDocumentService {
 
     private final ProviderProfileRepository providerProfileRepository;
     private final SecureFileStorageService fileStorageService;
+    private final AdminAuditService adminAuditService;
 
     @Transactional
     public ProviderDocumentsResponse uploadDocument(UUID userId, DocumentType type, MultipartFile file) {
@@ -79,6 +81,41 @@ public class ProviderDocumentService {
             throw new ProviderProfileNotFoundException();
         }
         return fileStorageService.load(storagePath);
+    }
+
+    /**
+     * Admin-only cleanup: once a document has been reviewed (the provider's
+     * been approved or rejected), there's no ongoing need to keep the raw
+     * file on disk - this frees that space. Deliberately doesn't touch
+     * verificationStatus or documentsSubmittedAt: deleting is a storage
+     * decision made AFTER a review decision, not a way to undo one. If the
+     * provider later needs to re-verify, they just upload again.
+     */
+    @Transactional
+    public ProviderDocumentsResponse deleteDocument(UUID adminUserId, UUID providerProfileId, DocumentType type) {
+        ProviderProfile profile = providerProfileRepository.findById(providerProfileId)
+                .orElseThrow(ProviderProfileNotFoundException::new);
+
+        String storagePath = switch (type) {
+            case ID -> profile.getIdDocumentPath();
+            case TRADE_CERTIFICATE -> profile.getTradeCertificatePath();
+            case SELFIE -> profile.getSelfieWithIdPath();
+        };
+        if (storagePath != null) {
+            fileStorageService.delete(storagePath);
+        }
+        switch (type) {
+            case ID -> profile.setIdDocumentPath(null);
+            case TRADE_CERTIFICATE -> profile.setTradeCertificatePath(null);
+            case SELFIE -> profile.setSelfieWithIdPath(null);
+        }
+        providerProfileRepository.save(profile);
+
+        adminAuditService.record(
+                adminUserId, "PROVIDER_DOCUMENT_DELETED", "PROVIDER_PROFILE", profile.getId(),
+                profile.getBusinessName() + " - " + type);
+
+        return ProviderDocumentsResponse.from(profile);
     }
 
     private ProviderProfile resolveOwnProfile(UUID userId) {

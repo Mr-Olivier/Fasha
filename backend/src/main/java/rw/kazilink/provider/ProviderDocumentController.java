@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -78,5 +79,16 @@ public class ProviderDocumentController {
         return ResponseEntity.ok()
                 .contentType(contentType != null ? MediaType.parseMediaType(contentType) : MediaType.APPLICATION_OCTET_STREAM)
                 .body(resource);
+    }
+
+    /** Frees server storage once admin's done reviewing - see ProviderDocumentService.deleteDocument's doc comment. */
+    @DeleteMapping("/{providerProfileId}/documents/{type}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ProviderDocumentsResponse deleteDocument(
+            @AuthenticationPrincipal UUID adminUserId,
+            @PathVariable UUID providerProfileId,
+            @PathVariable DocumentType type
+    ) {
+        return providerDocumentService.deleteDocument(adminUserId, providerProfileId, type);
     }
 }

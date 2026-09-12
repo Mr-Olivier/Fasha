@@ -25,9 +25,11 @@ import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/profile/presentation/change_password_screen.dart';
 import '../../features/profile/presentation/edit_profile_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/bookings/presentation/request_detail_screen.dart';
 import '../../features/providers/presentation/provider_detail_screen.dart';
 import '../../features/providers/presentation/provider_list_screen.dart';
 import '../../features/providers/presentation/provider_profile_screen.dart';
+import '../../features/reviews/presentation/provider_reviews_screen.dart';
 import '../../features/reviews/presentation/write_review_screen.dart';
 import '../../features/services/domain/category.dart';
 import '../../features/services/domain/service_listing.dart';
@@ -119,10 +121,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => ResetPasswordScreen(prefilledEmail: state.extra as String?),
       ),
       GoRoute(path: '/verify-email', builder: (context, state) => const VerifyEmailScreen()),
-      // Branch order/count is fixed - it's what AppShell's tuples
-      // (_home/_providers/_customers/_categories/_profile) index into by
-      // position, regardless of which of these a given role actually shows
-      // as a visible tab. See AppShell's doc comment for the full reasoning.
+      // Branch order is fixed - it's what AppShell's tuples (_home/
+      // _providers/_customers/_categories/_profile/_services/_reviews)
+      // index into by position, regardless of which of these a given role
+      // actually shows as a visible tab. Branches 0/4 are shared by every
+      // role, 1-3 are admin-only, 5-6 are provider-only. See AppShell's
+      // doc comment for the full reasoning.
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
         branches: [
@@ -131,12 +135,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [GoRoute(path: '/admin/customers', builder: (context, state) => const AdminCustomersScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/admin/categories', builder: (context, state) => const AdminCategoriesScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/my-services', builder: (context, state) => const MyServicesScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/my-reviews', builder: (context, state) => const ProviderReviewsScreen())]),
         ],
       ),
       GoRoute(path: '/profile/edit', builder: (context, state) => const EditProfileScreen()),
       GoRoute(path: '/profile/change-password', builder: (context, state) => const ChangePasswordScreen()),
       GoRoute(path: '/provider-profile', builder: (context, state) => const ProviderProfileScreen()),
-      GoRoute(path: '/my-services', builder: (context, state) => const MyServicesScreen()),
+      GoRoute(
+        path: '/request-detail',
+        // `extra` carries the Booking being viewed - the caller (a
+        // RequestCard) already has the full object in hand, so re-fetching
+        // it by id would just be a wasted round trip.
+        builder: (context, state) => RequestDetailScreen(booking: state.extra as Booking),
+      ),
       GoRoute(
         path: '/my-services/form',
         // `extra` carries the ServiceListing being edited, or null when

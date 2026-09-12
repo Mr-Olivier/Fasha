@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_mode_controller.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../auth/domain/auth_user.dart';
+import '../../auth/domain/user_role.dart';
 import '../../auth/presentation/auth_controller.dart';
 import 'user_profile_controller.dart';
 
@@ -122,6 +123,18 @@ class ProfileScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
+                if (user.role == UserRole.provider) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: ListTile(
+                      leading: const Icon(Icons.storefront_outlined),
+                      title: const Text('Business profile'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/provider-profile'),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.md),
                 Card(
                   clipBehavior: Clip.antiAlias,

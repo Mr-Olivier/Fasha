@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/status_colors.dart';
+import '../../../core/widgets/notification_bell.dart';
 import '../../admin/domain/pending_provider.dart';
 import '../../admin/presentation/admin_dashboard_charts.dart';
 import '../../admin/presentation/admin_provider_controller.dart';
@@ -11,16 +12,16 @@ import '../../admin/presentation/admin_stats_controller.dart';
 import '../../auth/domain/auth_user.dart';
 import '../../auth/domain/user_role.dart';
 import '../../auth/presentation/auth_controller.dart';
-import '../../notifications/presentation/notification_controller.dart';
-import '../../providers/presentation/provider_profile_controller.dart';
-import '../../providers/presentation/verification_badge.dart';
+import '../../bookings/presentation/provider_dashboard_screen.dart';
 import '../../services/presentation/category_controller.dart';
 import '../../services/presentation/category_tile.dart';
 
-/// Splits into a customer view and a provider view, since the two roles
-/// have almost nothing in common here. Customer discovery/booking (Feature
-/// 5+) doesn't exist yet, so the customer view only shows what's actually
-/// real right now: the live category list from GET /api/categories.
+/// Splits by role - a provider's "Home" branch shows ProviderDashboardScreen
+/// (their "Jobs" tab, labelled that way instead of "Home" by AppShell),
+/// keeping the same shared Scaffold/AppBar every role's Home branch uses
+/// rather than each screen nesting its own. Customer discovery/booking only
+/// shows what's actually real right now: the live category list from
+/// GET /api/categories.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -32,33 +33,13 @@ class HomeScreen extends ConsumerWidget {
       // Logging out lives in the Profile tab now (see AppShell) - matching
       // Instagram/Facebook, account actions belong in a Profile tab, not
       // scattered as an icon on every other screen's app bar.
-      appBar: AppBar(title: const Text('FASHA APP'), actions: const [_NotificationBell()]),
+      appBar: AppBar(title: const Text('FASHA APP'), actions: const [NotificationBell()]),
       body: switch (user) {
         null => const Center(child: Text('No user logged in.')),
-        AuthUser(role: UserRole.provider) => const _ProviderHome(),
+        AuthUser(role: UserRole.provider) => const ProviderDashboardScreen(),
         AuthUser(role: UserRole.admin) => const _AdminHome(),
         _ => _CustomerHome(user: user),
       },
-    );
-  }
-}
-
-/// Visible in every role's Home app bar (unlike the rest of this screen,
-/// which splits by role) since any role can receive a notification.
-class _NotificationBell extends ConsumerWidget {
-  const _NotificationBell();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final unreadCount = ref.watch(notificationsProvider).valueOrNull?.where((n) => !n.read).length ?? 0;
-
-    return IconButton(
-      onPressed: () => context.push('/notifications'),
-      icon: Badge(
-        label: Text('$unreadCount'),
-        isLabelVisible: unreadCount > 0,
-        child: const Icon(Icons.notifications_outlined),
-      ),
     );
   }
 }
@@ -230,84 +211,6 @@ class _SearchProvidersBar extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _ProviderHome extends ConsumerWidget {
-  const _ProviderHome();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final profileState = ref.watch(providerProfileControllerProvider);
-    final textTheme = Theme.of(context).textTheme;
-
-    if (profileState.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final profile = profileState.valueOrNull;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.gutter),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (profile == null) ...[
-            Text('Set up your provider profile', style: textTheme.headlineSmall),
-            const SizedBox(height: AppSpacing.sm),
-            const Text(
-              'Add your business name, description and services so customers can find you once search launches.',
-            ),
-          ] else ...[
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  child: Text(
-                    profile.businessName.isNotEmpty ? profile.businessName[0].toUpperCase() : '?',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(profile.businessName, style: textTheme.titleLarge),
-                      const SizedBox(height: 4),
-                      VerificationBadge(status: profile.verificationStatus),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-          const SizedBox(height: AppSpacing.gutter),
-          _DashboardTile(
-            icon: Icons.storefront_outlined,
-            title: 'Manage my profile',
-            subtitle: profile == null ? 'Create your profile' : 'Edit your business details',
-            onTap: () => context.push('/provider-profile'),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          _DashboardTile(
-            icon: Icons.build_outlined,
-            title: 'My services',
-            subtitle: 'Add and edit what you offer',
-            onTap: () => context.push('/my-services'),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          _DashboardTile(
-            icon: Icons.inbox_outlined,
-            title: 'Incoming requests',
-            subtitle: 'Accept, reject, and manage bookings',
-            onTap: () => context.push('/incoming-requests'),
-          ),
-        ],
       ),
     );
   }

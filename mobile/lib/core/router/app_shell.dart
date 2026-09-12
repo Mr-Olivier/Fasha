@@ -15,15 +15,16 @@ import '../../features/auth/presentation/auth_controller.dart';
 /// "branch" is a fully independent Navigator stack, and `navigationShell`
 /// itself is the widget that actually displays whichever branch is active.
 ///
-/// The BRANCHES themselves (app_router.dart) are the same fixed five for
-/// every role - Home, Providers, Customers, Categories, Profile - but which
-/// ones actually show up as tabs depends on role: a customer/provider only
-/// ever sees Home/Profile (the other three have nothing for them to do),
-/// while an admin sees all five, since "easy navigation between Overview,
-/// Providers, Customers, and Categories" is exactly the gap this class
-/// closes. Reading the role here (rather than baking separate shells per
-/// role into the router) keeps ONE shell/one set of branches, so switching
-/// role never means switching navigation architecture underneath the user.
+/// The BRANCHES themselves (app_router.dart) are the same fixed set for
+/// every role - which ones actually show up as tabs depends on role: a
+/// customer only ever sees Home/Profile, a provider sees a dedicated
+/// Jobs/Services/Reviews/Profile row (their own business tools, nothing
+/// admin- or customer-shaped), and an admin sees Home/Providers/Customers/
+/// Categories/Profile, since "easy navigation between Overview, Providers,
+/// Customers, and Categories" is exactly the gap this class closes.
+/// Reading the role here (rather than baking separate shells per role into
+/// the router) keeps ONE shell/one set of branches, so switching role never
+/// means switching navigation architecture underneath the user.
 class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.navigationShell});
 
@@ -39,8 +40,16 @@ class AppShell extends ConsumerWidget {
   static const _categories = (3, Icons.category_outlined, Icons.category, 'Categories');
   static const _profile = (4, Icons.person_outline, Icons.person, 'Profile');
 
+  // Branch 0 relabelled for a provider - same "Home" branch/screen slot
+  // (HomeScreen renders ProviderDashboardScreen for this role), just a
+  // different tab icon/label since it's their jobs inbox, not a home feed.
+  static const _jobs = (0, Icons.work_outline, Icons.work, 'Jobs');
+  static const _services = (5, Icons.build_outlined, Icons.build, 'Services');
+  static const _reviews = (6, Icons.star_outline, Icons.star, 'Reviews');
+
   List<(int, IconData, IconData, String)> _destinationsFor(UserRole? role) => switch (role) {
         UserRole.admin => const [_home, _providers, _customers, _categories, _profile],
+        UserRole.provider => const [_jobs, _services, _reviews, _profile],
         _ => const [_home, _profile],
       };
 

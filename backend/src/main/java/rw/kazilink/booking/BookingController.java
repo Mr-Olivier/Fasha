@@ -86,6 +86,16 @@ public class BookingController {
         return bookingService.complete(userId, id);
     }
 
+    @PatchMapping("/{id}/work-note")
+    @PreAuthorize("hasRole('PROVIDER')")
+    public BookingResponse updateWorkNote(
+            @AuthenticationPrincipal UUID userId,
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateWorkNoteRequest request
+    ) {
+        return bookingService.updateWorkNote(userId, id, request.note());
+    }
+
     @PatchMapping("/{id}/cancel")
     @PreAuthorize("hasRole('CUSTOMER')")
     public BookingResponse cancel(@AuthenticationPrincipal UUID userId, @PathVariable UUID id) {

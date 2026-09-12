@@ -31,6 +31,7 @@ public record BookingResponse(
         String note,
         LocalDate requestedDate,
         BookingStatus status,
+        String workNote,
         Instant createdAt,
         Instant updatedAt
 ) {

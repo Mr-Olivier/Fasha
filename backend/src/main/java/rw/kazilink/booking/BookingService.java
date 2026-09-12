@@ -122,6 +122,16 @@ public class BookingService {
         return toResponse(booking);
     }
 
+    /** The note a provider leaves for the customer while a job is under way - only while IN_PROGRESS, same as starting/completing it. */
+    @Transactional
+    public BookingResponse updateWorkNote(UUID userId, UUID bookingId, String note) {
+        Booking booking = findOwnedByProvider(userId, bookingId);
+        requireStatus(booking, BookingStatus.IN_PROGRESS);
+        booking.setWorkNote(note);
+        bookingRepository.save(booking);
+        return toResponse(booking);
+    }
+
     /** A customer can only back out before the job is actually under way - not once it's IN_PROGRESS or later. */
     @Transactional
     public BookingResponse cancel(UUID customerId, UUID bookingId) {
@@ -200,6 +210,7 @@ public class BookingService {
                 booking.getNote(),
                 booking.getRequestedDate(),
                 booking.getStatus(),
+                booking.getWorkNote(),
                 booking.getCreatedAt(),
                 booking.getUpdatedAt()
         );

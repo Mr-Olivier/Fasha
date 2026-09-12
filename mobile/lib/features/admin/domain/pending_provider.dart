@@ -23,6 +23,7 @@ class PendingProvider {
     this.ownerPhone,
     required this.ownerAccountStatus,
     required this.serviceCount,
+    required this.documentsSubmitted,
   });
 
   final String id;
@@ -38,6 +39,11 @@ class PendingProvider {
   final AccountStatus ownerAccountStatus;
   final int serviceCount;
 
+  /// Whether this provider has ever hit "Submit for review" on their KYC
+  /// documents - just a hint for the admin queue (see D7), not a gate on
+  /// whether admin CAN approve without them.
+  final bool documentsSubmitted;
+
   factory PendingProvider.fromJson(Map<String, dynamic> json) => PendingProvider(
         id: json['id'] as String,
         businessName: json['businessName'] as String,
@@ -51,5 +57,6 @@ class PendingProvider {
         ownerPhone: json['ownerPhone'] as String?,
         ownerAccountStatus: AccountStatusJson.fromWire(json['ownerAccountStatus'] as String),
         serviceCount: (json['serviceCount'] as num).toInt(),
+        documentsSubmitted: json['documentsSubmitted'] as bool? ?? false,
       );
 }

@@ -127,11 +127,22 @@ class ProfileScreen extends ConsumerWidget {
                   const SizedBox(height: AppSpacing.md),
                   Card(
                     clipBehavior: Clip.antiAlias,
-                    child: ListTile(
-                      leading: const Icon(Icons.storefront_outlined),
-                      title: const Text('Business profile'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.push('/provider-profile'),
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.storefront_outlined),
+                          title: const Text('Business profile'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => context.push('/provider-profile'),
+                        ),
+                        const Divider(height: 1),
+                        ListTile(
+                          leading: const Icon(Icons.verified_outlined),
+                          title: const Text('Verification'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => context.push('/get-verified'),
+                        ),
+                      ],
                     ),
                   ),
                 ],

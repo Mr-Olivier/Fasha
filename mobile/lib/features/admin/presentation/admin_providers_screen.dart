@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/status_colors.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/secure_network_image.dart';
 import '../../providers/domain/verification_status.dart';
 import '../domain/account_status.dart';
 import '../domain/pending_provider.dart';
@@ -199,6 +200,13 @@ class _ProviderCard extends StatelessWidget {
 
   static String _formatDate(DateTime date) => '${date.day} ${_months[date.month - 1]} ${date.year}';
 
+  void _showDocuments(BuildContext context, PendingProvider provider) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => _DocumentsDialog(providerId: provider.id),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -301,6 +309,14 @@ class _ProviderCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(provider.description!, style: textTheme.bodyMedium),
               ],
+              if (provider.documentsSubmitted) ...[
+                const SizedBox(height: AppSpacing.sm),
+                OutlinedButton.icon(
+                  onPressed: () => _showDocuments(context, provider),
+                  icon: const Icon(Icons.badge_outlined),
+                  label: const Text('View verification documents'),
+                ),
+              ],
               if (provider.verificationStatus == VerificationStatus.pending) ...[
                 const SizedBox(height: AppSpacing.md),
                 if (isBusyDeciding)
@@ -364,6 +380,59 @@ class _InfoRow extends StatelessWidget {
           Expanded(child: Text(value, style: textTheme.bodyMedium, textAlign: TextAlign.right)),
         ],
       ),
+    );
+  }
+}
+
+/// Shows the 3 KYC document slots for one provider - admin's counterpart
+/// to D7, viewed here rather than uploaded. Missing slots (e.g. no trade
+/// certificate) just don't render a tile, since a 404 from
+/// GET /api/providers/{id}/documents/{type} isn't a real error here.
+class _DocumentsDialog extends StatelessWidget {
+  const _DocumentsDialog({required this.providerId});
+
+  final String providerId;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Verification documents'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _DocumentTile(label: 'National ID or passport', path: '/providers/$providerId/documents/ID'),
+            const SizedBox(height: AppSpacing.md),
+            _DocumentTile(label: 'Trade certificate', path: '/providers/$providerId/documents/TRADE_CERTIFICATE'),
+            const SizedBox(height: AppSpacing.md),
+            _DocumentTile(label: 'Selfie holding ID', path: '/providers/$providerId/documents/SELFIE'),
+          ],
+        ),
+      ),
+      actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))],
+    );
+  }
+}
+
+class _DocumentTile extends StatelessWidget {
+  const _DocumentTile({required this.label, required this.path});
+
+  final String label;
+  final String path;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadii.field),
+          child: SecureNetworkImage(path: path, width: 240, height: 160),
+        ),
+      ],
     );
   }
 }

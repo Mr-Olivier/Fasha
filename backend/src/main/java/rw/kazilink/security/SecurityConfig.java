@@ -148,6 +148,12 @@ public class SecurityConfig {
                         // requiring a JWT just to display a picture would be
                         // pointless friction with no real security benefit.
                         .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
+                        // The WebSocket handshake itself carries no
+                        // Authorization header (browsers can't set custom
+                        // headers on it) - real auth happens inside
+                        // ChatWebSocketHandler via the token query
+                        // parameter instead, immediately on connect.
+                        .requestMatchers("/ws/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 // Without these, a missing/invalid token and an insufficient

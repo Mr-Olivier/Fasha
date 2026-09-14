@@ -24,20 +24,20 @@ The originally planned MVP is **functionally complete and exceeded** — every p
 | Chat | per-booking message list + send (**not in original MVP scope — built anyway**) |
 | User | get/update own profile, change password, upload avatar |
 
-- 145 backend unit/service tests passing (`./mvnw test`, with Postgres running - `BackendApplicationTests.contextLoads` needs a live database, same as the app itself).
+- 148 backend unit/service tests passing (`./mvnw test`, with Postgres AND Redis running - `BackendApplicationTests.contextLoads` needs a live database, same as the app itself).
 - Role-based authorization (`@PreAuthorize` + ownership checks) covers every mutating endpoint.
 - Flyway owns the schema (32 migrations), `ddl-auto: validate`.
 
 ### Security hardening (2026-09-11)
 - **Refresh-token rotation**: access tokens are now short-lived (15 min, was 24h - `app.jwt.expiration-ms`), paired with a long-lived (30 day) refresh token stored server-side as a SHA-256 hash (`refresh_tokens` table, `RefreshTokenService`). Each refresh is single-use and rotates to a new pair; presenting an already-used (stolen) refresh token revokes every other live session for that user (reuse detection). The Flutter app's `ApiClient` interceptor transparently refreshes on a 401 and retries the original request - no screen has to know about it.
-- **Login rate-limiting / account lockout**: `LoginAttemptService` locks an email out for 15 minutes after 5 failed login attempts (in-memory; a horizontally-scaled deployment would swap this for Redis - see its doc comment).
+- **Login rate-limiting / account lockout**: `LoginAttemptService` locks an email out for 15 minutes after 5 failed login attempts. Redis-backed as of 2026-09-14 (see below) - was originally in-memory.
 - **Admin audit log**: `admin_audit_log` table + `AdminAuditService.record(...)`, called from every admin mutation (approve/reject, suspend/resume/delete, category create/update/delete/visibility). Viewable in the app via the Overview screen's "Activity log" tile.
 - **Security response headers**: CSP (`default-src 'none'`), HSTS, `Referrer-Policy: no-referrer` added in `SecurityConfig` (X-Content-Type-Options/X-Frame-Options were already on by Spring Security's own defaults).
 - JWT is HS256, signed with a secret from `app.jwt.secret`/`JWT_SECRET` (dev-only default falls back if unset - **must** be overridden with a real random secret before any real deployment). Passwords are bcrypt-hashed (`BCryptPasswordEncoder`).
 
 ### Security hardening (2026-09-14, alongside the customer redesign below)
 - **File-upload content sniffing** (`FileSignature`, `common/`): KYC documents, booking photos, and avatars previously trusted the client-supplied `Content-Type` header alone - `SecureFileStorageService`/`AvatarStorageService` now also check the file's actual leading bytes match a real JPEG/PNG/WEBP/PDF signature, closing a mislabeled-file upload bypass. Covered by `FileSignatureTest`.
-- **Rate limiting beyond login** (`common/RateLimiter`): generalized from `LoginAttemptService`'s existing in-memory sliding-window pattern (see that class's own doc comment for the in-memory/no-Redis trade-off) and applied to `POST /api/bookings` and `POST /api/bookings/{id}/reviews` - 10 per hour per customer, abuse prevention rather than a real usage ceiling.
+- **Rate limiting beyond login** (`common/RateLimiter`): generalized from `LoginAttemptService`'s original in-memory pattern (both are now Redis-backed - see below) and applied to `POST /api/bookings` and `POST /api/bookings/{id}/reviews` - 10 per hour per customer, abuse prevention rather than a real usage ceiling.
 - Review comments are now capped at 1000 characters (`CreateReviewRequest`) - previously unbounded.
 - **Known web-specific trade-off**: now that the app also runs via `flutter run -d web-server`/`chrome` (verified working this session), `flutter_secure_storage`'s encrypted-storage guarantee doesn't hold on the web target - it falls back to browser storage, which is reachable by XSS. Mobile/desktop builds are unaffected. Documented in `AuthSessionStorage`'s doc comment; not something a code change fixes on its own (the real mitigation is the app's existing CSP-equivalent hygiene plus never deploying the web build to an origin that also serves untrusted content).
 
@@ -127,6 +127,15 @@ This surfaced one real config gap: `application.yml`'s datasource URL was hardco
 Verified live: built the image, brought up the full stack, confirmed the container connected to Postgres as `jdbc:postgresql://postgres:5432/kazilink`, ran all 32 Flyway migrations, and served real traffic - `GET /api/categories` and `POST /api/auth/login` (bcrypt + JWT signing) both worked correctly from outside the container, and the already-running Flutter web app worked against it with zero changes (the container is a drop-in replacement for the host-run process). All 145 backend tests still pass with the `DB_HOST` change.
 
 Uploaded files (`uploads/`, `secure-uploads/`) are on named Docker volumes so they survive a container recreate. `JWT_SECRET`/Brevo/Google env vars are passed through from the environment (or a `.env` file next to `docker-compose.yml`) - the compose file's own default `JWT_SECRET` is dev-only and **must** be overridden for anything beyond trying the container out locally.
+
+### Redis (2026-09-14)
+`LoginAttemptService` and `RateLimiter` moved from an in-memory `ConcurrentHashMap` to Redis (`spring-boot-starter-data-redis`, `StringRedisTemplate`) - both had documented this as the known trade-off of the in-memory approach (state resets on every app restart; wouldn't work correctly across more than one backend instance behind a load balancer, since each instance would have its own independent counter). Fixed-window counters via Redis's `INCR` + an `EXPIRE` set only on the first increment - the key's own TTL *is* the window, nothing to clean up by hand. `redis` is a **default** `docker-compose.yml` service (unlike `backend`, not gated behind `--profile full`) since the backend needs it reachable whether it's running in Compose or directly on the host via `mvnw`.
+
+One deliberate behavior refinement while migrating `LoginAttemptService`: the failed-attempt counter now expires after 15 minutes of no new failures (a rolling window), rather than persisting forever until an actual lockout or successful login like the in-memory version did - the more standard brute-force-protection shape, and it avoids Redis quietly accumulating one key per email address anyone has ever mistyped a password for.
+
+Both classes' unit tests were rewritten against a small in-memory fake of the handful of Redis calls each makes (real behavioral coverage of the counting/lockout/TTL logic, not just "was the template called") rather than pulling in Testcontainers or an embedded-Redis library - this machine is Windows, where embedded-Redis Java libraries have a history of not reliably shipping a working `redis-server` binary.
+
+Verified live end-to-end against the rebuilt Docker container: 5 failed logins actually locks the account (`429 Too many failed login attempts`), and - the actual point of this change - **the lockout survives a full container restart** (`docker restart kazilink-backend`), which it would NOT have with the old in-memory version. All 148 backend tests pass (145 + 3 new `RateLimiterTest` cases; `LoginAttemptServiceTest`'s existing 6 were rewritten in place, not added to).
 
 ## ❌ Not started
 

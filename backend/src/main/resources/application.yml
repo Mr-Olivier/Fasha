@@ -29,6 +29,16 @@ spring:
     username: ${DB_USERNAME:kazilink}
     password: ${DB_PASSWORD:kazilink}
 
+  data:
+    redis:
+      # Same REDIS_HOST override story as DB_HOST above - defaults to
+      # localhost for a backend running on the host against
+      # docker-compose's Redis (published on its default 6379, no port
+      # remap needed here since nothing else on this machine claims it);
+      # the compose "backend" service overrides this to "redis".
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
   jpa:
     hibernate:
       # IMPORTANT: we never let Hibernate create/alter tables automatically.

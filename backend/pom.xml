@@ -50,6 +50,14 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
+		<!-- Backs LoginAttemptService and RateLimiter with Redis instead of an
+		     in-memory ConcurrentHashMap, so lockouts/rate-limit counters
+		     survive an app restart and would work correctly across more than
+		     one backend instance (see both classes' doc comments). -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-database-postgresql</artifactId>

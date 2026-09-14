@@ -1,18 +1,18 @@
 # Local development stack.
 #
 # Day-to-day dev (fast hot-reload backend via your IDE/mvnw):
-#   docker compose up -d                  # starts ONLY Postgres
+#   docker compose up -d                  # starts Postgres + Redis
 #
 # Full containerized stack (what an actual deployment looks like - useful
 # for testing the Dockerfile itself, or running the app without a Java/Maven
 # install at all):
-#   docker compose --profile full up -d   # starts Postgres AND the backend
+#   docker compose --profile full up -d   # also starts the backend itself
 #
 # Stop it with:    docker compose down
 # Wipe all data:   docker compose down -v
 #
-# The backend (backend/src/main/resources/application.yml) connects to this
-# using the same username/password/database name defined below.
+# The backend (backend/src/main/resources/application.yml) connects to
+# these using the same credentials/ports defined below.
 #
 # NOTE: Postgres is mapped to host port 5433, not the default 5432, because
 # this machine already runs a separate native PostgreSQL service on 5432.
@@ -38,6 +38,27 @@ services:
       timeout: 5s
       retries: 10
 
+  # Backs LoginAttemptService/RateLimiter (see their own doc comments) - a
+  # DEFAULT service, not gated behind `--profile full` like backend below,
+  # because the backend needs it whether it's running in this Compose stack
+  # or directly on your host via mvnw/your IDE - same tier as postgres for
+  # exactly that reason. No password set: fine for local dev, not reachable
+  # from outside your machine anyway (no host port conflict to dodge here,
+  # unlike Postgres, so this keeps the default 6379).
+  redis:
+    image: redis:7-alpine
+    container_name: kazilink-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - kazilink_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   # Only starts with `--profile full` - see the note at the top of this
   # file. Kept optional (not part of the default `docker compose up`) so
   # the normal edit-code/hot-reload dev loop (run the backend directly via
@@ -52,6 +73,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       # Talks to the "postgres" service by its Compose service name (Docker's
       # internal DNS resolves that to the container's IP) and postgres's own
@@ -61,6 +84,7 @@ services:
       DB_PORT: "5432"
       DB_USERNAME: kazilink
       DB_PASSWORD: kazilink
+      REDIS_HOST: redis
       # A real deployment MUST override this (e.g. via a `.env` file next to
       # this compose file, or your hosting platform's own secrets manager) -
       # this default only exists so `--profile full up` works out of the box
@@ -82,5 +106,10 @@ services:
 volumes:
   kazilink_pgdata:
     # Named volume so your data survives "docker compose down" (but not "-v").
+  kazilink_redisdata:
+    # Redis persists to disk periodically (its own default RDB snapshotting) -
+    # this volume is what that snapshot survives a container recreate in.
+    # Losing it is low-stakes either way (rate-limit counters and lockouts
+    # are short-TTL, throwaway data), unlike the Postgres volume above.
   kazilink_uploads:
   kazilink_secure_uploads:

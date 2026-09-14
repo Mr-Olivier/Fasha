@@ -119,11 +119,20 @@ Verified live end-to-end via Claude-in-Chrome (Flutter web, `flutter run -d web-
 |---|---|---|
 | Google Sign-In | Fully coded on both backend (`POST /api/auth/google`, `V16__add_google_auth_to_users.sql`) and mobile (`GoogleAuthService`, "Continue with Google" on Login and Register) - compiles clean, `flutter analyze` clean, all 96 backend tests pass, and the failure paths (unconfigured backend, unconfigured mobile build) were verified live to fail with a clear message instead of crashing or silently doing nothing | Needs a real Google Cloud project + OAuth Client IDs (Web + Android) created in Google Cloud Console - only you can do this (it needs your Google account). See `NEXT_SESSION.md` item 2 for the exact steps, including this machine's debug keystore SHA-1. Until then, `GOOGLE_OAUTH_CLIENT_ID` stays unset and the feature is inert everywhere but not broken. |
 
+### Backend containerization (2026-09-14)
+`backend/Dockerfile` (multi-stage: `eclipse-temurin:21-jdk-alpine` build stage → `eclipse-temurin:21-jre-alpine` runtime, runs as a non-root user) + `backend/.dockerignore`. Root `docker-compose.yml` gained an optional `backend` service, gated behind `--profile full` so the normal day-to-day dev loop (run the backend directly via `mvnw`/IDE for hot-reload) is unaffected - `docker compose up -d` still starts only Postgres. `docker compose --profile full up -d` starts the whole stack from a clean image build.
+
+This surfaced one real config gap: `application.yml`'s datasource URL was hardcoded to `localhost`, which only works when the backend runs on the host talking to Postgres's published port - it breaks when the backend ALSO runs in a container, since "localhost" then means the backend container itself. Added a `DB_HOST` env var (defaults to `localhost`, unchanged for existing local-dev workflow; the compose `backend` service sets it to `postgres`, resolved via Docker's internal DNS).
+
+Verified live: built the image, brought up the full stack, confirmed the container connected to Postgres as `jdbc:postgresql://postgres:5432/kazilink`, ran all 32 Flyway migrations, and served real traffic - `GET /api/categories` and `POST /api/auth/login` (bcrypt + JWT signing) both worked correctly from outside the container, and the already-running Flutter web app worked against it with zero changes (the container is a drop-in replacement for the host-run process). All 145 backend tests still pass with the `DB_HOST` change.
+
+Uploaded files (`uploads/`, `secure-uploads/`) are on named Docker volumes so they survive a container recreate. `JWT_SECRET`/Brevo/Google env vars are passed through from the environment (or a `.env` file next to `docker-compose.yml`) - the compose file's own default `JWT_SECRET` is dev-only and **must** be overridden for anything beyond trying the container out locally.
+
 ## ❌ Not started
 
 | Item | Notes |
 |---|---|
-| Deployment | No Dockerfile for the backend, no CI/CD (`.github/` is empty), no hosting configured. `docker-compose.yml` only covers local Postgres. |
+| Deployment (hosting) | The backend is now containerized (see above) and could be pushed to any container host today - what's still missing is actually choosing one (Render/Railway/Fly.io/a VPS/etc.), CI/CD (`.github/` is still empty), and building/distributing the Flutter app for a target platform (web build, or app store submission for mobile). |
 | Review reporting/moderation | The design reference's admin Overview shows a reported-review item in "Needs your action" - deliberately left out (user's own scope call, 2026-09-11): nothing in the app lets anyone report a review yet, so this needs a whole new feature (report action + DB column + admin moderation endpoint), not just an admin-screen restyle. |
 | Chat read receipts | The Customer Experience Redesign's mockup (C4) shows ✓✓ read receipts - deliberately deferred (2026-09-14): needs a `read` field on messages plus UI, and chat itself was already close to the mockup's style without it. |
 
@@ -131,4 +140,4 @@ Verified live end-to-end via Claude-in-Chrome (Flutter web, `flutter run -d web-
 
 ## Decision points for what's next
 
-1. **Deployment** — the only remaining item. Biggest unknown/time-sink (hosting choice, env config, building the Flutter app for a target platform). Worth scoping explicitly before starting — see `NEXT_SESSION.md` for the open questions.
+1. **Deployment** — the backend is containerized now, so the remaining decision is narrower: pick a host for that image + Postgres (Render/Railway/Fly.io/a VPS), set up CI/CD, and decide the Flutter app's distribution target (hosted web build vs. app store submission). Worth scoping explicitly before starting — see `NEXT_SESSION.md` for the open questions.

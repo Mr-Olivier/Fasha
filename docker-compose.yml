@@ -1,16 +1,23 @@
-# Local development database only.
+# Local development stack.
 #
-# Start it with:   docker compose up -d
+# Day-to-day dev (fast hot-reload backend via your IDE/mvnw):
+#   docker compose up -d                  # starts ONLY Postgres
+#
+# Full containerized stack (what an actual deployment looks like - useful
+# for testing the Dockerfile itself, or running the app without a Java/Maven
+# install at all):
+#   docker compose --profile full up -d   # starts Postgres AND the backend
+#
 # Stop it with:    docker compose down
 # Wipe all data:   docker compose down -v
 #
 # The backend (backend/src/main/resources/application.yml) connects to this
 # using the same username/password/database name defined below.
 #
-# NOTE: mapped to host port 5433, not the default 5432, because this machine
-# already runs a separate native PostgreSQL service on 5432. If your machine
-# doesn't have that conflict, feel free to change it back to "5432:5432" -
-# just also update DB_PORT in backend/.env.example / application.yml.
+# NOTE: Postgres is mapped to host port 5433, not the default 5432, because
+# this machine already runs a separate native PostgreSQL service on 5432.
+# If your machine doesn't have that conflict, feel free to change it back to
+# "5432:5432" - just also update DB_PORT in backend/.env.example.
 
 services:
   postgres:
@@ -31,6 +38,49 @@ services:
       timeout: 5s
       retries: 10
 
+  # Only starts with `--profile full` - see the note at the top of this
+  # file. Kept optional (not part of the default `docker compose up`) so
+  # the normal edit-code/hot-reload dev loop (run the backend directly via
+  # mvnw or your IDE) isn't forced through a full image rebuild on every
+  # change.
+  backend:
+    profiles: ["full"]
+    build:
+      context: ./backend
+    container_name: kazilink-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Talks to the "postgres" service by its Compose service name (Docker's
+      # internal DNS resolves that to the container's IP) and postgres's own
+      # in-network port 5432 - NOT the 5433 host-mapping above, which only
+      # matters for something connecting from outside this Compose network.
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USERNAME: kazilink
+      DB_PASSWORD: kazilink
+      # A real deployment MUST override this (e.g. via a `.env` file next to
+      # this compose file, or your hosting platform's own secrets manager) -
+      # this default only exists so `--profile full up` works out of the box
+      # for trying the container out locally. See backend/.env.example.
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me-please-make-me-long-and-random}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL:-no-reply@kazilink.rw}
+      BREVO_SENDER_NAME: ${BREVO_SENDER_NAME:-KaziLink Rwanda}
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+    ports:
+      - "8081:8081"
+    volumes:
+      # Uploaded files live on named volumes, not the container's writable
+      # layer - `docker compose down` (without `-v`) recreates the
+      # container but keeps everything already uploaded.
+      - kazilink_uploads:/app/uploads
+      - kazilink_secure_uploads:/app/secure-uploads
+
 volumes:
   kazilink_pgdata:
     # Named volume so your data survives "docker compose down" (but not "-v").
+  kazilink_uploads:
+  kazilink_secure_uploads:

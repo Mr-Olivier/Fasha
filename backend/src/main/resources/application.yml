@@ -12,10 +12,20 @@ spring:
     name: kazilink-backend
 
   datasource:
-    # Port 5433, not 5432: our docker-compose Postgres is mapped there to
-    # avoid clashing with any native PostgreSQL already installed on the
+    # DB_HOST defaults to localhost for local dev (running the backend
+    # directly on the host, talking to docker-compose's Postgres via its
+    # published port). When the BACKEND itself also runs in a container
+    # (see backend/Dockerfile + the root docker-compose.yml's "backend"
+    # service), "localhost" would mean the backend container itself, not
+    # the postgres one - that service sets DB_HOST=postgres (the Compose
+    # service name, resolved via Docker's internal DNS) and DB_PORT=5432
+    # (postgres's own in-network port, not the 5433 host-mapping below).
+    #
+    # Port 5433, not 5432, for the DEFAULT here specifically: our
+    # docker-compose Postgres is mapped there on the HOST to avoid
+    # clashing with any native PostgreSQL already installed on the
     # machine. Override with DB_PORT if your setup differs.
-    url: jdbc:postgresql://localhost:${DB_PORT:5433}/kazilink
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/kazilink
     username: ${DB_USERNAME:kazilink}
     password: ${DB_PASSWORD:kazilink}
 

@@ -1,0 +1,7 @@
+target/
+uploads/
+secure-uploads/
+.env
+.idea/
+*.iml
+.git/

@@ -116,6 +116,12 @@ class ApiClient {
   /// the backend, which serves them OUTSIDE the "/api" REST namespace.
   /// ProfileScreen prepends this to build a full, loadable image URL.
   static String get mediaBaseUrl => _baseUrl.replaceFirst('/api', '');
+
+  /// Same host again, as a "ws://" URL with no path - ChatSocket appends
+  /// "/ws/chat" itself. WebSocket connections use their own "ws"/"wss"
+  /// scheme rather than "http"/"https", even though it's the same host and
+  /// port as every REST call.
+  static String get wsBaseUrl => mediaBaseUrl.replaceFirst('http', 'ws');
 }
 
 /// Shared by every feature's *Api class, so the whole app makes requests

@@ -14,9 +14,12 @@ import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/reset_password_screen.dart';
 import '../../features/auth/presentation/verify_email_screen.dart';
 import '../../features/bookings/domain/booking.dart';
+import '../../features/bookings/presentation/booking_tracker_screen.dart';
+import '../../features/bookings/presentation/cancel_booking_screen.dart';
 import '../../features/bookings/presentation/incoming_requests_screen.dart';
 import '../../features/bookings/presentation/my_bookings_screen.dart';
 import '../../features/bookings/presentation/request_booking_screen.dart';
+import '../../features/bookings/presentation/request_sent_screen.dart';
 import '../../features/chat/presentation/chat_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
@@ -34,7 +37,9 @@ import '../../features/providers/presentation/provider_detail_screen.dart';
 import '../../features/providers/presentation/provider_list_screen.dart';
 import '../../features/providers/presentation/provider_profile_screen.dart';
 import '../../features/providers/presentation/verification_chat_screen.dart';
+import '../../features/reviews/presentation/all_reviews_screen.dart';
 import '../../features/reviews/presentation/provider_reviews_screen.dart';
+import '../../features/reviews/presentation/review_posted_screen.dart';
 import '../../features/reviews/presentation/write_review_screen.dart';
 import '../../features/services/domain/category.dart';
 import '../../features/services/domain/service_listing.dart';
@@ -200,10 +205,31 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => ProviderDetailScreen(providerId: state.pathParameters['id']!),
       ),
       GoRoute(
+        path: '/providers/:id/reviews',
+        builder: (context, state) => AllReviewsScreen(providerId: state.pathParameters['id']!),
+      ),
+      GoRoute(
         path: '/request-booking',
         // `extra` carries the ServiceListing being requested - see
         // ProviderDetailScreen's service list onTap.
         builder: (context, state) => RequestBookingScreen(service: state.extra as ServiceListing),
+      ),
+      GoRoute(
+        path: '/request-sent',
+        // `extra` carries the just-created Booking - see
+        // RequestBookingScreen's submit success handler.
+        builder: (context, state) => RequestSentScreen(booking: state.extra as Booking),
+      ),
+      GoRoute(
+        path: '/booking-tracker',
+        // `extra` carries the Booking being tracked - same convention as
+        // RequestDetailScreen/ActiveJobScreen (the caller already has the
+        // full object in hand, so re-fetching by id would be wasted).
+        builder: (context, state) => BookingTrackerScreen(booking: state.extra as Booking),
+      ),
+      GoRoute(
+        path: '/cancel-booking',
+        builder: (context, state) => CancelBookingScreen(booking: state.extra as Booking),
       ),
       GoRoute(
         path: '/chat',
@@ -225,6 +251,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         // `extra` carries the COMPLETED Booking being reviewed - see
         // MyBookingsScreen's "Leave a review" button.
         builder: (context, state) => WriteReviewScreen(booking: state.extra as Booking),
+      ),
+      GoRoute(
+        path: '/review-posted',
+        // `extra` carries a ReviewPostedArgs record - see
+        // WriteReviewScreen's submit success handler.
+        builder: (context, state) => ReviewPostedScreen(args: state.extra as ReviewPostedArgs),
       ),
     ],
   );

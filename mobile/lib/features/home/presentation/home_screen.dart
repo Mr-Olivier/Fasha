@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/status_colors.dart';
+import '../../../core/widgets/provider_card.dart';
 import '../../../core/widgets/notification_bell.dart';
 import '../../admin/domain/pending_provider.dart';
 import '../../admin/presentation/admin_dashboard_charts.dart';
@@ -12,7 +13,10 @@ import '../../admin/presentation/admin_stats_controller.dart';
 import '../../auth/domain/auth_user.dart';
 import '../../auth/domain/user_role.dart';
 import '../../auth/presentation/auth_controller.dart';
+import '../../bookings/domain/booking_status.dart';
+import '../../bookings/presentation/booking_controller.dart';
 import '../../bookings/presentation/provider_dashboard_screen.dart';
+import '../../providers/presentation/provider_browse_controller.dart';
 import '../../services/presentation/category_controller.dart';
 import '../../services/presentation/category_tile.dart';
 
@@ -64,6 +68,7 @@ class _CustomerHome extends ConsumerWidget {
           const SizedBox(height: AppSpacing.gutter),
           _SearchProvidersBar(onTap: () => context.go('/providers')),
           const SizedBox(height: AppSpacing.gutter),
+          const _ActiveBookingBanner(),
           Row(
             children: [
               Expanded(child: Text('Categories', style: textTheme.titleLarge)),
@@ -128,8 +133,111 @@ class _CustomerHome extends ConsumerWidget {
             subtitle: 'Track requests you\'ve sent to providers',
             onTap: () => context.go('/bookings'),
           ),
+          const SizedBox(height: AppSpacing.gutter),
+          const _TopRatedSection(),
         ],
       ),
+    );
+  }
+}
+
+/// A summary card for the customer's first ACCEPTED/IN_PROGRESS booking
+/// (if any), tapping through to its Booking Tracker - lets a customer with
+/// something already under way see it without going to the Bookings tab
+/// first. Renders nothing at all when there's no active booking, rather
+/// than an empty-state placeholder - Home already has plenty else to show.
+class _ActiveBookingBanner extends ConsumerWidget {
+  const _ActiveBookingBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bookings = ref.watch(myBookingsControllerProvider).valueOrNull ?? const [];
+    final active = bookings
+        .where((b) => b.status == BookingStatus.accepted || b.status == BookingStatus.inProgress)
+        .toList();
+    if (active.isEmpty) return const SizedBox.shrink();
+    final booking = active.first;
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.gutter),
+      child: Material(
+        color: colorScheme.onSurface,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadii.card),
+          onTap: () => context.push('/booking-tracker', extra: booking),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        booking.status == BookingStatus.inProgress ? 'ACTIVE BOOKING' : 'UPCOMING BOOKING',
+                        style: textTheme.labelSmall?.copyWith(color: colorScheme.secondary, letterSpacing: 1.1),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${booking.providerBusinessName} is ${booking.status == BookingStatus.inProgress ? 'working now' : 'on the way'}',
+                        style: textTheme.titleMedium?.copyWith(color: colorScheme.surface),
+                      ),
+                      Text(
+                        booking.serviceName,
+                        style: textTheme.bodySmall?.copyWith(color: colorScheme.surface.withValues(alpha: 0.7)),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: colorScheme.surface),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The top 5 approved providers by rating, reusing the same browse
+/// endpoint the Explore tab uses (no separate "top rated" endpoint exists
+/// on the backend - sorting the already-returned averageRating client-side
+/// is enough at this dataset size, same reasoning ProviderProfileService's
+/// own in-memory filtering already uses).
+class _TopRatedSection extends ConsumerWidget {
+  const _TopRatedSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final providersState = ref.watch(
+      providerBrowseProvider((categoryId: null, search: null, district: null, minRating: null, maxPrice: null)),
+    );
+    final textTheme = Theme.of(context).textTheme;
+
+    return providersState.when(
+      loading: () => const SizedBox.shrink(),
+      error: (error, _) => const SizedBox.shrink(),
+      data: (providers) {
+        final rated = providers.where((p) => p.averageRating != null).toList()
+          ..sort((a, b) => b.averageRating!.compareTo(a.averageRating!));
+        if (rated.isEmpty) return const SizedBox.shrink();
+        final top = rated.take(5).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Top rated near you', style: textTheme.titleLarge),
+            const SizedBox(height: AppSpacing.sm),
+            for (final provider in top) ...[
+              ProviderCard(provider: provider, onTap: () => context.push('/providers/${provider.id}')),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+          ],
+        );
+      },
     );
   }
 }

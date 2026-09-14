@@ -5,15 +5,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/star_rating.dart';
+import '../../../core/widgets/provider_card.dart';
 import '../../services/presentation/category_controller.dart';
+import 'filters_sheet.dart';
 import 'provider_browse_controller.dart';
 
-/// Customer-facing: approved providers, optionally narrowed by category
-/// and/or a free-text search term. [categoryId]/[categoryName] seed the
-/// initial category filter when reached by tapping a category tile on
-/// Home; both are null when reached as "browse/search all providers"
-/// instead, in which case the category filter starts on "All".
+/// Customer-facing: approved providers, optionally narrowed by category,
+/// district/rating/price (the Filters sheet), and/or a free-text search
+/// term. [categoryId]/[categoryName] seed the initial category filter when
+/// reached by tapping a category tile on Home; both are null when reached
+/// as "browse/search all providers" instead, in which case the category
+/// filter starts on "All".
 ///
 /// A search term and a category filter are independent state here (not
 /// combined into one text field) since they answer different questions -
@@ -35,6 +37,7 @@ class _ProviderListScreenState extends ConsumerState<ProviderListScreen> {
   late String? _selectedCategoryId = widget.categoryId;
   String _search = '';
   Timer? _debounce;
+  ProviderFilters _filters = (district: null, minRating: null, maxPrice: null);
 
   @override
   void dispose() {
@@ -54,14 +57,22 @@ class _ProviderListScreenState extends ConsumerState<ProviderListScreen> {
     });
   }
 
+  Future<void> _openFilters() async {
+    final result = await FiltersSheet.show(context, _filters);
+    if (result != null && mounted) setState(() => _filters = result);
+  }
+
+  int get _activeFilterCount =>
+      (_filters.district != null ? 1 : 0) + (_filters.minRating != null ? 1 : 0) + (_filters.maxPrice != null ? 1 : 0);
+
   @override
   Widget build(BuildContext context) {
     final query = (
       categoryId: _selectedCategoryId,
       search: _search.isEmpty ? null : _search,
-      district: null,
-      minRating: null,
-      maxPrice: null,
+      district: _filters.district,
+      minRating: _filters.minRating,
+      maxPrice: _filters.maxPrice,
     );
     final providersState = ref.watch(providerBrowseProvider(query));
     final categoriesState = ref.watch(categoriesProvider);
@@ -94,34 +105,46 @@ class _ProviderListScreenState extends ConsumerState<ProviderListScreen> {
               ),
             ),
           ),
-          categoriesState.when(
-            loading: () => const SizedBox.shrink(),
-            error: (error, _) => const SizedBox.shrink(),
-            data: (categories) => SizedBox(
-              height: 40,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(right: AppSpacing.xs),
-                    child: ChoiceChip(
-                      label: const Text('All'),
-                      selected: _selectedCategoryId == null,
-                      onSelected: (_) => setState(() => _selectedCategoryId = null),
-                    ),
+          SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.xs),
+                  child: ActionChip(
+                    avatar: Icon(Icons.tune, size: 18, color: _activeFilterCount > 0 ? colorScheme.primary : null),
+                    label: Text(_activeFilterCount > 0 ? 'Filters · $_activeFilterCount' : 'Filters'),
+                    onPressed: _openFilters,
                   ),
-                  for (final category in categories)
-                    Padding(
-                      padding: const EdgeInsets.only(right: AppSpacing.xs),
-                      child: ChoiceChip(
-                        label: Text(category.name),
-                        selected: _selectedCategoryId == category.id,
-                        onSelected: (_) => setState(() => _selectedCategoryId = category.id),
-                      ),
-                    ),
-                ],
-              ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.xs),
+                  child: ChoiceChip(
+                    label: const Text('All'),
+                    selected: _selectedCategoryId == null,
+                    onSelected: (_) => setState(() => _selectedCategoryId = null),
+                  ),
+                ),
+                categoriesState.when(
+                  loading: () => const SizedBox.shrink(),
+                  error: (error, _) => const SizedBox.shrink(),
+                  data: (categories) => Row(
+                    children: [
+                      for (final category in categories)
+                        Padding(
+                          padding: const EdgeInsets.only(right: AppSpacing.xs),
+                          child: ChoiceChip(
+                            label: Text(category.name),
+                            selected: _selectedCategoryId == category.id,
+                            onSelected: (_) => setState(() => _selectedCategoryId = category.id),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -136,7 +159,7 @@ class _ProviderListScreenState extends ConsumerState<ProviderListScreen> {
                       padding: const EdgeInsets.all(AppSpacing.gutter),
                       child: Text(
                         _search.isEmpty
-                            ? 'No approved providers offer this yet. Check back soon.'
+                            ? 'No approved providers match these filters yet.'
                             : 'No providers match "$_search".',
                         textAlign: TextAlign.center,
                         style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
@@ -144,56 +167,37 @@ class _ProviderListScreenState extends ConsumerState<ProviderListScreen> {
                     ),
                   );
                 }
-                return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.gutter,
-                    0,
-                    AppSpacing.gutter,
-                    AppSpacing.gutter,
-                  ),
-                  itemCount: providers.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
-                  itemBuilder: (context, index) {
-                    final provider = providers[index];
-                    return Card(
-                      clipBehavior: Clip.antiAlias,
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          child: Text(
-                            provider.businessName.isNotEmpty ? provider.businessName[0].toUpperCase() : '?',
-                            style: const TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                        title: Text(provider.businessName),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(provider.location ?? 'Location not specified'),
-                            const SizedBox(height: 2),
-                            if (provider.averageRating != null)
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  StarRating(rating: provider.averageRating!, size: 14),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${provider.averageRating!.toStringAsFixed(1)} (${provider.reviewCount})',
-                                    style: Theme.of(context).textTheme.bodySmall,
-                                  ),
-                                ],
-                              )
-                            else
-                              Text('No reviews yet', style: Theme.of(context).textTheme.bodySmall),
-                          ],
-                        ),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => context.push('/providers/${provider.id}'),
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+                      child: Text(
+                        '${providers.length} provider${providers.length == 1 ? '' : 's'}',
+                        style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.6)),
                       ),
-                    );
-                  },
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Expanded(
+                      child: ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.gutter,
+                          0,
+                          AppSpacing.gutter,
+                          AppSpacing.gutter,
+                        ),
+                        itemCount: providers.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+                        itemBuilder: (context, index) {
+                          final provider = providers[index];
+                          return ProviderCard(
+                            provider: provider,
+                            onTap: () => context.push('/providers/${provider.id}'),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 );
               },
             ),

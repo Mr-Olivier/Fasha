@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/star_rating.dart';
+import '../../../core/widgets/review_card.dart';
 import '../../providers/presentation/provider_profile_controller.dart';
 import 'review_controller.dart';
 
@@ -78,29 +78,7 @@ class _ReviewsList extends ConsumerWidget {
             padding: const EdgeInsets.all(AppSpacing.gutter),
             itemCount: reviews.length,
             separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
-            itemBuilder: (context, index) {
-              final review = reviews[index];
-              return Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(child: Text(review.customerName, style: textTheme.titleMedium)),
-                          StarRating(rating: review.rating.toDouble(), size: 14),
-                        ],
-                      ),
-                      if (review.comment != null && review.comment!.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(review.comment!, style: textTheme.bodyMedium),
-                      ],
-                    ],
-                  ),
-                ),
-              );
-            },
+            itemBuilder: (context, index) => ReviewCard(review: reviews[index]),
           ),
         );
       },

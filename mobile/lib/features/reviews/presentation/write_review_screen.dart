@@ -5,11 +5,12 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../bookings/domain/booking.dart';
+import '../domain/review_tag.dart';
 import 'review_controller.dart';
 
-/// A customer reviewing one of their own COMPLETED bookings. [booking]
-/// arrives via GoRoute's `extra` - same pattern RequestBookingScreen uses
-/// for the ServiceListing it's requesting.
+/// A customer reviewing one of their own COMPLETED bookings (mockup screen
+/// C6). [booking] arrives via GoRoute's `extra` - same pattern
+/// RequestBookingScreen uses for the ServiceListing it's requesting.
 class WriteReviewScreen extends ConsumerStatefulWidget {
   const WriteReviewScreen({super.key, required this.booking});
 
@@ -22,6 +23,7 @@ class WriteReviewScreen extends ConsumerStatefulWidget {
 class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
   final _commentController = TextEditingController();
   int _rating = 0;
+  final Set<ReviewTag> _tags = {};
 
   @override
   void dispose() {
@@ -38,6 +40,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
           bookingId: widget.booking.id,
           rating: _rating,
           comment: _commentController.text.trim().isEmpty ? null : _commentController.text.trim(),
+          tags: _tags,
         );
   }
 
@@ -58,13 +61,15 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
       // see RequestBookingController's doc comment for why that heuristic
       // alone isn't safe on a provider whose build() also resolves once.
       if (next.valueOrNull == true && previous?.valueOrNull != true) {
-        AppToast.success(context, 'Thanks for your review!');
-        context.pop();
+        context.pushReplacement(
+          '/review-posted',
+          extra: (booking: widget.booking, rating: _rating),
+        );
       }
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Leave a review')),
+      appBar: AppBar(title: const Text('Rate this job')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.gutter),
@@ -77,16 +82,13 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(widget.booking.serviceName, style: textTheme.titleLarge),
-                      const SizedBox(height: 4),
-                      Text('with ${widget.booking.providerBusinessName}', style: textTheme.bodyMedium),
+                      Text(widget.booking.providerBusinessName, style: textTheme.titleLarge),
+                      Text('${widget.booking.serviceName} · completed', style: textTheme.bodyMedium),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: AppSpacing.gutter),
-              Text('How was your experience?', style: textTheme.titleMedium, textAlign: TextAlign.center),
-              const SizedBox(height: AppSpacing.md),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -101,16 +103,36 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
                     ),
                 ],
               ),
+              if (_rating > 0)
+                Center(
+                  child: Text(_ratingLabel(_rating), style: textTheme.titleMedium, textAlign: TextAlign.center),
+                ),
               const SizedBox(height: AppSpacing.gutter),
+              Text('What stood out?', style: textTheme.titleMedium),
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
+                children: [
+                  for (final tag in ReviewTag.values)
+                    FilterChip(
+                      label: Text(tag.label),
+                      selected: _tags.contains(tag),
+                      onSelected: isLoading
+                          ? null
+                          : (selected) => setState(() => selected ? _tags.add(tag) : _tags.remove(tag)),
+                    ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.gutter),
+              Text('Comment · optional', style: textTheme.titleMedium),
+              const SizedBox(height: AppSpacing.sm),
               TextField(
                 controller: _commentController,
                 enabled: !isLoading,
                 maxLines: 4,
                 maxLength: 500,
-                decoration: const InputDecoration(
-                  labelText: 'Add a comment (optional)',
-                  alignLabelWithHint: true,
-                ),
+                decoration: const InputDecoration(hintText: 'Tell other customers how it went...'),
               ),
               const SizedBox(height: 16),
               FilledButton(
@@ -125,4 +147,12 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
       ),
     );
   }
+
+  String _ratingLabel(int stars) => switch (stars) {
+        1 => 'Poor — 1 of 5',
+        2 => 'Fair — 2 of 5',
+        3 => 'Okay — 3 of 5',
+        4 => 'Good job — 4 of 5',
+        _ => 'Excellent — 5 of 5',
+      };
 }

@@ -35,8 +35,10 @@ public class MessageService {
     private final NotificationService notificationService;
     private final ChatWebSocketHandler chatWebSocketHandler;
 
+    @Transactional
     public List<MessageResponse> list(UUID callerId, UUID bookingId) {
         findAccessibleBooking(callerId, bookingId);
+        markOtherPartyMessagesRead(callerId, bookingId);
         return messageRepository.findByBookingIdOrderByCreatedAtAsc(bookingId).stream()
                 .map(this::toResponse)
                 .toList();
@@ -62,6 +64,21 @@ public class MessageService {
         // at the screen right now; this is the instant in-screen update.
         chatWebSocketHandler.broadcast(bookingId, response);
         return response;
+    }
+
+    /** Called every time either party opens this conversation - catches up the ✓✓ read receipt on whatever the OTHER party sent since it was last opened. A no-op, not an error, when there's nothing new to mark. */
+    private void markOtherPartyMessagesRead(UUID callerId, UUID bookingId) {
+        List<Message> unread = messageRepository.findByBookingIdAndSenderIdNotAndReadFalse(bookingId, callerId);
+        if (unread.isEmpty()) return;
+
+        unread.forEach(Message::markRead);
+        messageRepository.saveAll(unread);
+
+        // Tells the SENDER's side live, if they still have this booking's
+        // chat open, so their ✓✓ updates without needing to reopen it -
+        // same broadcast() used for a brand new message, just re-sent now
+        // that its `read` flag has flipped.
+        unread.forEach(message -> chatWebSocketHandler.broadcast(bookingId, toResponse(message)));
     }
 
     /** Also throws BookingNotFoundException for a booking that exists but belongs to neither of the caller's roles - same "not found" as a genuinely missing id, so probing random ids reveals nothing. */
@@ -98,7 +115,8 @@ public class MessageService {
                 message.getSenderId(),
                 sender.getName(),
                 message.getBody(),
-                message.getCreatedAt()
+                message.getCreatedAt(),
+                message.isRead()
         );
     }
 }

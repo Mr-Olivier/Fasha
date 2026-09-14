@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.UUID;
 
-/** One chat message on a booking's conversation (maps to the "messages" table). Immutable once sent - no edit/delete. */
+/** One chat message on a booking's conversation (maps to the "messages" table). The body/sender/timing are immutable once sent - no edit/delete; only {@link #read} ever changes, when the recipient opens the conversation (see {@link MessageService#list}). */
 @Entity
 @Table(name = "messages")
 @Getter
@@ -35,6 +35,9 @@ public class Message {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(nullable = false)
+    private boolean read;
+
     public Message(UUID bookingId, UUID senderId, String body) {
         this.bookingId = bookingId;
         this.senderId = senderId;
@@ -44,5 +47,9 @@ public class Message {
     @PrePersist
     void onCreate() {
         this.createdAt = Instant.now();
+    }
+
+    void markRead() {
+        this.read = true;
     }
 }

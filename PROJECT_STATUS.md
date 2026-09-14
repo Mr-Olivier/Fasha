@@ -166,13 +166,21 @@ Replaced `ChatScreen`'s 4-second `Timer.periodic` poll with a real WebSocket con
 
 Verified live against the rebuilt Docker container: opened the customer's chat screen for an ACCEPTED booking in a browser tab, then sent a message as the provider via a direct REST call (`curl`, separate session - Flutter web shares `flutter_secure_storage` across tabs on the same origin, so two logged-in tabs isn't possible for this app) - the message appeared in the open browser tab immediately, with no refresh and no poll. Sending from the customer's own screen back to the provider also verified working. 153 backend tests pass (`MessageServiceTest` updated for the new `ChatWebSocketHandler` dependency, no new test count - the handler's auth/broadcast logic is exercised live rather than unit-tested, matching this codebase's existing pattern for `SecureFileStorageService`'s I/O-heavy paths), `flutter analyze` clean, 24 Flutter tests pass.
 
+### Chat read receipts (2026-09-14)
+The ✓✓ read receipts the Customer Experience Redesign's mockup (C4) called for, deferred at the time - picked up right after the WebSocket work above since it's a natural extension of the same feature.
+
+**Backend**: `V34__add_read_to_messages.sql` adds a `read` column (defaults false). `MessageService.list()` - called every time either party opens a conversation - now also marks whatever the OTHER party sent since it was last opened as read (`MessageRepository.findByBookingIdAndSenderIdNotAndReadFalse`), then re-broadcasts each of those messages over the existing `ChatWebSocketHandler` (same `broadcast()` a brand new message already uses). No new WebSocket message envelope/type was needed - re-sending the now-updated `MessageResponse` is enough, since the mobile side already just invalidates its message list on any incoming frame.
+
+**Mobile**: `ChatMessage` gained a `read` field; `_MessageBubble` shows a single check (sent) or double check (`Icons.done_all`, read) next to the timestamp - only on the logged-in user's OWN bubbles, since whether the other person read what THEY sent is the only direction worth showing.
+
+Verified live against the rebuilt Docker container and a freshly-restarted Flutter web dev server (the already-running one from earlier in the session was serving stale compiled Dart and had to be killed/relaunched to pick up the new code - a real gotcha worth remembering: `flutter analyze`/`flutter test` passing does NOT mean a long-running `flutter run` session has picked up source changes): opened the customer's chat, confirmed their own already-sent message showed a single check (unread), then had the provider "open" the conversation via a direct `GET .../messages` call - the customer's browser tab flipped that same bubble to a double check instantly, with no refresh, driven entirely by the read-broadcast. 155 backend tests pass (153 + 2 new: `MessageServiceTest`'s mark-read/broadcast and no-op-when-nothing-unread cases), `flutter analyze` clean, 24 Flutter tests pass.
+
 ## ❌ Not started
 
 | Item | Notes |
 |---|---|
 | Deployment (hosting) | The backend is containerized and now has CI validating it on every push (see above) - what's still missing is actually choosing a host (Render/Railway/Fly.io/a VPS/etc.), a CD step that deploys on a green `main` build, and building/distributing the Flutter app for a target platform (web build, or app store submission for mobile). |
 | Review reporting/moderation | The design reference's admin Overview shows a reported-review item in "Needs your action" - deliberately left out (user's own scope call, 2026-09-11): nothing in the app lets anyone report a review yet, so this needs a whole new feature (report action + DB column + admin moderation endpoint), not just an admin-screen restyle. |
-| Chat read receipts | The Customer Experience Redesign's mockup (C4) shows ✓✓ read receipts - deliberately deferred (2026-09-14): needs a `read` field on messages plus UI, and chat itself was already close to the mockup's style without it. |
 
 ---
 

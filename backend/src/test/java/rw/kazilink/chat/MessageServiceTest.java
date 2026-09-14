@@ -46,6 +46,9 @@ class MessageServiceTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private ChatWebSocketHandler chatWebSocketHandler;
+
     @InjectMocks
     private MessageService messageService;
 

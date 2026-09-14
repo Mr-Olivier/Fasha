@@ -62,7 +62,7 @@ class _CustomerHome extends ConsumerWidget {
         children: [
           Text('Muraho, $firstName', style: textTheme.headlineSmall),
           const SizedBox(height: AppSpacing.gutter),
-          _SearchProvidersBar(onTap: () => context.push('/providers')),
+          _SearchProvidersBar(onTap: () => context.go('/providers')),
           const SizedBox(height: AppSpacing.gutter),
           Row(
             children: [
@@ -111,7 +111,7 @@ class _CustomerHome extends ConsumerWidget {
                   for (final category in shown)
                     CategoryTile(
                       category: category,
-                      onTap: () => context.push(
+                      onTap: () => context.go(
                         '/providers?categoryId=${category.id}&categoryName=${Uri.encodeComponent(category.name)}',
                       ),
                     ),
@@ -126,7 +126,7 @@ class _CustomerHome extends ConsumerWidget {
             icon: Icons.event_note_outlined,
             title: 'My bookings',
             subtitle: 'Track requests you\'ve sent to providers',
-            onTap: () => context.push('/my-bookings'),
+            onTap: () => context.go('/bookings'),
           ),
         ],
       ),

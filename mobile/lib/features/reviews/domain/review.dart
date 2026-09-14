@@ -1,3 +1,5 @@
+import 'review_tag.dart';
+
 /// Mirrors the backend's ReviewResponse DTO.
 class Review {
   const Review({
@@ -7,6 +9,7 @@ class Review {
     required this.customerName,
     required this.rating,
     this.comment,
+    this.tags = const {},
     required this.createdAt,
   });
 
@@ -16,6 +19,7 @@ class Review {
   final String customerName;
   final int rating;
   final String? comment;
+  final Set<ReviewTag> tags;
   final DateTime createdAt;
 
   factory Review.fromJson(Map<String, dynamic> json) => Review(
@@ -25,6 +29,7 @@ class Review {
         customerName: json['customerName'] as String,
         rating: json['rating'] as int,
         comment: json['comment'] as String?,
+        tags: (json['tags'] as List<dynamic>? ?? []).map((e) => ReviewTagJson.fromWire(e as String)).toSet(),
         createdAt: DateTime.parse(json['createdAt'] as String),
       );
 }

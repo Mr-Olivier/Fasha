@@ -45,12 +45,27 @@ class _FakeProviderProfileRepository implements ProviderProfileRepository {
   }
 
   @override
-  Future<List<ProviderProfile>> browseProviders({String? categoryId, String? search}) {
+  Future<List<ProviderProfile>> browseProviders({String? categoryId, String? search, double? minRating, double? maxPrice}) {
     throw UnimplementedError('not exercised by this test');
   }
 
   @override
   Future<ProviderDetail> getProviderDetail(String providerId) {
+    throw UnimplementedError('not exercised by this test');
+  }
+
+  @override
+  Future<void> favorite(String providerId) {
+    throw UnimplementedError('not exercised by this test');
+  }
+
+  @override
+  Future<void> unfavorite(String providerId) {
+    throw UnimplementedError('not exercised by this test');
+  }
+
+  @override
+  Future<List<ProviderProfile>> listFavorites() {
     throw UnimplementedError('not exercised by this test');
   }
 }

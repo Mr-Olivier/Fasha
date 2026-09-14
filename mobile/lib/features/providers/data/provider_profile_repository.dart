@@ -11,9 +11,38 @@ class ProviderProfileRepository {
 
   final ProviderProfileApi _api;
 
-  Future<List<ProviderProfile>> browseProviders({String? categoryId, String? search}) async {
+  Future<List<ProviderProfile>> browseProviders({
+    String? categoryId,
+    String? search,
+    double? minRating,
+    double? maxPrice,
+  }) async {
     try {
-      return await _api.browseProviders(categoryId: categoryId, search: search);
+      return await _api.browseProviders(categoryId: categoryId, search: search, minRating: minRating, maxPrice: maxPrice);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<void> favorite(String providerId) async {
+    try {
+      await _api.favorite(providerId);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<void> unfavorite(String providerId) async {
+    try {
+      await _api.unfavorite(providerId);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<List<ProviderProfile>> listFavorites() async {
+    try {
+      return await _api.listFavorites();
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

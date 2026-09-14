@@ -5,6 +5,7 @@ import '../../bookings/presentation/booking_controller.dart';
 import '../data/review_api.dart';
 import '../data/review_repository.dart';
 import '../domain/review.dart';
+import '../domain/review_tag.dart';
 
 final reviewApiProvider = Provider<ReviewApi>(
   (ref) => ReviewApi(ref.watch(apiClientProvider).dio),
@@ -33,10 +34,17 @@ class SubmitReviewController extends AsyncNotifier<bool> {
   @override
   Future<bool> build() async => false;
 
-  Future<void> submit({required String bookingId, required int rating, String? comment}) async {
+  Future<void> submit({
+    required String bookingId,
+    required int rating,
+    String? comment,
+    Set<ReviewTag> tags = const {},
+  }) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      await ref.read(reviewRepositoryProvider).createReview(bookingId: bookingId, rating: rating, comment: comment);
+      await ref
+          .read(reviewRepositoryProvider)
+          .createReview(bookingId: bookingId, rating: rating, comment: comment, tags: tags);
       // So "My Bookings" shows the booking as REVIEWED next time it's viewed.
       ref.invalidate(myBookingsControllerProvider);
       return true;

@@ -56,7 +56,13 @@ class _ProviderListScreenState extends ConsumerState<ProviderListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final query = (categoryId: _selectedCategoryId, search: _search.isEmpty ? null : _search);
+    final query = (
+      categoryId: _selectedCategoryId,
+      search: _search.isEmpty ? null : _search,
+      district: null,
+      minRating: null,
+      maxPrice: null,
+    );
     final providersState = ref.watch(providerBrowseProvider(query));
     final categoriesState = ref.watch(categoriesProvider);
     final textTheme = Theme.of(context).textTheme;

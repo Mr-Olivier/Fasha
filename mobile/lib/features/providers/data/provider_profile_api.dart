@@ -11,16 +11,33 @@ class ProviderProfileApi {
 
   final Dio _dio;
 
-  /// [categoryId] and [search] are both optional and combine (the backend
-  /// ANDs them, not ORs) - omitting both browses every approved provider.
-  Future<List<ProviderProfile>> browseProviders({String? categoryId, String? search}) async {
+  /// All filters are optional and combine (the backend ANDs them, not ORs)
+  /// - omitting all of them browses every approved provider. [minRating]
+  /// and [maxPrice] back the Filters sheet's rating chips/price slider.
+  Future<List<ProviderProfile>> browseProviders({
+    String? categoryId,
+    String? search,
+    double? minRating,
+    double? maxPrice,
+  }) async {
     final response = await _dio.get<List<dynamic>>(
       '/providers',
       queryParameters: {
         if (categoryId != null) 'categoryId': categoryId,
         if (search != null && search.isNotEmpty) 'search': search,
+        if (minRating != null) 'minRating': minRating,
+        if (maxPrice != null) 'maxPrice': maxPrice,
       },
     );
+    return response.data!.map((e) => ProviderProfile.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> favorite(String providerId) => _dio.post<void>('/providers/$providerId/favorite');
+
+  Future<void> unfavorite(String providerId) => _dio.delete<void>('/providers/$providerId/favorite');
+
+  Future<List<ProviderProfile>> listFavorites() async {
+    final response = await _dio.get<List<dynamic>>('/favorites');
     return response.data!.map((e) => ProviderProfile.fromJson(e as Map<String, dynamic>)).toList();
   }
 

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../domain/booking.dart';
+import '../domain/time_window.dart';
 import 'booking_api.dart';
 
 /// Adds error handling on top of BookingApi - same split as every other
@@ -11,8 +12,20 @@ class BookingRepository {
 
   final BookingApi _api;
 
-  Future<Booking> create({required String serviceListingId, String? note, DateTime? requestedDate}) =>
-      _guard(() => _api.create(serviceListingId: serviceListingId, note: note, requestedDate: requestedDate));
+  Future<Booking> create({
+    required String serviceListingId,
+    String? note,
+    DateTime? requestedDate,
+    String? address,
+    TimeWindow? timeWindow,
+  }) =>
+      _guard(() => _api.create(
+            serviceListingId: serviceListingId,
+            note: note,
+            requestedDate: requestedDate,
+            address: address,
+            timeWindow: timeWindow,
+          ));
 
   Future<List<Booking>> listForCustomer() => _guard(_api.listForCustomer);
 
@@ -26,7 +39,7 @@ class BookingRepository {
 
   Future<Booking> complete(String bookingId) => _guard(() => _api.complete(bookingId));
 
-  Future<Booking> cancel(String bookingId) => _guard(() => _api.cancel(bookingId));
+  Future<Booking> cancel(String bookingId, {String? reason}) => _guard(() => _api.cancel(bookingId, reason: reason));
 
   Future<Booking> updateWorkNote(String bookingId, String? note) => _guard(() => _api.updateWorkNote(bookingId, note));
 

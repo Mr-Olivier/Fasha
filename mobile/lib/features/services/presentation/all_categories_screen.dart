@@ -90,7 +90,7 @@ class _AllCategoriesScreenState extends ConsumerState<AllCategoriesScreen> {
                                   ? Text(category.description!, maxLines: 1, overflow: TextOverflow.ellipsis)
                                   : null,
                               trailing: const Icon(Icons.chevron_right),
-                              onTap: () => context.push(
+                              onTap: () => context.go(
                                 '/providers?categoryId=${category.id}&categoryName=${Uri.encodeComponent(category.name)}',
                               ),
                             ),

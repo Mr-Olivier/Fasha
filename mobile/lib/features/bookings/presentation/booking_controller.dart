@@ -4,6 +4,7 @@ import '../../../core/network/api_client.dart';
 import '../data/booking_api.dart';
 import '../data/booking_repository.dart';
 import '../domain/booking.dart';
+import '../domain/time_window.dart';
 
 final bookingApiProvider = Provider<BookingApi>(
   (ref) => BookingApi(ref.watch(apiClientProvider).dio),
@@ -29,11 +30,12 @@ class MyBookingsController extends AsyncNotifier<List<Booking>> {
 
   /// Only actually succeeds server-side while the booking is still
   /// REQUESTED or ACCEPTED - see BookingService.cancel on the backend.
-  Future<void> cancel(String bookingId) async {
+  /// [reason] is the Cancel Confirmation screen's optional "why" field.
+  Future<void> cancel(String bookingId, {String? reason}) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final repository = ref.read(bookingRepositoryProvider);
-      await repository.cancel(bookingId);
+      await repository.cancel(bookingId, reason: reason);
       return repository.listForCustomer();
     });
   }
@@ -55,21 +57,34 @@ final myBookingsControllerProvider = AsyncNotifierProvider<MyBookingsController,
 /// has no such ambiguity.
 class RequestBookingController extends AsyncNotifier<bool> {
   /// The booking `submit` just created - NOT Riverpod state (nothing
-  /// should rebuild off it), just a place RequestBookingScreen can read
-  /// the new id from right after a successful submit, to attach any
-  /// photos the customer picked (see D2's "Photos from customer").
-  String? lastCreatedBookingId;
+  /// should rebuild off it), just a place RequestBookingScreen (to attach
+  /// any photos the customer picked - D2's "Photos from customer") and the
+  /// Request Sent confirmation screen (C1) can read straight after a
+  /// successful submit, without a redundant re-fetch.
+  Booking? lastCreatedBooking;
+
+  String? get lastCreatedBookingId => lastCreatedBooking?.id;
 
   @override
   Future<bool> build() async => false;
 
-  Future<void> submit({required String serviceListingId, String? note, DateTime? requestedDate}) async {
+  Future<void> submit({
+    required String serviceListingId,
+    String? note,
+    DateTime? requestedDate,
+    String? address,
+    TimeWindow? timeWindow,
+  }) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      final booking = await ref
-          .read(bookingRepositoryProvider)
-          .create(serviceListingId: serviceListingId, note: note, requestedDate: requestedDate);
-      lastCreatedBookingId = booking.id;
+      final booking = await ref.read(bookingRepositoryProvider).create(
+            serviceListingId: serviceListingId,
+            note: note,
+            requestedDate: requestedDate,
+            address: address,
+            timeWindow: timeWindow,
+          );
+      lastCreatedBooking = booking;
       // So "My Bookings" shows the new request next time it's opened,
       // without this controller needing to know anything about that one's
       // internal state.

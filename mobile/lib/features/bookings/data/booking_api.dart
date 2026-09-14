@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../domain/booking.dart';
+import '../domain/time_window.dart';
 
 /// Raw HTTP calls to POST/GET /api/bookings and its PATCH transition
 /// endpoints (accept/reject/start/complete/cancel).
@@ -9,13 +10,21 @@ class BookingApi {
 
   final Dio _dio;
 
-  Future<Booking> create({required String serviceListingId, String? note, DateTime? requestedDate}) async {
+  Future<Booking> create({
+    required String serviceListingId,
+    String? note,
+    DateTime? requestedDate,
+    String? address,
+    TimeWindow? timeWindow,
+  }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/bookings',
       data: {
         'serviceListingId': serviceListingId,
         'note': note,
         'requestedDate': requestedDate != null ? _formatDate(requestedDate) : null,
+        'address': address,
+        'timeWindow': timeWindow?.toWire(),
       },
     );
     return Booking.fromJson(response.data!);
@@ -33,7 +42,10 @@ class BookingApi {
 
   Future<Booking> complete(String bookingId) => _transition(bookingId, 'complete');
 
-  Future<Booking> cancel(String bookingId) => _transition(bookingId, 'cancel');
+  Future<Booking> cancel(String bookingId, {String? reason}) async {
+    final response = await _dio.patch<Map<String, dynamic>>('/bookings/$bookingId/cancel', data: {'reason': reason});
+    return Booking.fromJson(response.data!);
+  }
 
   Future<Booking> updateWorkNote(String bookingId, String? note) async {
     final response = await _dio.patch<Map<String, dynamic>>('/bookings/$bookingId/work-note', data: {'note': note});

@@ -127,11 +127,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/verify-email', builder: (context, state) => const VerifyEmailScreen()),
       // Branch order is fixed - it's what AppShell's tuples (_home/
-      // _providers/_customers/_categories/_profile/_services/_reviews)
-      // index into by position, regardless of which of these a given role
-      // actually shows as a visible tab. Branches 0/4 are shared by every
-      // role, 1-3 are admin-only, 5-6 are provider-only. See AppShell's
-      // doc comment for the full reasoning.
+      // _providers/_customers/_categories/_profile/_services/_reviews/
+      // _explore/_bookings) index into by position, regardless of which of
+      // these a given role actually shows as a visible tab. Branches 0/4
+      // are shared by every role, 1-3 are admin-only, 5-6 are
+      // provider-only, 7-8 are customer-only. See AppShell's doc comment
+      // for the full reasoning.
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
         branches: [
@@ -142,6 +143,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/my-services', builder: (context, state) => const MyServicesScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/my-reviews', builder: (context, state) => const ProviderReviewsScreen())]),
+          // Explore - customer's browse/search tab. Real query params (not
+          // `extra`) so this URL survives a browser refresh; also reachable
+          // by `go`-ing here with a categoryId from Home's category grid,
+          // which switches straight to this tab already filtered.
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/providers',
+              builder: (context, state) => ProviderListScreen(
+                categoryId: state.uri.queryParameters['categoryId'],
+                categoryName: state.uri.queryParameters['categoryName'],
+              ),
+            ),
+          ]),
+          // Bookings - customer's own tab, promoted from a pushed route
+          // (the old /my-bookings) so it survives switching away and back
+          // the same way every other tab's scroll position does.
+          StatefulShellBranch(routes: [GoRoute(path: '/bookings', builder: (context, state) => const MyBookingsScreen())]),
         ],
       ),
       GoRoute(path: '/profile/edit', builder: (context, state) => const EditProfileScreen()),
@@ -178,15 +196,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/categories', builder: (context, state) => const AllCategoriesScreen()),
       GoRoute(
-        path: '/providers',
-        // Real query params (not `extra`) so this URL survives a browser
-        // refresh - tapped from HomeScreen's category grid.
-        builder: (context, state) => ProviderListScreen(
-          categoryId: state.uri.queryParameters['categoryId'],
-          categoryName: state.uri.queryParameters['categoryName'],
-        ),
-      ),
-      GoRoute(
         path: '/providers/:id',
         builder: (context, state) => ProviderDetailScreen(providerId: state.pathParameters['id']!),
       ),
@@ -196,7 +205,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         // ProviderDetailScreen's service list onTap.
         builder: (context, state) => RequestBookingScreen(service: state.extra as ServiceListing),
       ),
-      GoRoute(path: '/my-bookings', builder: (context, state) => const MyBookingsScreen()),
       GoRoute(
         path: '/chat',
         // `extra` carries the ChatScreenArgs (bookingId + other party's

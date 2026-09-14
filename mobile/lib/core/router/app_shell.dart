@@ -17,14 +17,14 @@ import '../../features/auth/presentation/auth_controller.dart';
 ///
 /// The BRANCHES themselves (app_router.dart) are the same fixed set for
 /// every role - which ones actually show up as tabs depends on role: a
-/// customer only ever sees Home/Profile, a provider sees a dedicated
-/// Jobs/Services/Reviews/Profile row (their own business tools, nothing
-/// admin- or customer-shaped), and an admin sees Home/Providers/Customers/
-/// Categories/Profile, since "easy navigation between Overview, Providers,
-/// Customers, and Categories" is exactly the gap this class closes.
-/// Reading the role here (rather than baking separate shells per role into
-/// the router) keeps ONE shell/one set of branches, so switching role never
-/// means switching navigation architecture underneath the user.
+/// customer sees Home/Explore/Bookings/Profile, a provider sees a
+/// dedicated Jobs/Services/Reviews/Profile row (their own business tools,
+/// nothing admin- or customer-shaped), and an admin sees Home/Providers/
+/// Customers/Categories/Profile, since "easy navigation between Overview,
+/// Providers, Customers, and Categories" is exactly the gap this class
+/// closes. Reading the role here (rather than baking separate shells per
+/// role into the router) keeps ONE shell/one set of branches, so switching
+/// role never means switching navigation architecture underneath the user.
 class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.navigationShell});
 
@@ -47,10 +47,15 @@ class AppShell extends ConsumerWidget {
   static const _services = (5, Icons.build_outlined, Icons.build, 'Services');
   static const _reviews = (6, Icons.star_outline, Icons.star, 'Reviews');
 
+  // Customer-only branches (7/8) - see app_router.dart's branch-order
+  // comment for why these indices, not 1-3 (admin) or 5-6 (provider).
+  static const _explore = (7, Icons.explore_outlined, Icons.explore, 'Explore');
+  static const _bookings = (8, Icons.calendar_month_outlined, Icons.calendar_month, 'Bookings');
+
   List<(int, IconData, IconData, String)> _destinationsFor(UserRole? role) => switch (role) {
         UserRole.admin => const [_home, _providers, _customers, _categories, _profile],
         UserRole.provider => const [_jobs, _services, _reviews, _profile],
-        _ => const [_home, _profile],
+        _ => const [_home, _explore, _bookings, _profile],
       };
 
   @override

@@ -97,7 +97,7 @@ class _RequestBookingScreenState extends ConsumerState<RequestBookingScreen> {
         if (bookingId != null && _selectedPhotos.isNotEmpty) {
           unawaited(_uploadSelectedPhotos(bookingId));
         }
-        context.go('/my-bookings');
+        context.go('/bookings');
       }
     });
 

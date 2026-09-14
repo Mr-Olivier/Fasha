@@ -48,6 +48,7 @@ dependencies:
   fl_chart: ^0.69.2          # admin dashboard charts (bookings trend, providers by category, user growth)
   firebase_core: ^3.8.0      # required by firebase_messaging - initializes the Firebase SDK itself
   firebase_messaging: ^15.1.5 # push notifications (PushNotificationService) - see AppConfig.isFirebaseConfigured
+  web_socket_channel: ^3.0.1  # live chat delivery (ChatSocket) - replaces ChatScreen's old 4-second poll
 
 dev_dependencies:
   flutter_test:

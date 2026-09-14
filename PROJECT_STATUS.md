@@ -24,27 +24,34 @@ The originally planned MVP is **functionally complete and exceeded** — every p
 | Chat | per-booking message list + send (**not in original MVP scope — built anyway**) |
 | User | get/update own profile, change password, upload avatar |
 
-- 133 backend unit/service tests passing (`./mvnw test`, with Postgres running - `BackendApplicationTests.contextLoads` needs a live database, same as the app itself).
+- 145 backend unit/service tests passing (`./mvnw test`, with Postgres running - `BackendApplicationTests.contextLoads` needs a live database, same as the app itself).
 - Role-based authorization (`@PreAuthorize` + ownership checks) covers every mutating endpoint.
-- Flyway owns the schema (21 migrations), `ddl-auto: validate`.
+- Flyway owns the schema (32 migrations), `ddl-auto: validate`.
 
 ### Security hardening (2026-09-11)
 - **Refresh-token rotation**: access tokens are now short-lived (15 min, was 24h - `app.jwt.expiration-ms`), paired with a long-lived (30 day) refresh token stored server-side as a SHA-256 hash (`refresh_tokens` table, `RefreshTokenService`). Each refresh is single-use and rotates to a new pair; presenting an already-used (stolen) refresh token revokes every other live session for that user (reuse detection). The Flutter app's `ApiClient` interceptor transparently refreshes on a 401 and retries the original request - no screen has to know about it.
 - **Login rate-limiting / account lockout**: `LoginAttemptService` locks an email out for 15 minutes after 5 failed login attempts (in-memory; a horizontally-scaled deployment would swap this for Redis - see its doc comment).
 - **Admin audit log**: `admin_audit_log` table + `AdminAuditService.record(...)`, called from every admin mutation (approve/reject, suspend/resume/delete, category create/update/delete/visibility). Viewable in the app via the Overview screen's "Activity log" tile.
 - **Security response headers**: CSP (`default-src 'none'`), HSTS, `Referrer-Policy: no-referrer` added in `SecurityConfig` (X-Content-Type-Options/X-Frame-Options were already on by Spring Security's own defaults).
+- JWT is HS256, signed with a secret from `app.jwt.secret`/`JWT_SECRET` (dev-only default falls back if unset - **must** be overridden with a real random secret before any real deployment). Passwords are bcrypt-hashed (`BCryptPasswordEncoder`).
+
+### Security hardening (2026-09-14, alongside the customer redesign below)
+- **File-upload content sniffing** (`FileSignature`, `common/`): KYC documents, booking photos, and avatars previously trusted the client-supplied `Content-Type` header alone - `SecureFileStorageService`/`AvatarStorageService` now also check the file's actual leading bytes match a real JPEG/PNG/WEBP/PDF signature, closing a mislabeled-file upload bypass. Covered by `FileSignatureTest`.
+- **Rate limiting beyond login** (`common/RateLimiter`): generalized from `LoginAttemptService`'s existing in-memory sliding-window pattern (see that class's own doc comment for the in-memory/no-Redis trade-off) and applied to `POST /api/bookings` and `POST /api/bookings/{id}/reviews` - 10 per hour per customer, abuse prevention rather than a real usage ceiling.
+- Review comments are now capped at 1000 characters (`CreateReviewRequest`) - previously unbounded.
+- **Known web-specific trade-off**: now that the app also runs via `flutter run -d web-server`/`chrome` (verified working this session), `flutter_secure_storage`'s encrypted-storage guarantee doesn't hold on the web target - it falls back to browser storage, which is reachable by XSS. Mobile/desktop builds are unaffected. Documented in `AuthSessionStorage`'s doc comment; not something a code change fixes on its own (the real mitigation is the app's existing CSP-equivalent hygiene plus never deploying the web build to an origin that also serves untrusted content).
 
 ### Mobile (Flutter) — screens confirmed present and wired into `app_router.dart`
 | Group | Screens |
 |---|---|
 | Auth | Splash, Onboarding (3-slide, shown once/device), Login, Register, Forgot Password, Reset Password (OTP), Verify Email — all five form screens share a common `AuthHeader` (logo + title + subtitle); Login and Register also offer "Continue with Google" |
-| Customer | Home (categories grid), Provider List, Provider Detail (services + reviews inline — no separate "service detail" page, by design), Request Booking, My Bookings (card-based; booking actions/detail inline, no separate detail screen) |
+| Customer | **Dedicated 4-tab bottom nav** (Home/Explore/Bookings/Profile, see Customer Experience Redesign below - previously shared Home/Profile with every role). Home: categories grid + active-booking banner + top-rated section. Explore: provider search/filters (Filters sheet: district/price/rating). Provider Detail: favorite heart, selectable services, reviews preview + "See all" (All Reviews screen). Request Service: address + time-window fields. Bookings: Active/Past tabs, each card opening the Booking Tracker (real per-stage timeline) instead of inline-only actions. Cancel/Leave-a-review/Review-posted are now their own confirmation screens (previously instant-cancel / toast-and-pop). |
 | Provider | **Dedicated 4-tab bottom nav** (Jobs/Services/Reviews/Profile, see Provider Tools below). Jobs: `ProviderDashboardScreen` (stat row + inline incoming requests), Request Detail (countdown + accept/reject), Active Job (work note + photos + mark complete), "see all" Incoming Requests. Services: My Services (visibility toggle + duration), Add/Edit Service. Reviews: provider-facing reviews list. Profile: shared Profile tab, plus Business Profile (name/category/location/experience/photo) and Get Verified (KYC upload) reachable from it. Also: Completed Jobs & Earnings screen. |
 | Admin | **Dedicated 5-tab bottom nav** (Overview/Providers/Customers/Categories/Profile - `AppShell` is role-aware, see below) replacing the old "everything pushed from Home" navigation. Overview: live stat row + **3 dashboard charts** (bookings trend, providers-by-category, user growth - `fl_chart`, categorical palette validated with the dataviz skill's script) + "Needs your action" pending-provider queue + Activity log link. Providers: status filter chips (All/Pending/Approved/Rejected) over every provider, each card with approve/reject (pending only) AND suspend/resume/delete for the owner account. Customers: same suspend/resume/delete account management. Categories: Add/Edit/hide-show toggle with per-category provider/booking counts. Activity log: read-only audit trail. |
 | Shared | Profile (includes "Settings": appearance/theme, edit profile, change password, logout — merged, no separate Settings screen), Chat, Notifications, Write Review |
 
 - `flutter analyze`: clean, 0 issues.
-- **Role-aware bottom navigation**: `AppShell` (`core/router/app_shell.dart`) reads the logged-in user's role and shows 2 tabs (Home/Profile) for customer/provider, 5 for admin - one `StatefulShellRoute` with a fixed 5-branch set underneath either way, so switching role never means switching navigation architecture.
+- **Role-aware bottom navigation**: `AppShell` (`core/router/app_shell.dart`) reads the logged-in user's role and shows 4 tabs (Home/Explore/Bookings/Profile) for customer, 4 for provider (Jobs/Services/Reviews/Profile), 5 for admin - one `StatefulShellRoute` with a fixed 9-branch set underneath either way, so switching role never means switching navigation architecture.
 - Light/dark/system theming: **done** — `ThemeModeController` persists choice via SharedPreferences, toggle lives in Profile screen, both `ThemeData.light`/`.dark` fully built (Kigali Green palette, Plus Jakarta Sans). Verified live in both modes, including the new admin dashboard charts. README §15 had this unchecked — it's stale.
 - Loading/error/empty states: consistently implemented via Riverpod `AsyncValue.when(...)` across every screen sampled.
 - 5 Flutter test files (validators, auth form validation, provider profile validation, service form validation, a widget smoke test) - `widget_test.dart`'s smoke test has a pre-existing flaky `pumpAndSettle` timeout unrelated to this session's work (confirmed via `git stash` against a clean HEAD before starting).
@@ -77,6 +84,30 @@ A full provider-side feature set, built to match an 8-screen mockup the user sha
 
 Booking photos (D2/D3) are stored the same privately as KYC documents, but scoped narrower per user's explicit decision: viewable only by that booking's own customer or provider - **no admin access at all**, same trust boundary as their existing per-booking chat.
 
+### Customer Experience Redesign (2026-09-14) — built from a Claude-Design mockup (B1-B7, C1-C7)
+A full customer-side rebuild, matching a 14-screen mockup ("Customer Discovery" B1-B7 + "Booking Lifecycle" C1-C7) the user shared, the same treatment Provider Tools (above) gave the provider side. User confirmed three scope decisions before building: build favorites for real (not just a UI heart), add structured review tags to the schema, and switch the customer bottom nav from 2 tabs to 4.
+
+| Screen | What shipped |
+|---|---|
+| Nav | Customer bottom nav is now **Home/Explore/Bookings/Profile** (was Home/Profile) - two new `StatefulShellBranch`es (indices 7/8, same pattern the provider role's own extra branches already use) promote the existing provider-browse screen and the old pushed "My Bookings" route into tabs. |
+| B1 Home | Adds an "active booking" banner (first ACCEPTED/IN_PROGRESS booking, if any) and a "Top rated near you" section - both computed from data the app already fetches, no new endpoints. |
+| B2 All Categories | Unchanged this round (already reasonable) - not part of this pass. |
+| B3/B4 Explore + Filters | `ProviderListScreen` rebuilt around a shared `ProviderCard` widget; new `FiltersSheet` (district chips, max-price slider, min-rating chips) wired to two new `GET /api/providers` query params (`minRating`, `maxPrice` - see backend). District has no backend field (`ProviderProfile.location` is free text) so it's matched client-side, same as typing it into search would do. |
+| B5 Provider Profile | Favorite heart (real, persisted - `favorite_providers` table), stats row, services became a selectable list feeding a bottom-pinned total+"Request service" bar instead of navigating away on tap. |
+| B6 All Reviews (new) | Rating-breakdown bars + Newest/Highest-rated sort, reusing the new shared `ReviewCard` (shows each review's tags). |
+| B7 Request Service | Address field + time-window chips (Morning/Afternoon/Evening) added to the form, both new `bookings` columns; card layout with a char counter and bottom-pinned total+"Send request" bar. |
+| C1 Request Sent (new) | Replaces the old toast+redirect after submitting a request with an actual confirmation screen. |
+| C2 My Bookings | Active/Past tabs; the booking card (extracted to a shared `BookingCard` widget) now opens the new Booking Tracker instead of just showing inline actions. |
+| C3 Booking Tracker (new) | A real per-stage timeline (Requested/Accepted/Started/Completed/Reviewed, each with its own timestamp) driven by a new `booking_status_history` table - `bookings.updated_at` alone can't produce this since it's overwritten on every transition. **Known limitation**: bookings that existed before this migration only have a backfilled REQUESTED entry (their earlier transitions were never recorded), so their timeline shows gaps - verified live, this is a one-time data-migration artifact, not a bug in new bookings going forward. |
+| C4 Chat | Not touched this round - already close to the mockup's bubble/timestamp style per review. Read receipts (✓✓) would need a new `read` field on messages plus UI work - **explicitly deferred**, not silently dropped. |
+| C5 Cancel Confirmation (new) | Replaces the previous instant, no-confirmation cancel with a real confirmation screen + optional reason (`bookings.cancellation_reason`, new column). |
+| C6 Leave a Review | "What stood out?" tag chips (`review_tags` table - On time/Fair price/Clean work/Polite), alongside the existing rating+comment. |
+| C7 Review Posted (new) | Replaces toast+pop after submitting a review; "Book again" goes to the provider's profile rather than trying to reconstruct a stale `ServiceListing` from the `Booking` object (which doesn't carry every field a fresh request needs, and the provider's services may have changed since). |
+
+Also fixed while building this: `ReviewService.createReview` previously notified no one - a provider now gets a notification when a customer reviews them, matching how every other booking-lifecycle event already worked.
+
+Verified live end-to-end via Claude-in-Chrome (Flutter web, `flutter run -d web-server`) against the running backend+Postgres, logged in as the seeded customer: favoriting a provider, filtering by rating, requesting a service with address+time-window, the resulting Booking Tracker showing the real new timestamp, My Bookings' tabs, and a tagged review all the way through to that provider's All Reviews screen. One real bug was caught this way (not by `flutter analyze`, which doesn't type-check widget layout): the theme's default `FilledButton` is full-width, which crashes as a bare (non-`Expanded`) child of a `Row` - hit in two new bottom-bars, fixed with an explicit `minimumSize`, same fix `request_card.dart`'s existing `compactButtonStyle` already documents for the identical problem.
+
 ### Seed/demo data
 `V15__seed_demo_data.sql` — 7 providers (5 APPROVED across 5 categories, 1 PENDING, 1 REJECTED so the admin approval screens have real cases), 12 services, 2 customers, 1 admin (`demo.admin@fasha.rw`), and 8 bookings covering every state in the booking state machine, with 2 matching reviews. All seeded users share the password `Demo1234!` (a real BCrypt hash, not a placeholder). Verified live: login, provider search, admin pending/rejected listings, and rating aggregation all checked out against a fresh migration run plus the full backend test suite (96 tests).
 
@@ -94,6 +125,7 @@ Booking photos (D2/D3) are stored the same privately as KYC documents, but scope
 |---|---|
 | Deployment | No Dockerfile for the backend, no CI/CD (`.github/` is empty), no hosting configured. `docker-compose.yml` only covers local Postgres. |
 | Review reporting/moderation | The design reference's admin Overview shows a reported-review item in "Needs your action" - deliberately left out (user's own scope call, 2026-09-11): nothing in the app lets anyone report a review yet, so this needs a whole new feature (report action + DB column + admin moderation endpoint), not just an admin-screen restyle. |
+| Chat read receipts | The Customer Experience Redesign's mockup (C4) shows ✓✓ read receipts - deliberately deferred (2026-09-14): needs a `read` field on messages plus UI, and chat itself was already close to the mockup's style without it. |
 
 ---
 

@@ -1,0 +1,112 @@
+name: CI
+
+# Runs on every push and PR against main - the whole point of CI is
+# catching a broken build BEFORE it's merged, not after.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (Java tests)
+    runs-on: ubuntu-latest
+
+    # Real Postgres + Redis for this job, not mocks - BackendApplicationTests
+    # needs a live database (see its own doc comment), and
+    # LoginAttemptService/RateLimiter's unit tests use an in-memory fake of
+    # Redis (not a real connection), but the app itself still needs Redis
+    # reachable to even start. GitHub Actions service containers publish
+    # their ports to the runner's own localhost automatically.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: kazilink
+          POSTGRES_USER: kazilink
+          POSTGRES_PASSWORD: kazilink
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U kazilink -d kazilink"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          # Caches ~/.m2/repository keyed on pom.xml - avoids re-downloading
+          # the entire dependency tree on every single run.
+          cache: maven
+
+      - name: Run backend tests
+        working-directory: backend
+        env:
+          # The runner's own localhost, not "postgres"/"redis" - unlike
+          # docker-compose's internal DNS, GitHub Actions service
+          # containers are reachable from the job's own container via
+          # localhost (see the "ports" mappings above).
+          DB_HOST: localhost
+          DB_PORT: '5432'
+          DB_USERNAME: kazilink
+          DB_PASSWORD: kazilink
+          REDIS_HOST: localhost
+          REDIS_PORT: '6379'
+          # Any value works here - CI never issues a real login a user
+          # could exploit, but JwtService still needs a non-null secret to
+          # sign tokens with.
+          JWT_SECRET: ci-only-secret-not-used-anywhere-real
+        run: ./mvnw -B test
+
+      - name: Verify the Docker image still builds
+        # Doesn't push anywhere (no registry configured yet - see
+        # PROJECT_STATUS.md's Deployment section) - this step exists only
+        # to catch a broken Dockerfile/pom.xml combination before it
+        # becomes a surprise at actual deploy time.
+        run: docker build ./backend
+
+  mobile:
+    name: Mobile (flutter analyze + test)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          # Pinned to the exact version this project is developed against
+          # (see mobile/pubspec.yaml's `sdk: ^3.7.2` constraint) rather than
+          # floating on "stable", so a Flutter release upstream can't break
+          # CI out from under this repo without a deliberate version bump.
+          flutter-version: '3.29.3'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: flutter pub get
+
+      - name: Analyze
+        working-directory: mobile
+        run: flutter analyze
+
+      - name: Test
+        working-directory: mobile
+        run: flutter test

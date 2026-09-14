@@ -54,7 +54,7 @@ The originally planned MVP is **functionally complete and exceeded** — every p
 - **Role-aware bottom navigation**: `AppShell` (`core/router/app_shell.dart`) reads the logged-in user's role and shows 4 tabs (Home/Explore/Bookings/Profile) for customer, 4 for provider (Jobs/Services/Reviews/Profile), 5 for admin - one `StatefulShellRoute` with a fixed 9-branch set underneath either way, so switching role never means switching navigation architecture.
 - Light/dark/system theming: **done** — `ThemeModeController` persists choice via SharedPreferences, toggle lives in Profile screen, both `ThemeData.light`/`.dark` fully built (Kigali Green palette, Plus Jakarta Sans). Verified live in both modes, including the new admin dashboard charts. README §15 had this unchecked — it's stale.
 - Loading/error/empty states: consistently implemented via Riverpod `AsyncValue.when(...)` across every screen sampled.
-- 5 Flutter test files (validators, auth form validation, provider profile validation, service form validation, a widget smoke test) - `widget_test.dart`'s smoke test has a pre-existing flaky `pumpAndSettle` timeout unrelated to this session's work (confirmed via `git stash` against a clean HEAD before starting).
+- 5 Flutter test files (validators, auth form validation, provider profile validation, service form validation, a widget smoke test) - all pass, including `widget_test.dart`'s smoke test, previously mislabeled "pre-existing flaky". Root-caused and fixed 2026-09-14 (see CI section below): it wasn't flaky, it was always broken - `onboardingCompletedProvider` reads `SharedPreferences`, which never resolves in a plain widget test without `SharedPreferences.setMockInitialValues(...)`, so the router's redirect logic sat stuck thinking onboarding state was still loading forever, no matter how long the test waited on `SplashScreen`'s perpetually-animating spinner.
 
 - Provider search/filtering: a debounced text search box (matches business name, location, and description) plus category filter chips on `ProviderListScreen`, reachable either from a category tile on Home or a new "Search providers" bar above it. Backend combines `categoryId` and `search` with AND. Verified live against the running app and API.
 
@@ -137,11 +137,18 @@ Both classes' unit tests were rewritten against a small in-memory fake of the ha
 
 Verified live end-to-end against the rebuilt Docker container: 5 failed logins actually locks the account (`429 Too many failed login attempts`), and - the actual point of this change - **the lockout survives a full container restart** (`docker restart kazilink-backend`), which it would NOT have with the old in-memory version. All 148 backend tests pass (145 + 3 new `RateLimiterTest` cases; `LoginAttemptServiceTest`'s existing 6 were rewritten in place, not added to).
 
+### CI (2026-09-14)
+`.github/workflows/ci.yml` - two jobs, both run on every push/PR to `main`:
+- **backend**: real Postgres + Redis service containers (not mocks - matches what `./mvnw test` actually needs locally), runs the full backend test suite, then does a `docker build ./backend` (no push - no registry configured yet, see Deployment below) purely to catch a broken Dockerfile/pom.xml combination before it's a surprise at actual deploy time.
+- **mobile**: `flutter analyze` + `flutter test`, Flutter pinned to 3.29.3 (matching `pubspec.yaml`'s `sdk: ^3.7.2` constraint) rather than floating on "stable", so an upstream Flutter release can't silently break CI.
+
+Setting this up surfaced that `widget_test.dart`'s "pre-existing flaky" smoke test wasn't flaky at all - it was unconditionally broken, and would have made this CI red on literally every run. Root-caused and fixed (see Mobile section above) rather than skipped/excluded, since a CI check that's known-red gets ignored, which defeats the point of having it.
+
 ## ❌ Not started
 
 | Item | Notes |
 |---|---|
-| Deployment (hosting) | The backend is now containerized (see above) and could be pushed to any container host today - what's still missing is actually choosing one (Render/Railway/Fly.io/a VPS/etc.), CI/CD (`.github/` is still empty), and building/distributing the Flutter app for a target platform (web build, or app store submission for mobile). |
+| Deployment (hosting) | The backend is containerized and now has CI validating it on every push (see above) - what's still missing is actually choosing a host (Render/Railway/Fly.io/a VPS/etc.), a CD step that deploys on a green `main` build, and building/distributing the Flutter app for a target platform (web build, or app store submission for mobile). |
 | Review reporting/moderation | The design reference's admin Overview shows a reported-review item in "Needs your action" - deliberately left out (user's own scope call, 2026-09-11): nothing in the app lets anyone report a review yet, so this needs a whole new feature (report action + DB column + admin moderation endpoint), not just an admin-screen restyle. |
 | Chat read receipts | The Customer Experience Redesign's mockup (C4) shows ✓✓ read receipts - deliberately deferred (2026-09-14): needs a `read` field on messages plus UI, and chat itself was already close to the mockup's style without it. |
 

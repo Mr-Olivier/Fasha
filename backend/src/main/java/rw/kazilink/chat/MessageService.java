@@ -33,6 +33,7 @@ public class MessageService {
     private final ProviderProfileRepository providerProfileRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final ChatWebSocketHandler chatWebSocketHandler;
 
     public List<MessageResponse> list(UUID callerId, UUID bookingId) {
         findAccessibleBooking(callerId, bookingId);
@@ -54,7 +55,13 @@ public class MessageService {
         UUID recipientId = resolveOtherParty(callerId, booking);
         notificationService.create(recipientId, "New message from " + sender.getName(), preview(body), bookingId);
 
-        return toResponse(message);
+        MessageResponse response = toResponse(message);
+        // Live delivery to whoever's already connected to this booking's
+        // chat (ChatScreen's WebSocket) - the notification above is the
+        // durable "you have a new message" signal for someone not looking
+        // at the screen right now; this is the instant in-screen update.
+        chatWebSocketHandler.broadcast(bookingId, response);
+        return response;
     }
 
     /** Also throws BookingNotFoundException for a booking that exists but belongs to neither of the caller's roles - same "not found" as a genuinely missing id, so probing random ids reveals nothing. */

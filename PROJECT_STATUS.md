@@ -144,6 +144,8 @@ Verified live end-to-end against the rebuilt Docker container: 5 failed logins a
 
 Setting this up surfaced that `widget_test.dart`'s "pre-existing flaky" smoke test wasn't flaky at all - it was unconditionally broken, and would have made this CI red on literally every run. Root-caused and fixed (see Mobile section above) rather than skipped/excluded, since a CI check that's known-red gets ignored, which defeats the point of having it.
 
+It also caught a second real bug on its very first real run: `backend/mvnw` was committed with its executable bit off (mode `100644`) - invisible on Windows (this project's dev machine, no executable-bit concept on that filesystem), but `./mvnw` fails outright with "Permission denied" on an actual Unix checkout, which is exactly what happened. Fixed with `git update-index --chmod=+x backend/mvnw` (changes the mode Git itself tracks, independent of the local filesystem). Both jobs verified fully green on real GitHub Actions after that fix - not just locally.
+
 ## ❌ Not started
 
 | Item | Notes |

@@ -101,6 +101,41 @@ class MessageServiceTest {
     }
 
     @Test
+    void list_marksTheOtherPartysUnreadMessagesAsReadAndBroadcastsTheUpdate() {
+        Booking booking = acceptedBooking();
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+        when(providerProfileRepository.findByUserId(customerId)).thenReturn(Optional.empty());
+        Message unread = new Message(bookingId, providerUserId, "On my way");
+        when(messageRepository.findByBookingIdAndSenderIdNotAndReadFalse(bookingId, customerId))
+                .thenReturn(List.of(unread));
+        when(messageRepository.findByBookingIdOrderByCreatedAtAsc(bookingId)).thenReturn(List.of(unread));
+        when(userRepository.findById(providerUserId))
+                .thenReturn(Optional.of(new User("Dave", "dave@example.com", "0788333444", "hash", Role.PROVIDER)));
+
+        List<MessageResponse> result = messageService.list(customerId, bookingId);
+
+        assertThat(unread.isRead()).isTrue();
+        assertThat(result.get(0).read()).isTrue();
+        verify(messageRepository).saveAll(any());
+        verify(chatWebSocketHandler).broadcast(eq(bookingId), any(MessageResponse.class));
+    }
+
+    @Test
+    void list_doesNotTouchOrBroadcastWhenNothingIsUnread() {
+        Booking booking = acceptedBooking();
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+        when(providerProfileRepository.findByUserId(customerId)).thenReturn(Optional.empty());
+        when(messageRepository.findByBookingIdAndSenderIdNotAndReadFalse(bookingId, customerId))
+                .thenReturn(List.of());
+        when(messageRepository.findByBookingIdOrderByCreatedAtAsc(bookingId)).thenReturn(List.of());
+
+        messageService.list(customerId, bookingId);
+
+        verify(messageRepository, never()).saveAll(any());
+        verify(chatWebSocketHandler, never()).broadcast(any(), any());
+    }
+
+    @Test
     void list_throwsWhenTheCallerIsNeitherPartyOfTheBooking() {
         Booking booking = acceptedBooking();
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));

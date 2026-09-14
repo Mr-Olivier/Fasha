@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../auth/presentation/auth_controller.dart';
+import '../data/chat_socket.dart';
 import '../domain/chat_message.dart';
 import 'chat_controller.dart';
 
@@ -20,10 +21,12 @@ class ChatScreenArgs {
   final String otherPartyName;
 }
 
-/// One booking's chat thread. Polls every few seconds while open - there's
-/// no push/websocket wiring in this app (see Notification's doc comment for
-/// the same reasoning applied to notifications), so this is the only way
-/// to see a reply without manually backing out and re-entering.
+/// One booking's chat thread. Connects to ChatWebSocketHandler on the
+/// backend for live delivery of the other party's messages - see
+/// ChatSocket's doc comment. If the connection can't be established (token
+/// missing/expired, server unreachable) this screen still works via the
+/// normal REST load; it just won't update again until reopened, same as
+/// this app's original polling behavior on a failed request.
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key, required this.args});
 
@@ -34,22 +37,31 @@ class ChatScreen extends ConsumerStatefulWidget {
 }
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
-  static const _pollInterval = Duration(seconds: 4);
-
   final _bodyController = TextEditingController();
-  Timer? _pollTimer;
+  ChatSocket? _socket;
+  StreamSubscription<ChatMessage>? _socketSubscription;
 
   @override
   void initState() {
     super.initState();
-    _pollTimer = Timer.periodic(_pollInterval, (_) {
+    final token = ref.read(authControllerProvider).valueOrNull?.token;
+    if (token == null) return;
+
+    final socket = ChatSocket(bookingId: widget.args.bookingId, token: token);
+    _socket = socket;
+    _socketSubscription = socket.messages.listen((_) {
+      // The socket only tells us "something new arrived" - re-fetching via
+      // the normal REST list keeps a single source of truth instead of
+      // this screen maintaining its own separate copy that could drift
+      // (e.g. missing a message that arrived before this screen connected).
       ref.invalidate(chatMessagesProvider(widget.args.bookingId));
     });
   }
 
   @override
   void dispose() {
-    _pollTimer?.cancel();
+    _socketSubscription?.cancel();
+    _socket?.dispose();
     _bodyController.dispose();
     super.dispose();
   }

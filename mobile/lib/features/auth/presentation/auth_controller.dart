@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../notifications/presentation/notification_controller.dart';
 import '../data/auth_api.dart';
 import '../data/auth_repository.dart';
 import '../data/auth_session_storage.dart';
@@ -68,6 +69,7 @@ class AuthController extends AsyncNotifier<AuthUser?> {
             role: role,
           ),
     );
+    _registerPushTokenIfSignedIn();
   }
 
   Future<void> login({required String email, required String password}) async {
@@ -75,6 +77,7 @@ class AuthController extends AsyncNotifier<AuthUser?> {
     state = await AsyncValue.guard(
       () => ref.read(authRepositoryProvider).login(email: email, password: password),
     );
+    _registerPushTokenIfSignedIn();
   }
 
   /// Runs Google's account picker, then signs in (or signs up, for a
@@ -104,15 +107,35 @@ class AuthController extends AsyncNotifier<AuthUser?> {
     state = await AsyncValue.guard(
       () => ref.read(authRepositoryProvider).googleAuth(idToken: resolvedIdToken, role: role),
     );
+    _registerPushTokenIfSignedIn();
   }
 
   Future<void> logout() async {
+    // Unregisters THIS device's push token while the session (and its auth
+    // header) is still valid - must happen before authRepositoryProvider's
+    // own logout() clears the stored token below, or the DELETE request
+    // this sends would go out unauthenticated and get rejected. Same
+    // "best-effort, never blocks logout" shape as the Google sign-out
+    // right after it.
+    unawaited(ref.read(pushNotificationServiceProvider).unregisterThisDevice());
+
     await ref.read(authRepositoryProvider).logout();
     // Best-effort, like the repository's own server-side revoke - clears
     // Google's cached account choice so the next "Continue with Google"
     // shows the picker again instead of silently reusing this session.
     unawaited(ref.read(googleAuthServiceProvider).signOut());
     state = const AsyncValue.data(null);
+  }
+
+  /// Shared by register/login/loginWithGoogle - all three end the same way
+  /// (state either holds the newly signed-in user, or an error). Doesn't
+  /// block returning to the caller (fire-and-forget): push registration is
+  /// a nice-to-have, never something a login screen should wait on or be
+  /// able to fail because of.
+  void _registerPushTokenIfSignedIn() {
+    if (state.valueOrNull != null) {
+      unawaited(ref.read(pushNotificationServiceProvider).registerThisDevice());
+    }
   }
 
   /// Folds a fresh account snapshot (from GET/PATCH /api/users/me or the

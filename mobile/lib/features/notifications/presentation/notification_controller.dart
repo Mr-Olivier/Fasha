@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../data/device_token_api.dart';
 import '../data/notification_api.dart';
 import '../data/notification_repository.dart';
+import '../data/push_notification_service.dart';
 import '../domain/app_notification.dart';
 
 final notificationApiProvider = Provider<NotificationApi>(
@@ -13,8 +15,20 @@ final notificationRepositoryProvider = Provider<NotificationRepository>(
   (ref) => NotificationRepository(ref.watch(notificationApiProvider)),
 );
 
-/// Polled on demand (screen open / pull-to-refresh) - there's no push
-/// wiring, so this is the app's only source of truth for what's new.
+final deviceTokenApiProvider = Provider<DeviceTokenApi>(
+  (ref) => DeviceTokenApi(ref.watch(apiClientProvider).dio),
+);
+
+/// See its own doc comment - registers/unregisters this device for push
+/// notifications, driven by FashaApp watching authControllerProvider.
+final pushNotificationServiceProvider = Provider<PushNotificationService>(
+  (ref) => PushNotificationService(ref.watch(deviceTokenApiProvider)),
+);
+
+/// Polled on demand (screen open / pull-to-refresh) - the app's own
+/// backup source of truth for what's new even when push notifications
+/// aren't configured (see PushNotificationService) or a push simply
+/// didn't arrive (app closed, notification dismissed, ...).
 final notificationsProvider = FutureProvider<List<AppNotification>>(
   (ref) => ref.watch(notificationRepositoryProvider).list(),
 );

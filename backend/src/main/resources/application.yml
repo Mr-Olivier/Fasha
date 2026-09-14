@@ -119,6 +119,17 @@ app:
     # GoogleTokenService).
     client-id: ${GOOGLE_OAUTH_CLIENT_ID:}
 
+  firebase:
+    # Absolute (or working-directory-relative) path to a Firebase service
+    # account JSON key file - Project Settings > Service Accounts >
+    # "Generate new private key" in the Firebase console. See
+    # NEXT_SESSION.md for the full setup checklist. Leave unset and
+    # PushNotificationService just logs what it would have sent instead of
+    # calling Firebase, so local dev and CI work fully with no real
+    # Firebase project at all - same "optional third-party integration"
+    # pattern as app.brevo/app.google above.
+    credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+
 logging:
   level:
     rw.kazilink: DEBUG

@@ -2,9 +2,9 @@ import 'package:dio/dio.dart';
 
 import '../domain/app_notification.dart';
 
-/// Raw HTTP calls to /api/notifications. No push wiring (no FCM) - the app
-/// just polls this like every other list screen (see NotificationService's
-/// doc comment on the backend for why).
+/// Raw HTTP calls to /api/notifications - the in-app notification LIST
+/// (what NotificationsScreen polls to render). Actual push delivery is a
+/// separate concern, handled by PushNotificationService/DeviceTokenApi.
 class NotificationApi {
   const NotificationApi(this._dio);
 

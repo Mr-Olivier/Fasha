@@ -6,6 +6,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import rw.kazilink.push.PushNotificationService;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +23,9 @@ class NotificationServiceTest {
 
     @Mock
     private NotificationRepository notificationRepository;
+
+    @Mock
+    private PushNotificationService pushNotificationService;
 
     @InjectMocks
     private NotificationService notificationService;

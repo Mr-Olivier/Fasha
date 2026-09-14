@@ -8,7 +8,13 @@ plugins {
 android {
     namespace = "com.kazilink.kazilink_rwanda"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Pinned above Flutter's own bundled default - firebase_core/
+    // firebase_messaging (and every other native plugin already in this
+    // project) all declare they need at least this NDK version; leaving
+    // Flutter's older default in place just means Gradle warns about it
+    // on every single build without actually failing (NDK versions are
+    // backward compatible, per that same warning's own text).
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

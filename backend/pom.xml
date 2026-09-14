@@ -106,6 +106,16 @@
 			<artifactId>google-api-client</artifactId>
 			<version>2.7.0</version>
 		</dependency>
+
+		<!-- Sends push notifications (PushNotificationService) - the official
+		     Firebase-maintained library for calling FCM from a backend with a
+		     service-account credential, same reasoning as google-api-client
+		     above for Google Sign-In. -->
+		<dependency>
+			<groupId>com.google.firebase</groupId>
+			<artifactId>firebase-admin</artifactId>
+			<version>9.4.3</version>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa-test</artifactId>

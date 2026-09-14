@@ -3,6 +3,7 @@ package rw.kazilink.notification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import rw.kazilink.push.PushNotificationService;
 
 import java.util.List;
 import java.util.UUID;
@@ -22,6 +23,7 @@ import java.util.UUID;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final PushNotificationService pushNotificationService;
 
     public List<NotificationResponse> listForUser(UUID userId) {
         return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
@@ -49,9 +51,16 @@ public class NotificationService {
         notificationRepository.saveAll(unread);
     }
 
-    /** Used by other features to create a notification as a side effect of their own action. */
+    /**
+     * Used by other features to create a notification as a side effect of
+     * their own action. Also fires a real push notification (FCM) to
+     * every device this user has registered - see PushNotificationService
+     * for why that's safe to call unconditionally even when no push
+     * provider is configured, or the user has no registered devices.
+     */
     @Transactional
     public void create(UUID userId, String title, String body, UUID bookingId) {
         notificationRepository.save(new Notification(userId, title, body, bookingId));
+        pushNotificationService.sendToUser(userId, title, body);
     }
 }

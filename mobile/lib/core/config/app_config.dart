@@ -16,4 +16,19 @@ class AppConfig {
   /// of the app fine before Google Sign-In is configured - only tapping
   /// "Continue with Google" itself fails, with a clear message.
   static const googleOAuthClientId = String.fromEnvironment('GOOGLE_OAUTH_CLIENT_ID');
+
+  // --- Firebase (push notifications - see PushNotificationService) ---
+  // Passed through --dart-define, deliberately NOT via the usual
+  // `flutterfire configure`-generated google-services.json/
+  // firebase_options.dart: those make the Android BUILD ITSELF fail
+  // without a real Firebase project already set up, which would break
+  // `flutter build`/`flutter run` for anyone before push notifications
+  // are configured - the same "never break the build over an optional
+  // integration" reasoning as every other optional config in this class.
+  // Empty until set, same "inert until configured" story as
+  // googleOAuthClientId above - see PushNotificationService.isConfigured.
+  static const firebaseApiKey = String.fromEnvironment('FIREBASE_API_KEY');
+  static const firebaseAppId = String.fromEnvironment('FIREBASE_APP_ID');
+  static const firebaseMessagingSenderId = String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID');
+  static const firebaseProjectId = String.fromEnvironment('FIREBASE_PROJECT_ID');
 }

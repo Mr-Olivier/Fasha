@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,22 +36,30 @@ public class ProviderProfileController {
     /**
      * Public search - SecurityConfig permits GET here for everyone, logged
      * in or not. [search] matches against business name, location, and
-     * description (see ProviderProfileService.browseProviders); the two
-     * filters combine, so a category tap followed by typing a search term
-     * narrows further rather than replacing the category filter.
+     * description (see ProviderProfileService.browseProviders); all
+     * filters combine (AND), so a category tap followed by typing a search
+     * term narrows further rather than replacing the category filter.
+     *
+     * userId is only ever non-null when the caller sent a valid JWT for a
+     * logged-in user (see JwtAuthenticationFilter) - an anonymous request
+     * simply gets it as null, which browseProviders treats as "mark
+     * nothing as favorited" rather than an error.
      */
     @GetMapping
     public List<ProviderProfileResponse> browseProviders(
+            @AuthenticationPrincipal UUID userId,
             @RequestParam(required = false) UUID categoryId,
-            @RequestParam(required = false) String search
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Double minRating,
+            @RequestParam(required = false) BigDecimal maxPrice
     ) {
-        return providerProfileService.browseProviders(categoryId, search);
+        return providerProfileService.browseProviders(categoryId, search, minRating, maxPrice, userId);
     }
 
     /** Public detail page - also permitAll in SecurityConfig. */
     @GetMapping("/{id}")
-    public ProviderDetailResponse getProviderDetail(@PathVariable UUID id) {
-        return providerProfileService.getProviderDetail(id);
+    public ProviderDetailResponse getProviderDetail(@AuthenticationPrincipal UUID userId, @PathVariable UUID id) {
+        return providerProfileService.getProviderDetail(id, userId);
     }
 
     @GetMapping("/me")

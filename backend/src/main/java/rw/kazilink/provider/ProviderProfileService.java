@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import rw.kazilink.favorite.FavoriteProvider;
+import rw.kazilink.favorite.FavoriteProviderRepository;
 import rw.kazilink.review.ReviewRepository;
 import rw.kazilink.service.ServiceListing;
 import rw.kazilink.service.ServiceListingRepository;
@@ -13,7 +15,9 @@ import rw.kazilink.user.User;
 import rw.kazilink.user.UserRepository;
 import rw.kazilink.user.UserStatus;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -27,11 +31,12 @@ public class ProviderProfileService {
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
     private final AvatarStorageService avatarStorageService;
+    private final FavoriteProviderRepository favoriteProviderRepository;
 
     public ProviderProfileResponse getMyProfile(UUID userId) {
         ProviderProfile profile = providerProfileRepository.findByUserId(userId)
                 .orElseThrow(ProviderProfileNotFoundException::new);
-        return toResponse(profile);
+        return toResponse(profile, Set.of());
     }
 
     /**
@@ -47,8 +52,15 @@ public class ProviderProfileService {
      * already did - fine at this dataset size, and avoids a second query
      * mechanism (JPA Specifications) for what's currently a handful of
      * approved providers.
+     *
+     * minRating and maxPrice are the Filters sheet's slider/chips - both
+     * optional, both AND-combined with everything else. viewerId is the
+     * logged-in customer looking at this list (null if anonymous or not a
+     * customer), used only to mark which results they've already favorited.
      */
-    public List<ProviderProfileResponse> browseProviders(UUID categoryId, String search) {
+    public List<ProviderProfileResponse> browseProviders(
+            UUID categoryId, String search, Double minRating, BigDecimal maxPrice, UUID viewerId
+    ) {
         List<ProviderProfile> approved = providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED);
         approved = excludeSuspendedOwners(approved);
 
@@ -65,7 +77,36 @@ public class ProviderProfileService {
             approved = approved.stream().filter(p -> matchesSearch(p, needle)).toList();
         }
 
-        return approved.stream().map(this::toResponse).toList();
+        if (minRating != null) {
+            approved = approved.stream()
+                    .filter(p -> reviewRepository.findAverageRatingByProviderProfileId(p.getId()).orElse(0.0) >= minRating)
+                    .toList();
+        }
+
+        if (maxPrice != null) {
+            Map<UUID, BigDecimal> cheapestServiceByProvider = serviceListingRepository.findByVisibleTrue().stream()
+                    .collect(Collectors.toMap(
+                            ServiceListing::getProviderProfileId,
+                            ServiceListing::getPrice,
+                            BigDecimal::min));
+            approved = approved.stream()
+                    .filter(p -> {
+                        BigDecimal cheapest = cheapestServiceByProvider.get(p.getId());
+                        return cheapest != null && cheapest.compareTo(maxPrice) <= 0;
+                    })
+                    .toList();
+        }
+
+        Set<UUID> favoritedIds = favoritedProviderIds(viewerId);
+        return approved.stream().map(p -> toResponse(p, favoritedIds)).toList();
+    }
+
+    /** Empty set for an anonymous viewer (or one with no favorites) rather than a null check scattered through toResponse. */
+    private Set<UUID> favoritedProviderIds(UUID customerId) {
+        if (customerId == null) return Set.of();
+        return favoriteProviderRepository.findByCustomerId(customerId).stream()
+                .map(FavoriteProvider::getProviderProfileId)
+                .collect(Collectors.toSet());
     }
 
     /**
@@ -109,7 +150,7 @@ public class ProviderProfileService {
      * browseProviders: a direct link to an unverified provider's id isn't
      * a back door around the search filter.
      */
-    public ProviderDetailResponse getProviderDetail(UUID providerProfileId) {
+    public ProviderDetailResponse getProviderDetail(UUID providerProfileId, UUID viewerId) {
         ProviderProfile profile = providerProfileRepository.findById(providerProfileId)
                 .filter(p -> p.getVerificationStatus() == VerificationStatus.APPROVED)
                 .filter(p -> !isOwnerSuspended(p))
@@ -119,7 +160,15 @@ public class ProviderProfileService {
                 .map(ServiceListingResponse::from)
                 .toList();
 
-        return new ProviderDetailResponse(toResponse(profile), services);
+        return new ProviderDetailResponse(toResponse(profile, favoritedProviderIds(viewerId)), services);
+    }
+
+    /** GET /api/favorites - a customer's own saved providers, most recently favorited not tracked (order matches findByCustomerId's natural order). */
+    public List<ProviderProfileResponse> listFavoriteProviders(UUID customerId) {
+        Set<UUID> favoritedIds = favoritedProviderIds(customerId);
+        return providerProfileRepository.findAllById(favoritedIds).stream()
+                .map(p -> toResponse(p, favoritedIds))
+                .toList();
     }
 
     /**
@@ -150,7 +199,7 @@ public class ProviderProfileService {
         // (this bit us during manual testing: the response showed the old
         // timestamp even though the correct new one was already in Postgres).
         providerProfileRepository.saveAndFlush(profile);
-        return toResponse(profile);
+        return toResponse(profile, Set.of());
     }
 
     /**
@@ -165,10 +214,10 @@ public class ProviderProfileService {
                 .orElseThrow(ProviderProfileNotFoundException::new);
         profile.setProfileImageUrl(avatarStorageService.store(userId, file));
         providerProfileRepository.saveAndFlush(profile);
-        return toResponse(profile);
+        return toResponse(profile, Set.of());
     }
 
-    private ProviderProfileResponse toResponse(ProviderProfile profile) {
+    private ProviderProfileResponse toResponse(ProviderProfile profile, Set<UUID> favoritedProviderIds) {
         Double averageRating = reviewRepository.findAverageRatingByProviderProfileId(profile.getId()).orElse(null);
         long reviewCount = reviewRepository.countByProviderProfileId(profile.getId());
 
@@ -184,6 +233,7 @@ public class ProviderProfileService {
                 profile.getVerificationStatus(),
                 averageRating,
                 reviewCount,
+                profile.getId() != null && favoritedProviderIds.contains(profile.getId()),
                 profile.getCreatedAt(),
                 profile.getUpdatedAt()
         );

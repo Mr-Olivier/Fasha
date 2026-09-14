@@ -9,6 +9,11 @@ import rw.kazilink.booking.Booking;
 import rw.kazilink.booking.BookingNotFoundException;
 import rw.kazilink.booking.BookingRepository;
 import rw.kazilink.booking.BookingStatus;
+import rw.kazilink.booking.BookingStatusHistoryRepository;
+import rw.kazilink.common.RateLimiter;
+import rw.kazilink.notification.NotificationService;
+import rw.kazilink.provider.ProviderProfile;
+import rw.kazilink.provider.ProviderProfileRepository;
 import rw.kazilink.user.Role;
 import rw.kazilink.user.User;
 import rw.kazilink.user.UserRepository;
@@ -33,6 +38,18 @@ class ReviewServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private BookingStatusHistoryRepository statusHistoryRepository;
+
+    @Mock
+    private ProviderProfileRepository providerProfileRepository;
+
+    @Mock
+    private NotificationService notificationService;
+
+    @Mock
+    private RateLimiter rateLimiter;
+
     @InjectMocks
     private ReviewService reviewService;
 
@@ -42,46 +59,48 @@ class ReviewServiceTest {
 
     @Test
     void createReview_rejectsABookingThatIsNotCompletedYet() {
-        Booking booking = new Booking(customerId, providerProfileId, UUID.randomUUID(), null, null);
+        Booking booking = new Booking(customerId, providerProfileId, UUID.randomUUID(), null, null, null, null);
         booking.setStatus(BookingStatus.ACCEPTED);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
-        assertThatThrownBy(() -> reviewService.createReview(customerId, bookingId, new CreateReviewRequest(5, "Great!")))
+        assertThatThrownBy(() -> reviewService.createReview(customerId, bookingId, new CreateReviewRequest(5, "Great!", null)))
                 .isInstanceOf(ReviewNotAllowedException.class);
     }
 
     @Test
     void createReview_rejectsABookingThatDoesNotBelongToTheCaller() {
-        Booking booking = new Booking(UUID.randomUUID(), providerProfileId, UUID.randomUUID(), null, null);
+        Booking booking = new Booking(UUID.randomUUID(), providerProfileId, UUID.randomUUID(), null, null, null, null);
         booking.setStatus(BookingStatus.COMPLETED);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
-        assertThatThrownBy(() -> reviewService.createReview(customerId, bookingId, new CreateReviewRequest(5, "Great!")))
+        assertThatThrownBy(() -> reviewService.createReview(customerId, bookingId, new CreateReviewRequest(5, "Great!", null)))
                 .isInstanceOf(BookingNotFoundException.class);
     }
 
     @Test
     void createReview_rejectsABookingThatWasAlreadyReviewed() {
-        Booking booking = new Booking(customerId, providerProfileId, UUID.randomUUID(), null, null);
+        Booking booking = new Booking(customerId, providerProfileId, UUID.randomUUID(), null, null, null, null);
         booking.setStatus(BookingStatus.COMPLETED);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
         when(reviewRepository.existsByBookingId(bookingId)).thenReturn(true);
 
-        assertThatThrownBy(() -> reviewService.createReview(customerId, bookingId, new CreateReviewRequest(5, "Great!")))
+        assertThatThrownBy(() -> reviewService.createReview(customerId, bookingId, new CreateReviewRequest(5, "Great!", null)))
                 .isInstanceOf(ReviewNotAllowedException.class);
     }
 
     @Test
     void createReview_savesTheReviewAndMarksTheBookingReviewed() {
-        Booking booking = new Booking(customerId, providerProfileId, UUID.randomUUID(), null, null);
+        Booking booking = new Booking(customerId, providerProfileId, UUID.randomUUID(), null, null, null, null);
         booking.setStatus(BookingStatus.COMPLETED);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
         when(reviewRepository.existsByBookingId(bookingId)).thenReturn(false);
 
         User customer = new User("Alice Uwase", "alice@example.com", null, "hash", Role.CUSTOMER);
         when(userRepository.findById(customerId)).thenReturn(Optional.of(customer));
+        ProviderProfile provider = new ProviderProfile(UUID.randomUUID(), "JP Electrical", null, null, null);
+        when(providerProfileRepository.findById(providerProfileId)).thenReturn(Optional.of(provider));
 
-        ReviewResponse response = reviewService.createReview(customerId, bookingId, new CreateReviewRequest(4, "Good work"));
+        ReviewResponse response = reviewService.createReview(customerId, bookingId, new CreateReviewRequest(4, "Good work", null));
 
         assertThat(response.rating()).isEqualTo(4);
         assertThat(response.comment()).isEqualTo("Good work");
@@ -93,7 +112,7 @@ class ReviewServiceTest {
     void getReviewsForProvider_returnsThemMostRecentFirst() {
         User customer = new User("Alice Uwase", "alice@example.com", null, "hash", Role.CUSTOMER);
         when(userRepository.findById(customerId)).thenReturn(Optional.of(customer));
-        Review review = new Review(bookingId, customerId, providerProfileId, 5, "Excellent");
+        Review review = new Review(bookingId, customerId, providerProfileId, 5, "Excellent", null);
         when(reviewRepository.findByProviderProfileIdOrderByCreatedAtDesc(providerProfileId)).thenReturn(List.of(review));
 
         List<ReviewResponse> responses = reviewService.getReviewsForProvider(providerProfileId);

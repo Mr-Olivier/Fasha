@@ -3,6 +3,7 @@ package rw.kazilink.booking;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -30,8 +31,12 @@ public record BookingResponse(
         BigDecimal servicePrice,
         String note,
         LocalDate requestedDate,
+        String address,
+        TimeWindow timeWindow,
         BookingStatus status,
         String workNote,
+        String cancellationReason,
+        List<BookingStatusHistoryEntry> statusHistory,
         Instant createdAt,
         Instant updatedAt
 ) {

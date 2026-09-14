@@ -5,6 +5,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import rw.kazilink.common.RateLimiter;
 import rw.kazilink.notification.NotificationService;
 import rw.kazilink.provider.ProviderProfile;
 import rw.kazilink.provider.ProviderProfileNotFoundException;
@@ -37,6 +38,9 @@ class BookingServiceTest {
     private BookingRepository bookingRepository;
 
     @Mock
+    private BookingStatusHistoryRepository statusHistoryRepository;
+
+    @Mock
     private ServiceListingRepository serviceListingRepository;
 
     @Mock
@@ -47,6 +51,9 @@ class BookingServiceTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Mock
+    private RateLimiter rateLimiter;
 
     @InjectMocks
     private BookingService bookingService;
@@ -87,7 +94,7 @@ class BookingServiceTest {
         when(providerProfileRepository.findById(providerProfileId)).thenReturn(Optional.of(provider));
         when(userRepository.findById(providerUserId)).thenReturn(Optional.of(providerOwner));
 
-        BookingResponse response = bookingService.createBooking(customerId, new CreateBookingRequest(serviceListingId, "Cracked screen", null));
+        BookingResponse response = bookingService.createBooking(customerId, new CreateBookingRequest(serviceListingId, "Cracked screen", null, null, null));
 
         assertThat(response.status()).isEqualTo(BookingStatus.REQUESTED);
         assertThat(response.customerId()).isEqualTo(customerId);
@@ -98,13 +105,13 @@ class BookingServiceTest {
     void createBooking_rejectsAnUnknownServiceListing() {
         when(serviceListingRepository.findById(serviceListingId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> bookingService.createBooking(customerId, new CreateBookingRequest(serviceListingId, null, null)))
+        assertThatThrownBy(() -> bookingService.createBooking(customerId, new CreateBookingRequest(serviceListingId, null, null, null, null)))
                 .isInstanceOf(ServiceListingNotFoundException.class);
     }
 
     @Test
     void accept_movesARequestedBookingToAccepted() {
-        Booking booking = new Booking(customerId, providerProfileId, serviceListingId, null, null);
+        Booking booking = new Booking(customerId, providerProfileId, serviceListingId, null, null, null, null);
         UUID bookingId = UUID.randomUUID();
         booking.setId(bookingId);
         ProviderProfile providerProfile = new ProviderProfile(providerUserId, "Bob's Repairs", null, null, null);
@@ -120,7 +127,7 @@ class BookingServiceTest {
 
     @Test
     void accept_rejectsABookingThatIsNotInRequestedStatus() {
-        Booking booking = new Booking(customerId, providerProfileId, serviceListingId, null, null);
+        Booking booking = new Booking(customerId, providerProfileId, serviceListingId, null, null, null, null);
         booking.setStatus(BookingStatus.ACCEPTED);
         UUID bookingId = UUID.randomUUID();
         booking.setId(bookingId);
@@ -135,7 +142,7 @@ class BookingServiceTest {
 
     @Test
     void accept_hidesABookingThatBelongsToADifferentProvider() {
-        Booking booking = new Booking(customerId, UUID.randomUUID(), serviceListingId, null, null);
+        Booking booking = new Booking(customerId, UUID.randomUUID(), serviceListingId, null, null, null, null);
         UUID bookingId = UUID.randomUUID();
         booking.setId(bookingId);
         ProviderProfile someOtherProvider = new ProviderProfile(providerUserId, "Bob's Repairs", null, null, null);
@@ -158,7 +165,7 @@ class BookingServiceTest {
 
     @Test
     void fullHappyPathLifecycle_requestedToAcceptedToInProgressToCompleted() {
-        Booking booking = new Booking(customerId, providerProfileId, serviceListingId, null, null);
+        Booking booking = new Booking(customerId, providerProfileId, serviceListingId, null, null, null, null);
         UUID bookingId = UUID.randomUUID();
         booking.setId(bookingId);
         ProviderProfile providerProfile = new ProviderProfile(providerUserId, "Bob's Repairs", null, null, null);
@@ -174,37 +181,38 @@ class BookingServiceTest {
 
     @Test
     void cancel_worksWhileStillRequested() {
-        Booking booking = new Booking(customerId, providerProfileId, serviceListingId, null, null);
+        Booking booking = new Booking(customerId, providerProfileId, serviceListingId, null, null, null, null);
         UUID bookingId = UUID.randomUUID();
         booking.setId(bookingId);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
         stubLookupsForToResponse(booking);
 
-        BookingResponse response = bookingService.cancel(customerId, bookingId);
+        BookingResponse response = bookingService.cancel(customerId, bookingId, "Changed my mind");
 
         assertThat(response.status()).isEqualTo(BookingStatus.CANCELLED);
+        assertThat(response.cancellationReason()).isEqualTo("Changed my mind");
     }
 
     @Test
     void cancel_rejectsABookingThatIsAlreadyInProgress() {
-        Booking booking = new Booking(customerId, providerProfileId, serviceListingId, null, null);
+        Booking booking = new Booking(customerId, providerProfileId, serviceListingId, null, null, null, null);
         booking.setStatus(BookingStatus.IN_PROGRESS);
         UUID bookingId = UUID.randomUUID();
         booking.setId(bookingId);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
-        assertThatThrownBy(() -> bookingService.cancel(customerId, bookingId))
+        assertThatThrownBy(() -> bookingService.cancel(customerId, bookingId, null))
                 .isInstanceOf(InvalidBookingTransitionException.class);
     }
 
     @Test
     void cancel_hidesABookingThatBelongsToADifferentCustomer() {
-        Booking booking = new Booking(UUID.randomUUID(), providerProfileId, serviceListingId, null, null);
+        Booking booking = new Booking(UUID.randomUUID(), providerProfileId, serviceListingId, null, null, null, null);
         UUID bookingId = UUID.randomUUID();
         booking.setId(bookingId);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
-        assertThatThrownBy(() -> bookingService.cancel(customerId, bookingId))
+        assertThatThrownBy(() -> bookingService.cancel(customerId, bookingId, null))
                 .isInstanceOf(BookingNotFoundException.class);
     }
 }

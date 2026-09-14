@@ -16,6 +16,8 @@ public record ProviderProfileResponse(
         /** Null (not 0) when the provider has no reviews yet - the app shows "No reviews yet" instead of a 0-star rating. */
         Double averageRating,
         long reviewCount,
+        /** True only when the response is for a logged-in customer who favorited this provider - always false on an anonymous browse or a provider's own profile. */
+        boolean isFavorited,
         Instant createdAt,
         Instant updatedAt
 ) {

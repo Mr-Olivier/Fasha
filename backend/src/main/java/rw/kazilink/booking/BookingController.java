@@ -98,7 +98,11 @@ public class BookingController {
 
     @PatchMapping("/{id}/cancel")
     @PreAuthorize("hasRole('CUSTOMER')")
-    public BookingResponse cancel(@AuthenticationPrincipal UUID userId, @PathVariable UUID id) {
-        return bookingService.cancel(userId, id);
+    public BookingResponse cancel(
+            @AuthenticationPrincipal UUID userId,
+            @PathVariable UUID id,
+            @Valid @RequestBody(required = false) CancelBookingRequest request
+    ) {
+        return bookingService.cancel(userId, id, request == null ? null : request.reason());
     }
 }

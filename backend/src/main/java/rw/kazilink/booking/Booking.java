@@ -53,6 +53,15 @@ public class Booking {
     @Column(name = "requested_date")
     private LocalDate requestedDate;
 
+    /** Where the job is - optional, same reasoning as requestedDate. */
+    @Column
+    private String address;
+
+    /** Rough time of day the customer prefers, e.g. MORNING - optional. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "time_window", length = 20)
+    private TimeWindow timeWindow;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private BookingStatus status = BookingStatus.REQUESTED;
@@ -69,18 +78,32 @@ public class Booking {
     @Column(name = "work_note", columnDefinition = "TEXT")
     private String workNote;
 
+    /** Why the customer cancelled, if they said - optional, set only by BookingService.cancel(). */
+    @Column(name = "cancellation_reason", columnDefinition = "TEXT")
+    private String cancellationReason;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public Booking(UUID customerId, UUID providerProfileId, UUID serviceListingId, String note, LocalDate requestedDate) {
+    public Booking(
+            UUID customerId,
+            UUID providerProfileId,
+            UUID serviceListingId,
+            String note,
+            LocalDate requestedDate,
+            String address,
+            TimeWindow timeWindow
+    ) {
         this.customerId = customerId;
         this.providerProfileId = providerProfileId;
         this.serviceListingId = serviceListingId;
         this.note = note;
         this.requestedDate = requestedDate;
+        this.address = address;
+        this.timeWindow = timeWindow;
         this.status = BookingStatus.REQUESTED;
     }
 
@@ -90,9 +113,11 @@ public class Booking {
             UUID serviceListingId,
             String note,
             LocalDate requestedDate,
+            String address,
+            TimeWindow timeWindow,
             BigDecimal price
     ) {
-        this(customerId, providerProfileId, serviceListingId, note, requestedDate);
+        this(customerId, providerProfileId, serviceListingId, note, requestedDate, address, timeWindow);
         this.price = price;
     }
 

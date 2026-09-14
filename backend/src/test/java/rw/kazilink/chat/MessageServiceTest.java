@@ -56,7 +56,7 @@ class MessageServiceTest {
     private final UUID strangerId = UUID.randomUUID();
 
     private Booking acceptedBooking() {
-        Booking booking = new Booking(customerId, providerProfileId, UUID.randomUUID(), "note", null);
+        Booking booking = new Booking(customerId, providerProfileId, UUID.randomUUID(), "note", null, null, null);
         booking.setId(bookingId);
         booking.setStatus(BookingStatus.ACCEPTED);
         return booking;

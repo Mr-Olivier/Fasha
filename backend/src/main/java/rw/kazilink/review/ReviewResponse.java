@@ -1,6 +1,7 @@
 package rw.kazilink.review;
 
 import java.time.Instant;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -16,6 +17,7 @@ public record ReviewResponse(
         String customerName,
         int rating,
         String comment,
+        Set<ReviewTag> tags,
         Instant createdAt
 ) {
 }

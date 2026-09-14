@@ -18,6 +18,9 @@ public interface ServiceListingRepository extends JpaRepository<ServiceListing, 
     /** Same as findByCategoryId, but a hidden service can't make its provider surface under "offers X" search either. */
     List<ServiceListing> findByCategoryIdAndVisibleTrue(UUID categoryId);
 
+    /** Powers GET /api/providers?maxPrice=... - every visible service, so ProviderProfileService can compute each provider's cheapest one in memory. */
+    List<ServiceListing> findByVisibleTrue();
+
     /** Powers the admin provider-approval list's "services listed" count. */
     long countByProviderProfileId(UUID providerProfileId);
 

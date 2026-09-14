@@ -7,9 +7,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -40,15 +42,23 @@ public class SecureFileStorageService {
      * @param filenamePrefix identifies whose file this is (e.g. a provider profile id, a booking id) - purely for a human skimming the disk, not parsed back
      * @return the opaque relative path (subfolder/filename) to persist in the caller's own entity column
      */
+    private static final Set<String> ACCEPTED_CONTENT_TYPES = Set.of("image/jpeg", "image/png", "image/webp", "application/pdf");
+
     public String store(String subfolder, String filenamePrefix, MultipartFile file) {
         if (file.isEmpty()) {
             throw new InvalidSecureUploadException("Please choose a file to upload.");
         }
         String contentType = file.getContentType();
-        boolean isImage = contentType != null && contentType.startsWith("image/");
-        boolean isPdf = "application/pdf".equals(contentType);
-        if (!isImage && !isPdf) {
-            throw new InvalidSecureUploadException("Only images (JPEG, PNG, WebP, ...) or a PDF can be uploaded here.");
+        if (!ACCEPTED_CONTENT_TYPES.contains(contentType)) {
+            throw new InvalidSecureUploadException("Only JPEG, PNG, WebP images, or a PDF can be uploaded here.");
+        }
+        // The Content-Type header is entirely client-supplied and easy to
+        // fake (rename a script to "photo.jpg", send it with
+        // Content-Type: image/jpeg) - checking the file's actual leading
+        // bytes against what it CLAIMS to be closes that gap. See
+        // FileSignature's doc comment.
+        if (!FileSignature.matches(contentType, readHeader(file))) {
+            throw new InvalidSecureUploadException("This file's content doesn't match its claimed type.");
         }
 
         try {
@@ -80,6 +90,15 @@ public class SecureFileStorageService {
             Files.deleteIfExists(rootDir.resolve(relativePath));
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to delete stored file", e);
+        }
+    }
+
+    /** First 16 bytes of the upload - enough to check any of the signatures FileSignature knows about. */
+    private byte[] readHeader(MultipartFile file) {
+        try (InputStream in = file.getInputStream()) {
+            return in.readNBytes(16);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to read uploaded file", e);
         }
     }
 

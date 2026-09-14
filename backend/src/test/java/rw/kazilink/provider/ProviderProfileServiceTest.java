@@ -6,6 +6,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import rw.kazilink.favorite.FavoriteProviderRepository;
 import rw.kazilink.review.ReviewRepository;
 import rw.kazilink.service.ServiceListing;
 import rw.kazilink.service.ServiceListingRepository;
@@ -35,6 +36,9 @@ class ProviderProfileServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private FavoriteProviderRepository favoriteProviderRepository;
 
     @InjectMocks
     private ProviderProfileService providerProfileService;
@@ -126,7 +130,7 @@ class ProviderProfileServiceTest {
     void browseProviders_excludesProvidersThatArentApproved() {
         when(providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED)).thenReturn(List.of());
 
-        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null, null);
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null, null, null, null, null);
 
         assertThat(results).isEmpty();
     }
@@ -136,7 +140,7 @@ class ProviderProfileServiceTest {
         ProviderProfile approved = new ProviderProfile(UUID.randomUUID(), "Alice's Repairs", null, null, null);
         when(providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED)).thenReturn(List.of(approved));
 
-        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null, null);
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null, null, null, null, null);
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).businessName()).isEqualTo("Alice's Repairs");
@@ -154,7 +158,7 @@ class ProviderProfileServiceTest {
         when(serviceListingRepository.findByCategoryIdAndVisibleTrue(categoryId)).thenReturn(List.of(
                 new ServiceListing(inCategory.getId(), categoryId, "Phone repair", null, BigDecimal.TEN)));
 
-        List<ProviderProfileResponse> results = providerProfileService.browseProviders(categoryId, null);
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(categoryId, null, null, null, null);
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).businessName()).isEqualTo("Alice's Repairs");
@@ -167,7 +171,7 @@ class ProviderProfileServiceTest {
         when(providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED))
                 .thenReturn(List.of(alice, bob));
 
-        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null, "alice");
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null, "alice", null, null, null);
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).businessName()).isEqualTo("Alice's Repairs");
@@ -180,7 +184,7 @@ class ProviderProfileServiceTest {
         when(providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED))
                 .thenReturn(List.of(inKigali, inHuye));
 
-        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null, "kigali");
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null, "kigali", null, null, null);
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).businessName()).isEqualTo("Alice's Repairs");
@@ -191,7 +195,7 @@ class ProviderProfileServiceTest {
         ProviderProfile approved = new ProviderProfile(UUID.randomUUID(), "Alice's Repairs", null, null, null);
         when(providerProfileRepository.findByVerificationStatus(VerificationStatus.APPROVED)).thenReturn(List.of(approved));
 
-        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null, "   ");
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null, "   ", null, null, null);
 
         assertThat(results).hasSize(1);
     }
@@ -209,7 +213,7 @@ class ProviderProfileServiceTest {
                 new ServiceListing(matchesBoth.getId(), categoryId, "Phone repair", null, BigDecimal.TEN),
                 new ServiceListing(matchesCategoryOnly.getId(), categoryId, "Phone repair", null, BigDecimal.TEN)));
 
-        List<ProviderProfileResponse> results = providerProfileService.browseProviders(categoryId, "alice");
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(categoryId, "alice", null, null, null);
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).businessName()).isEqualTo("Alice's Repairs");
@@ -228,7 +232,7 @@ class ProviderProfileServiceTest {
                 suspendedUser(suspendedOwnerId)
         ));
 
-        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null, null);
+        List<ProviderProfileResponse> results = providerProfileService.browseProviders(null, null, null, null, null);
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).businessName()).isEqualTo("Alice's Repairs");
@@ -244,7 +248,7 @@ class ProviderProfileServiceTest {
         when(providerProfileRepository.findById(providerProfileId)).thenReturn(Optional.of(approved));
         when(userRepository.findById(ownerId)).thenReturn(Optional.of(suspendedUser(ownerId)));
 
-        assertThatThrownBy(() -> providerProfileService.getProviderDetail(providerProfileId))
+        assertThatThrownBy(() -> providerProfileService.getProviderDetail(providerProfileId, null))
                 .isInstanceOf(ProviderNotFoundException.class);
     }
 
@@ -261,7 +265,7 @@ class ProviderProfileServiceTest {
         UUID providerProfileId = UUID.randomUUID();
         when(providerProfileRepository.findById(providerProfileId)).thenReturn(Optional.of(pending));
 
-        assertThatThrownBy(() -> providerProfileService.getProviderDetail(providerProfileId))
+        assertThatThrownBy(() -> providerProfileService.getProviderDetail(providerProfileId, null))
                 .isInstanceOf(ProviderNotFoundException.class);
     }
 
@@ -275,7 +279,7 @@ class ProviderProfileServiceTest {
         when(serviceListingRepository.findByProviderProfileIdAndVisibleTrue(providerProfileId)).thenReturn(List.of(
                 new ServiceListing(providerProfileId, UUID.randomUUID(), "Phone repair", "Screens & batteries", BigDecimal.TEN)));
 
-        ProviderDetailResponse detail = providerProfileService.getProviderDetail(providerProfileId);
+        ProviderDetailResponse detail = providerProfileService.getProviderDetail(providerProfileId, null);
 
         assertThat(detail.profile().businessName()).isEqualTo("Alice's Repairs");
         assertThat(detail.services()).hasSize(1);

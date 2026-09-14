@@ -54,7 +54,7 @@ class AdminStatsServiceTest {
     }
 
     private Booking bookingCreatedAt(Instant createdAt) {
-        Booking booking = new Booking(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), null, null);
+        Booking booking = new Booking(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), null, null, null, null);
         booking.setCreatedAt(createdAt);
         return booking;
     }

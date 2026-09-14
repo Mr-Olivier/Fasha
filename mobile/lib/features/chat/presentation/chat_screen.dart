@@ -202,9 +202,27 @@ class _MessageBubble extends StatelessWidget {
           children: [
             Text(message.body, style: textTheme.bodyMedium?.copyWith(color: foreground)),
             const SizedBox(height: 2),
-            Text(
-              _formatTime(message.createdAt),
-              style: textTheme.bodySmall?.copyWith(color: foreground.withValues(alpha: 0.75)),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _formatTime(message.createdAt),
+                  style: textTheme.bodySmall?.copyWith(color: foreground.withValues(alpha: 0.75)),
+                ),
+                if (isMine) ...[
+                  const SizedBox(width: 4),
+                  // Read receipt: a single check once it's sent, a double
+                  // check once the other party has opened this
+                  // conversation (message.read) - only shown on OUR OWN
+                  // bubbles, since whether the other person read what WE
+                  // sent is the only direction that's meaningful to show.
+                  Icon(
+                    message.read ? Icons.done_all : Icons.done,
+                    size: 14,
+                    color: foreground.withValues(alpha: 0.75),
+                  ),
+                ],
+              ],
             ),
           ],
         ),

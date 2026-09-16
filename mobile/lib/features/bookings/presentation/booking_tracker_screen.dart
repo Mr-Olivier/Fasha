@@ -83,7 +83,7 @@ class BookingTrackerScreen extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           backgroundColor: colorScheme.primary,
-                          foregroundColor: Colors.white,
+                          foregroundColor: colorScheme.onPrimary,
                           child: Text(booking.providerBusinessName.isNotEmpty ? booking.providerBusinessName[0] : '?'),
                         ),
                         const SizedBox(width: AppSpacing.sm),
@@ -181,18 +181,6 @@ class BookingTrackerScreen extends StatelessWidget {
   }
 }
 
-/// The standard happy-path stages every booking passes through in order.
-/// REJECTED/CANCELLED aren't in this list - they're terminal branches off
-/// it, rendered separately (see _Timeline below) rather than pretending
-/// the booking is still progressing toward COMPLETED.
-const _happyPathStages = [
-  BookingStatus.requested,
-  BookingStatus.accepted,
-  BookingStatus.inProgress,
-  BookingStatus.completed,
-  BookingStatus.reviewed,
-];
-
 class _Timeline extends StatelessWidget {
   const _Timeline({required this.booking});
 
@@ -209,7 +197,7 @@ class _Timeline extends StatelessWidget {
     // as "pending" would be misleading.
     final stages = isTerminalFailure
         ? booking.statusHistory.map((e) => e.status).toList()
-        : _happyPathStages;
+        : bookingHappyPathStages;
 
     return Column(
       children: [

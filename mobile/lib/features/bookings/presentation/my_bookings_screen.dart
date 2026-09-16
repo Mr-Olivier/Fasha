@@ -4,20 +4,27 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/branded_app_bar.dart';
 import '../../../core/widgets/call_contact_row.dart';
 import '../../../core/widgets/chat_entry_row.dart';
 import '../domain/booking.dart';
 import '../domain/booking_status.dart';
 import 'booking_controller.dart';
+import 'booking_progress_bar.dart';
 import 'booking_status_chip.dart';
 
 const _activeStatuses = {BookingStatus.requested, BookingStatus.accepted, BookingStatus.inProgress};
+const _completedStatuses = {BookingStatus.completed, BookingStatus.reviewed};
+const _cancelledStatuses = {BookingStatus.cancelled, BookingStatus.rejected};
 
-/// The customer's own bookings, split into Active/Past tabs (mockup screen
-/// C2) - most recent first within each (see BookingRepository.listForCustomer).
-/// Tapping a card opens the Booking Tracker (C3); only a REQUESTED or
-/// ACCEPTED booking shows a "Cancel" action here - see BookingService.cancel
-/// on the backend for why IN_PROGRESS and later can't be cancelled.
+/// The customer's own bookings, split into Active/Completed/Cancelled tabs
+/// (mockup screen C2) - most recent first within each (see
+/// BookingRepository.listForCustomer). Tapping a card opens the Booking
+/// Tracker (C3); only a REQUESTED or ACCEPTED booking shows a "Cancel"
+/// action here - see BookingService.cancel on the backend for why
+/// IN_PROGRESS and later can't be cancelled. A provider declining a
+/// request (REJECTED) counts as "Cancelled" from the customer's side too -
+/// either way, nothing happened and there's nothing left to track.
 class MyBookingsScreen extends ConsumerWidget {
   const MyBookingsScreen({super.key});
 
@@ -35,15 +42,17 @@ class MyBookingsScreen extends ConsumerWidget {
     });
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('My bookings'),
+        appBar: BrandedAppBar(
+          title: 'Fasha',
+          subtitle: 'My Bookings',
           bottom: state.valueOrNull != null
               ? TabBar(
                   tabs: [
                     Tab(text: 'Active · ${state.value!.where((b) => _activeStatuses.contains(b.status)).length}'),
-                    Tab(text: 'Past · ${state.value!.where((b) => !_activeStatuses.contains(b.status)).length}'),
+                    Tab(text: 'Completed · ${state.value!.where((b) => _completedStatuses.contains(b.status)).length}'),
+                    Tab(text: 'Cancelled · ${state.value!.where((b) => _cancelledStatuses.contains(b.status)).length}'),
                   ],
                 )
               : null,
@@ -65,11 +74,13 @@ class MyBookingsScreen extends ConsumerWidget {
               );
             }
             final active = bookings.where((b) => _activeStatuses.contains(b.status)).toList();
-            final past = bookings.where((b) => !_activeStatuses.contains(b.status)).toList();
+            final completed = bookings.where((b) => _completedStatuses.contains(b.status)).toList();
+            final cancelled = bookings.where((b) => _cancelledStatuses.contains(b.status)).toList();
             return TabBarView(
               children: [
                 _BookingList(bookings: active, emptyMessage: 'Nothing active right now.'),
-                _BookingList(bookings: past, emptyMessage: 'No past bookings yet.'),
+                _BookingList(bookings: completed, emptyMessage: 'No completed bookings yet.'),
+                _BookingList(bookings: cancelled, emptyMessage: 'No cancelled bookings.'),
               ],
             );
           },
@@ -122,6 +133,10 @@ class BookingCard extends StatelessWidget {
 
   bool get _canReview => booking.status == BookingStatus.completed;
 
+  /// Nothing to show a "step X of Y" bar for once a booking has branched
+  /// off the happy path - see [bookingHappyPathStages]'s own doc comment.
+  bool get _showsProgress => bookingHappyPathStages.contains(booking.status);
+
   /// The provider only becomes reachable once they've actually accepted -
   /// showing their number while still just REQUESTED would be pointless
   /// (and REJECTED/CANCELLED have nothing left to coordinate).
@@ -151,6 +166,10 @@ class BookingCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text('with ${booking.providerBusinessName}', style: textTheme.bodyMedium),
+              if (_showsProgress) ...[
+                const SizedBox(height: AppSpacing.sm),
+                BookingProgressBar(status: booking.status),
+              ],
               if (booking.note != null && booking.note!.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(booking.note!, style: textTheme.bodySmall),

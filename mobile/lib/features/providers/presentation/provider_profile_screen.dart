@@ -215,7 +215,7 @@ class _ProfilePhoto extends StatelessWidget {
     return CircleAvatar(
       radius: 48,
       backgroundColor: colorScheme.primary,
-      foregroundColor: Colors.white,
+      foregroundColor: colorScheme.onPrimary,
       // StaticResourceConfig serves this at the backend's plain host, not
       // under "/api" - see ApiClient.mediaBaseUrl's doc comment.
       backgroundImage: imageUrl != null ? NetworkImage('${ApiClient.mediaBaseUrl}$imageUrl') : null,

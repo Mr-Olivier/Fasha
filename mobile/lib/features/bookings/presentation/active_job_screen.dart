@@ -9,8 +9,10 @@ import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/call_contact_row.dart';
 import '../../../core/widgets/secure_network_image.dart';
 import '../domain/booking.dart';
+import '../domain/booking_photo.dart';
 import 'booking_controller.dart';
 import 'booking_photo_controller.dart';
+import 'booking_progress_bar.dart';
 
 /// D3 - a provider's view of a job they've started, reached by tapping
 /// "Continue job" on an IN_PROGRESS RequestCard. Lets them leave a work
@@ -112,6 +114,12 @@ class _ActiveJobScreenState extends ConsumerState<ActiveJobScreen> {
                     Text('IN PROGRESS', style: textTheme.labelSmall?.copyWith(color: StatusColors.positive(context))),
                     const SizedBox(height: 4),
                     Text(_elapsedLabel, style: textTheme.titleMedium?.copyWith(color: StatusColors.positive(context))),
+                    const SizedBox(height: AppSpacing.sm),
+                    BookingProgressBar(
+                      status: booking.status,
+                      trackColor: StatusColors.positive(context).withValues(alpha: 0.2),
+                      valueColor: StatusColors.positive(context),
+                    ),
                   ],
                 ),
               ),
@@ -171,10 +179,29 @@ class _ActiveJobScreenState extends ConsumerState<ActiveJobScreen> {
                   for (final photo in photos)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(AppRadii.field),
-                      child: SecureNetworkImage(
-                        path: '/bookings/${booking.id}/photos/${photo.id}',
-                        width: 88,
-                        height: 88,
+                      child: Stack(
+                        children: [
+                          SecureNetworkImage(
+                            path: '/bookings/${booking.id}/photos/${photo.id}',
+                            width: 88,
+                            height: 88,
+                          ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.55)),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                child: Text(
+                                  photo.uploadedByRole == PhotoUploaderRole.customer ? 'Customer' : 'You',
+                                  style: textTheme.labelSmall?.copyWith(color: Colors.white, fontSize: 10),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   InkWell(

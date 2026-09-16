@@ -5,6 +5,15 @@
 class AppConfig {
   AppConfig._();
 
+  /// Overrides ApiClient's default `http://localhost:8081/api` - only
+  /// needed to reach the backend from a device where "localhost" doesn't
+  /// mean this machine (a phone on the same Wi-Fi, testing real-time chat
+  /// against a browser tab running here), e.g.
+  /// `--dart-define=API_BASE_URL=http://192.168.1.x:8081/api`. Empty until
+  /// set, same "inert until configured" story as every other value below -
+  /// the normal `flutter run` dev loop needs nothing here.
+  static const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
+
   /// The Google OAuth "Web application" client ID from Google Cloud
   /// Console. Used as-is on Flutter Web (as `clientId`) and on Android (as
   /// `serverClientId`, so the ID token Android hands back is audienced to

@@ -16,10 +16,10 @@ class CategoryStyle {
   final IconData icon;
   final Color color;
 
-  static const _fallback = CategoryStyle(icon: Icons.category_outlined, color: Color(0xFF6E7A73));
+  static const _fallback = CategoryStyle(icon: Icons.category_outlined, color: Color(0xFF64748B));
 
   static const Map<String, CategoryStyle> _byName = {
-    'Electrician': CategoryStyle(icon: Icons.electrical_services, color: Color(0xFFE8A33D)),
+    'Electrician': CategoryStyle(icon: Icons.electrical_services, color: Color(0xFFD97706)),
     'Plumber': CategoryStyle(icon: Icons.plumbing, color: Color(0xFF3B82C4)),
     'Mechanic': CategoryStyle(icon: Icons.build, color: Color(0xFF6B7280)),
     // Deliberately NOT the app's own primary green (#0B6B4F) - that colour

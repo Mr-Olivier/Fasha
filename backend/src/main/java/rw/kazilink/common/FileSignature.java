@@ -12,8 +12,8 @@ import java.util.Arrays;
  * technique `file`(1)/`libmagic` and most upload scanners use.
  *
  * Deliberately only recognizes the small set of types this app actually
- * accepts (JPEG/PNG/WEBP/PDF) - it's a gate, not a general-purpose file
- * type detector.
+ * accepts (JPEG/PNG/WEBP/PDF/MP4/MOV) - it's a gate, not a general-purpose
+ * file type detector.
  */
 public final class FileSignature {
 
@@ -25,6 +25,7 @@ public final class FileSignature {
     private static final byte[] PDF = {0x25, 0x50, 0x44, 0x46}; // "%PDF"
     private static final byte[] RIFF = {0x52, 0x49, 0x46, 0x46}; // "RIFF" - WEBP is RIFF....WEBP
     private static final byte[] WEBP = {0x57, 0x45, 0x42, 0x50}; // "WEBP", at offset 8
+    private static final byte[] FTYP = {0x66, 0x74, 0x79, 0x70}; // "ftyp", at offset 4 - the ISO base media box every MP4/MOV recording starts with
 
     /** @return true if `header` (the file's first bytes - 16+ is enough for every format above) actually starts with the claimed contentType's signature. */
     public static boolean matches(String contentType, byte[] header) {
@@ -34,9 +35,11 @@ public final class FileSignature {
             case "image/png" -> startsWith(header, PNG);
             case "image/webp" -> startsWith(header, RIFF) && header.length >= 12 && startsWith(Arrays.copyOfRange(header, 8, 12), WEBP);
             case "application/pdf" -> startsWith(header, PDF);
+            case "video/mp4", "video/quicktime" ->
+                    header.length >= 8 && startsWith(Arrays.copyOfRange(header, 4, 8), FTYP);
             // Anything else (e.g. image/gif) has no signature to check
             // here, so it's rejected rather than waved through unverified
-            // - callers should only ever claim one of the four types above.
+            // - callers should only ever claim one of the types above.
             default -> false;
         };
     }

@@ -85,7 +85,7 @@ class _CancelBookingScreenState extends ConsumerState<CancelBookingScreen> {
               ),
               const SizedBox(height: AppSpacing.md),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
+                style: FilledButton.styleFrom(backgroundColor: colorScheme.error, foregroundColor: colorScheme.onError),
                 onPressed: isLoading
                     ? null
                     : () => ref.read(myBookingsControllerProvider.notifier).cancel(

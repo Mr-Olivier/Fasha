@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../features/providers/domain/provider_profile.dart';
+import '../../features/providers/domain/verification_status.dart';
+import '../network/api_client.dart';
 import '../theme/app_theme.dart';
 import 'star_rating.dart';
 
@@ -30,11 +32,22 @@ class ProviderCard extends StatelessWidget {
               CircleAvatar(
                 radius: 26,
                 backgroundColor: colorScheme.primary,
-                foregroundColor: Colors.white,
-                child: Text(
-                  provider.businessName.isNotEmpty ? provider.businessName[0].toUpperCase() : '?',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
+                foregroundColor: colorScheme.onPrimary,
+                // StaticResourceConfig serves this at the backend's plain
+                // host, not under "/api" - see ApiClient.mediaBaseUrl's doc
+                // comment. Only the initial shows while a real photo is
+                // still loading (or if the provider never uploaded one) -
+                // CircleAvatar's own child is masked out once
+                // backgroundImage successfully paints over it.
+                backgroundImage: provider.profileImageUrl != null
+                    ? NetworkImage('${ApiClient.mediaBaseUrl}${provider.profileImageUrl}')
+                    : null,
+                child: provider.profileImageUrl == null
+                    ? Text(
+                        provider.businessName.isNotEmpty ? provider.businessName[0].toUpperCase() : '?',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      )
+                    : null,
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
@@ -43,16 +56,29 @@ class ProviderCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Expanded(child: Text(provider.businessName, style: textTheme.titleMedium)),
-                        if (provider.isFavorited) ...[
+                        Flexible(
+                          child: Text(
+                            provider.businessName,
+                            style: textTheme.titleMedium,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (provider.verificationStatus == VerificationStatus.approved) ...[
                           const SizedBox(width: 4),
-                          Icon(Icons.favorite, size: 16, color: colorScheme.error),
+                          Icon(Icons.verified, size: 16, color: colorScheme.tertiary),
                         ],
+                        const Spacer(),
+                        if (provider.isFavorited) Icon(Icons.favorite, size: 16, color: colorScheme.error),
                       ],
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      provider.location ?? 'Location not specified',
+                      [
+                        provider.location ?? 'Location not specified',
+                        if (provider.yearsExperience != null)
+                          '${provider.yearsExperience} yr${provider.yearsExperience == 1 ? '' : 's'} exp.',
+                      ].join(' · '),
                       style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
                     ),
                     const SizedBox(height: 4),

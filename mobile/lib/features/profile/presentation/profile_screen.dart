@@ -7,6 +7,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_mode_controller.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/branded_app_bar.dart';
 import '../../auth/domain/auth_user.dart';
 import '../../auth/domain/user_role.dart';
 import '../../auth/presentation/auth_controller.dart';
@@ -52,7 +53,10 @@ class ProfileScreen extends ConsumerWidget {
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: BrandedAppBar(
+        title: user?.role == UserRole.provider ? 'Fasha Pro' : 'Fasha',
+        subtitle: 'Profile',
+      ),
       body: user == null
           ? const Center(child: Text('No user logged in.'))
           : ListView(
@@ -225,7 +229,7 @@ class _Avatar extends StatelessWidget {
     return CircleAvatar(
       radius: 48,
       backgroundColor: colorScheme.primary,
-      foregroundColor: Colors.white,
+      foregroundColor: colorScheme.onPrimary,
       // StaticResourceConfig serves this at the backend's plain host, not
       // under "/api" - see ApiClient.mediaBaseUrl's doc comment.
       backgroundImage: imageUrl != null ? NetworkImage('${ApiClient.mediaBaseUrl}$imageUrl') : null,

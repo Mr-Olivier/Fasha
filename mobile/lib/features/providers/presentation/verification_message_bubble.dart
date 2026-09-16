@@ -27,7 +27,7 @@ class VerificationMessageBubble extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final background = isMine ? colorScheme.primary : colorScheme.surfaceContainerHighest;
-    final foreground = isMine ? Colors.white : colorScheme.onSurface;
+    final foreground = isMine ? colorScheme.onPrimary : colorScheme.onSurface;
 
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,

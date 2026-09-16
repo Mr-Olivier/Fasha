@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/status_colors.dart';
+import '../../../core/widgets/branded_app_bar.dart';
 import '../../../core/widgets/provider_card.dart';
 import '../../../core/widgets/notification_bell.dart';
 import '../../admin/domain/pending_provider.dart';
@@ -37,7 +38,18 @@ class HomeScreen extends ConsumerWidget {
       // Logging out lives in the Profile tab now (see AppShell) - matching
       // Instagram/Facebook, account actions belong in a Profile tab, not
       // scattered as an icon on every other screen's app bar.
-      appBar: AppBar(title: const Text('FASHA APP'), actions: const [NotificationBell()]),
+      appBar: BrandedAppBar(
+        title: switch (user?.role) {
+          UserRole.provider => 'Fasha Pro',
+          _ => 'Fasha',
+        },
+        subtitle: switch (user?.role) {
+          UserRole.provider => 'Provider dashboard',
+          UserRole.admin => 'Admin overview',
+          _ => 'Kigali, Rwanda',
+        },
+        actions: const [NotificationBell()],
+      ),
       body: switch (user) {
         null => const Center(child: Text('No user logged in.')),
         AuthUser(role: UserRole.provider) => const ProviderDashboardScreen(),
@@ -160,10 +172,15 @@ class _ActiveBookingBanner extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
+    // A bold, colour-blocked callout (not an inverted-surface card) - the
+    // same brand-teal treatment the design reference gives "upcoming
+    // service"/"active booking" banners, so it stays a deliberate highlight
+    // in both themes instead of flipping to a stark near-white box against
+    // an otherwise dark page.
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.gutter),
       child: Material(
-        color: colorScheme.onSurface,
+        color: colorScheme.primary,
         borderRadius: BorderRadius.circular(AppRadii.card),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppRadii.card),
@@ -178,21 +195,24 @@ class _ActiveBookingBanner extends ConsumerWidget {
                     children: [
                       Text(
                         booking.status == BookingStatus.inProgress ? 'ACTIVE BOOKING' : 'UPCOMING BOOKING',
-                        style: textTheme.labelSmall?.copyWith(color: colorScheme.secondary, letterSpacing: 1.1),
+                        style: textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onPrimary.withValues(alpha: 0.75),
+                          letterSpacing: 1.1,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         '${booking.providerBusinessName} is ${booking.status == BookingStatus.inProgress ? 'working now' : 'on the way'}',
-                        style: textTheme.titleMedium?.copyWith(color: colorScheme.surface),
+                        style: textTheme.titleMedium?.copyWith(color: colorScheme.onPrimary),
                       ),
                       Text(
                         booking.serviceName,
-                        style: textTheme.bodySmall?.copyWith(color: colorScheme.surface.withValues(alpha: 0.7)),
+                        style: textTheme.bodySmall?.copyWith(color: colorScheme.onPrimary.withValues(alpha: 0.7)),
                       ),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: colorScheme.surface),
+                Icon(Icons.chevron_right, color: colorScheme.onPrimary),
               ],
             ),
           ),

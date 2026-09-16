@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/branded_app_bar.dart';
 import '../../../core/widgets/review_card.dart';
 import '../../providers/presentation/provider_profile_controller.dart';
 import 'review_controller.dart';
@@ -21,7 +22,7 @@ class ProviderReviewsScreen extends ConsumerWidget {
     final providerId = profileState.valueOrNull?.id;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Reviews')),
+      appBar: const BrandedAppBar(title: 'Fasha Pro', subtitle: 'Reviews'),
       body: profileState.isLoading
           ? const Center(child: CircularProgressIndicator())
           : providerId == null

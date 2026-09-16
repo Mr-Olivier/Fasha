@@ -30,15 +30,21 @@ class SplashScreen extends StatelessWidget {
             const SizedBox(height: 24),
             Text(
               'FASHA APP',
-              style: textTheme.headlineMedium?.copyWith(color: Colors.white, letterSpacing: 1),
+              style: textTheme.headlineMedium?.copyWith(color: colorScheme.onPrimary, letterSpacing: 1),
             ),
             const SizedBox(height: 12),
-            const Text('Trusted local services, one tap away', style: TextStyle(color: Colors.white70)),
+            Text(
+              'Trusted local services, one tap away',
+              style: TextStyle(color: colorScheme.onPrimary.withValues(alpha: 0.7)),
+            ),
             const SizedBox(height: 40),
-            const SizedBox(
+            SizedBox(
               height: 28,
               width: 28,
-              child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white70),
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: colorScheme.onPrimary.withValues(alpha: 0.7),
+              ),
             ),
           ],
         ),

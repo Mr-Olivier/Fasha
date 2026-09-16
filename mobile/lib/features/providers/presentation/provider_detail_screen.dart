@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/review_card.dart';
 import '../../auth/domain/user_role.dart';
@@ -60,11 +61,16 @@ class _ProviderDetailScreenState extends ConsumerState<ProviderDetailScreen> {
                         CircleAvatar(
                           radius: 32,
                           backgroundColor: colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          child: Text(
-                            profile.businessName.isNotEmpty ? profile.businessName[0].toUpperCase() : '?',
-                            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-                          ),
+                          foregroundColor: colorScheme.onPrimary,
+                          backgroundImage: profile.profileImageUrl != null
+                              ? NetworkImage('${ApiClient.mediaBaseUrl}${profile.profileImageUrl}')
+                              : null,
+                          child: profile.profileImageUrl == null
+                              ? Text(
+                                  profile.businessName.isNotEmpty ? profile.businessName[0].toUpperCase() : '?',
+                                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+                                )
+                              : null,
                         ),
                         const SizedBox(width: AppSpacing.md),
                         Expanded(

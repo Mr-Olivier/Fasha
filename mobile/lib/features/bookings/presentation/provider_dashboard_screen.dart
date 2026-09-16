@@ -28,6 +28,9 @@ class ProviderDashboardScreen extends ConsumerWidget {
     final bookings = requestsState.valueOrNull ?? const [];
     final newRequests = bookings.where((b) => b.status == BookingStatus.requested).length;
     final inProgress = bookings.where((b) => b.status == BookingStatus.inProgress).length;
+    final completed = bookings
+        .where((b) => b.status == BookingStatus.completed || b.status == BookingStatus.reviewed)
+        .length;
     final rating = profile?.averageRating;
 
     return RefreshIndicator(
@@ -41,15 +44,46 @@ class ProviderDashboardScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _HeroCard(businessName: profile?.businessName, isApproved: profile?.verificationStatus == VerificationStatus.approved),
+            _HeroCard(
+              businessName: profile?.businessName,
+              location: profile?.location,
+              isApproved: profile?.verificationStatus == VerificationStatus.approved,
+            ),
             const SizedBox(height: AppSpacing.gutter),
-            Row(
+            Text('Today\'s pulse', style: textTheme.titleLarge),
+            const SizedBox(height: AppSpacing.sm),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: AppSpacing.md,
+              crossAxisSpacing: AppSpacing.md,
+              childAspectRatio: 2.1,
               children: [
-                Expanded(child: _StatTile(value: '$newRequests', label: 'New requests')),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(child: _StatTile(value: '$inProgress', label: 'In progress')),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(child: _StatTile(value: rating == null ? '-' : rating.toStringAsFixed(1), label: 'Rating')),
+                _StatTile(
+                  value: '$newRequests',
+                  label: newRequests == 1 ? 'New request' : 'New requests',
+                  icon: Icons.inbox_outlined,
+                  color: colorScheme.secondary,
+                ),
+                _StatTile(
+                  value: '$inProgress',
+                  label: 'In progress',
+                  icon: Icons.bolt_outlined,
+                  color: colorScheme.primary,
+                ),
+                _StatTile(
+                  value: '$completed',
+                  label: 'Completed',
+                  icon: Icons.check_circle_outline,
+                  color: colorScheme.tertiary,
+                ),
+                _StatTile(
+                  value: rating == null ? '-' : rating.toStringAsFixed(1),
+                  label: profile == null || profile.reviewCount == 0 ? 'Rating' : 'Rating (${profile.reviewCount})',
+                  icon: Icons.star_outline,
+                  color: colorScheme.secondary,
+                ),
               ],
             ),
             const SizedBox(height: AppSpacing.gutter),
@@ -111,9 +145,10 @@ class ProviderDashboardScreen extends ConsumerWidget {
 }
 
 class _HeroCard extends StatelessWidget {
-  const _HeroCard({required this.businessName, required this.isApproved});
+  const _HeroCard({required this.businessName, required this.location, required this.isApproved});
 
   final String? businessName;
+  final String? location;
   final bool isApproved;
 
   @override
@@ -133,7 +168,7 @@ class _HeroCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Provider dashboard',
+                    location ?? 'Provider dashboard',
                     style: textTheme.bodySmall?.copyWith(color: colorScheme.onPrimary.withValues(alpha: 0.8)),
                   ),
                   const SizedBox(height: 4),
@@ -168,10 +203,12 @@ class _HeroCard extends StatelessWidget {
 }
 
 class _StatTile extends StatelessWidget {
-  const _StatTile({required this.value, required this.label});
+  const _StatTile({required this.value, required this.label, required this.icon, required this.color});
 
   final String value;
   final String label;
+  final IconData icon;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -186,12 +223,28 @@ class _StatTile extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Text(value, style: textTheme.headlineSmall),
-            const SizedBox(height: 2),
-            Text(label, style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7))),
+            DecoratedBox(
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.14), shape: BoxShape.circle),
+              child: Padding(padding: const EdgeInsets.all(8), child: Icon(icon, size: 18, color: color)),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(value, style: textTheme.titleLarge),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

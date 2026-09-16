@@ -57,13 +57,16 @@ spring:
 
   servlet:
     multipart:
-      # Applies to avatar uploads (see AvatarStorageService) - a generous
-      # limit for a single small profile picture, not a general file-upload
-      # feature. MaxUploadSizeExceededException past this is turned into a
-      # clean 400 by GlobalExceptionHandler instead of the raw 500 Spring
-      # would otherwise send.
-      max-file-size: 5MB
-      max-request-size: 5MB
+      # One global limit for every multipart endpoint - avatars
+      # (AvatarStorageService), booking photos, and chat attachments
+      # (MessageService.sendAttachment) alike. Sized for chat's video
+      # attachments (up to chatVideoMaxDuration = 3 min of uncompressed
+      # phone camera footage), not just a small profile picture -
+      # MaxUploadSizeExceededException past this is turned into a clean 400
+      # by GlobalExceptionHandler instead of the raw 500 Spring would
+      # otherwise send.
+      max-file-size: 100MB
+      max-request-size: 100MB
 
 server:
   # 8081, not the default 8080: something else on this machine already

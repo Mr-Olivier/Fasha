@@ -118,7 +118,14 @@ class _VerificationChatScreenState extends ConsumerState<VerificationChatScreen>
                   IconButton.filled(
                     onPressed: isSending ? null : _send,
                     icon: isSending
-                        ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        ? SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          )
                         : const Icon(Icons.send),
                   ),
                 ],

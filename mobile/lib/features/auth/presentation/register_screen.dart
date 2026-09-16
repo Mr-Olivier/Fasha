@@ -283,7 +283,7 @@ class _RoleCard extends StatelessWidget {
                       ? colorScheme.primary
                       : colorScheme.secondaryContainer,
               foregroundColor:
-                  selected ? Colors.white : colorScheme.onSecondaryContainer,
+                  selected ? colorScheme.onPrimary : colorScheme.onSecondaryContainer,
               child: Text(
                 initials,
                 style: const TextStyle(fontWeight: FontWeight.w700),

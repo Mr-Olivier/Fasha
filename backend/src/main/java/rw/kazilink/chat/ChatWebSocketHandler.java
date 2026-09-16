@@ -76,12 +76,71 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
+        // Stashed here (rather than re-derived per message) so
+        // handleTextMessage below - which only ever gets the "typing"
+        // sentinel, never bookingId/userId again - knows who's typing and
+        // where to relay it without another auth/participant lookup.
+        session.getAttributes().put(ATTR_BOOKING_ID, bookingId);
+        session.getAttributes().put(ATTR_USER_ID, userId);
         sessionsByBookingId.computeIfAbsent(bookingId, id -> ConcurrentHashMap.newKeySet()).add(session);
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         sessionsByBookingId.values().forEach(sessions -> sessions.remove(session));
+    }
+
+    private static final String ATTR_BOOKING_ID = "bookingId";
+    private static final String ATTR_USER_ID = "userId";
+
+    /**
+     * The only frame a client ever sends over this socket - the literal
+     * text "typing", fired (debounced) while they have text entered on
+     * ChatScreen. Deliberately not JSON: there's exactly one thing a client
+     * says here, so a whole envelope/parser for it would be more machinery
+     * than the message warrants. Relayed to every OTHER session on this
+     * same booking as a small JSON event (distinguishable from a
+     * MessageResponse by its "type" key, which MessageResponse never has) -
+     * never persisted, since "is still typing" has no meaning once the
+     * moment passes.
+     */
+    @Override
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) {
+        if (!"typing".equals(message.getPayload())) return;
+
+        UUID bookingId = (UUID) session.getAttributes().get(ATTR_BOOKING_ID);
+        UUID userId = (UUID) session.getAttributes().get(ATTR_USER_ID);
+        if (bookingId == null || userId == null) return;
+
+        Set<WebSocketSession> sessions = sessionsByBookingId.get(bookingId);
+        if (sessions == null) return;
+
+        String payload = "{\"type\":\"typing\",\"senderId\":\"" + userId + "\"}";
+        for (WebSocketSession other : sessions) {
+            if (other == session || !other.isOpen()) continue;
+            try {
+                other.sendMessage(new TextMessage(payload));
+            } catch (IOException e) {
+                log.warn("Failed to relay a typing indicator to one session for booking {}", bookingId, e);
+            }
+        }
+    }
+
+    /** Called by MessageService.clearChat right after every message/attachment for this booking is deleted - tells whoever's got this chat open right now to empty their view immediately, same distinguishing-by-"type"-key convention as the "typing" event. A no-op if nobody's connected; the other party just sees an empty conversation next time they open it. */
+    public void broadcastCleared(UUID bookingId) {
+        Set<WebSocketSession> sessions = sessionsByBookingId.get(bookingId);
+        if (sessions == null || sessions.isEmpty()) return;
+
+        String payload = "{\"type\":\"cleared\"}";
+        for (WebSocketSession session : sessions) {
+            try {
+                if (session.isOpen()) {
+                    session.sendMessage(new TextMessage(payload));
+                }
+            } catch (IOException e) {
+                log.warn("Failed to deliver a chat-cleared event to one session for booking {}", bookingId, e);
+            }
+        }
     }
 
     /** Called by MessageService right after a message is persisted - delivers it to every client currently connected for this booking. A no-op (not an error) if nobody's connected, e.g. the other party has the app closed - they'll see it via the normal GET on next open. */

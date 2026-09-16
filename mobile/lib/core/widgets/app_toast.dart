@@ -30,8 +30,8 @@ class AppToast {
   static void _show(BuildContext context, String message, _ToastKind kind) {
     final colorScheme = Theme.of(context).colorScheme;
     final (icon, background, foreground) = switch (kind) {
-      _ToastKind.success => (Icons.check_circle_outline, StatusColors.positive(context), Colors.white),
-      _ToastKind.error => (Icons.error_outline, StatusColors.negative(context), Colors.white),
+      _ToastKind.success => (Icons.check_circle_outline, StatusColors.positive(context), colorScheme.onPrimary),
+      _ToastKind.error => (Icons.error_outline, StatusColors.negative(context), colorScheme.onError),
       _ToastKind.info => (Icons.info_outline, colorScheme.secondary, colorScheme.onSecondary),
     };
 

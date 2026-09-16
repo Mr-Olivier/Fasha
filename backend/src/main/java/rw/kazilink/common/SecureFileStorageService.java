@@ -15,8 +15,8 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Saves sensitive uploaded files (KYC documents, booking photos) to local
- * disk, under app.secure-uploads-dir - deliberately parallel to
+ * Saves sensitive uploaded files (KYC documents, booking photos, chat
+ * attachments) to local disk, under app.secure-uploads-dir - deliberately parallel to
  * AvatarStorageService, but for files that must NEVER be reachable through
  * a public URL the way avatars are. See application.yml's doc comment on
  * secure-uploads-dir for why this is a sibling directory, not a
@@ -42,7 +42,8 @@ public class SecureFileStorageService {
      * @param filenamePrefix identifies whose file this is (e.g. a provider profile id, a booking id) - purely for a human skimming the disk, not parsed back
      * @return the opaque relative path (subfolder/filename) to persist in the caller's own entity column
      */
-    private static final Set<String> ACCEPTED_CONTENT_TYPES = Set.of("image/jpeg", "image/png", "image/webp", "application/pdf");
+    private static final Set<String> ACCEPTED_CONTENT_TYPES =
+            Set.of("image/jpeg", "image/png", "image/webp", "application/pdf", "video/mp4", "video/quicktime");
 
     public String store(String subfolder, String filenamePrefix, MultipartFile file) {
         if (file.isEmpty()) {
@@ -50,7 +51,7 @@ public class SecureFileStorageService {
         }
         String contentType = file.getContentType();
         if (!ACCEPTED_CONTENT_TYPES.contains(contentType)) {
-            throw new InvalidSecureUploadException("Only JPEG, PNG, WebP images, or a PDF can be uploaded here.");
+            throw new InvalidSecureUploadException("Only JPEG, PNG, WebP images, an MP4/MOV video, or a PDF can be uploaded here.");
         }
         // The Content-Type header is entirely client-supplied and easy to
         // fake (rename a script to "photo.jpg", send it with
@@ -107,6 +108,8 @@ public class SecureFileStorageService {
             case "image/png" -> ".png";
             case "image/webp" -> ".webp";
             case "application/pdf" -> ".pdf";
+            case "video/mp4" -> ".mp4";
+            case "video/quicktime" -> ".mov";
             default -> ".jpg";
         };
     }

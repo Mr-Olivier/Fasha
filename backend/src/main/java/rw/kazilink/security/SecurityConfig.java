@@ -56,12 +56,16 @@ public class SecurityConfig {
      * ever sees it, even though the server answered with a normal 200 -
      * curl (which ignores CORS entirely) won't reveal this; only an actual
      * browser will. Flutter web's dev/debug port changes across runs, so we
-     * allow any localhost/127.0.0.1 port rather than hardcoding one.
+     * allow any localhost/127.0.0.1 port rather than hardcoding one. The
+     * 192.168.x.x and 10.x.x.x patterns are for testing a second device (a
+     * phone) on the same Wi-Fi against this same backend - see
+     * AppConfig.apiBaseUrl.
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*"));
+        configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost:*", "http://127.0.0.1:*", "http://192.168.*.*:*", "http://10.*.*.*:*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
 

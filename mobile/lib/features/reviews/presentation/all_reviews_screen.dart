@@ -78,7 +78,7 @@ class _AllReviewsScreenState extends ConsumerState<AllReviewsScreen> {
                   Column(
                     children: [
                       Text(average.toStringAsFixed(1), style: textTheme.headlineMedium),
-                      const Icon(Icons.star, size: 16, color: Colors.amber),
+                      Icon(Icons.star, size: 16, color: colorScheme.secondary),
                       Text('${reviews.length} review${reviews.length == 1 ? '' : 's'}', style: textTheme.bodySmall),
                     ],
                   ),

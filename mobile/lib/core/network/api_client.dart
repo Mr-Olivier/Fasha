@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/auth/data/auth_session_storage.dart';
 import '../../features/auth/domain/auth_user.dart';
 import '../../features/auth/presentation/auth_controller.dart';
+import '../config/app_config.dart';
 
 /// Builds the single Dio instance the whole app makes API calls through.
 ///
@@ -109,7 +110,15 @@ class ApiClient {
   /// which forwards Android's own "localhost:8081" straight to this exact
   /// backend. That makes the SAME url work everywhere, with no LAN IP to
   /// hunt down and no emulator-only special case to maintain.
-  static String get _baseUrl => 'http://localhost:8081/api';
+  static String get _baseUrl => AppConfig.apiBaseUrl.isEmpty ? 'http://localhost:8081/api' : AppConfig.apiBaseUrl;
+
+  /// The same base every *Api class's Dio calls resolve against, exposed
+  /// for the rare caller that needs an absolute URL of its own rather than
+  /// a Dio request - VideoPlayerController.networkUrl (an authenticated
+  /// chat video) needs the full URL up front, not a path handed to Dio,
+  /// since it does its own HTTP range-request streaming outside Dio
+  /// entirely.
+  static String get apiBaseUrl => _baseUrl;
 
   /// Same host as [_baseUrl], but without the "/api" prefix - avatar URLs
   /// (e.g. "/uploads/avatars/xyz.jpg") come from StaticResourceConfig on

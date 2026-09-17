@@ -175,6 +175,15 @@ The ✓✓ read receipts the Customer Experience Redesign's mockup (C4) called f
 
 Verified live against the rebuilt Docker container and a freshly-restarted Flutter web dev server (the already-running one from earlier in the session was serving stale compiled Dart and had to be killed/relaunched to pick up the new code - a real gotcha worth remembering: `flutter analyze`/`flutter test` passing does NOT mean a long-running `flutter run` session has picked up source changes): opened the customer's chat, confirmed their own already-sent message showed a single check (unread), then had the provider "open" the conversation via a direct `GET .../messages` call - the customer's browser tab flipped that same bubble to a double check instantly, with no refresh, driven entirely by the read-broadcast. 155 backend tests pass (153 + 2 new: `MessageServiceTest`'s mark-read/broadcast and no-op-when-nothing-unread cases), `flutter analyze` clean, 24 Flutter tests pass.
 
+### Cloudinary image storage (2026-09-17)
+Same "optional third-party integration, inert until configured" pattern as Push notifications above, applied to `AvatarStorageService` - the one class already shared by user avatars, admin category icons, and provider business photos (all three are the same trust level: public, customer-facing images). Booking photos and KYC documents stay on `SecureFileStorageService`/local disk on purpose - they're access-controlled, not public, so Cloudinary's public delivery model is the wrong fit for them.
+
+**Backend**: added `cloudinary-http5` (2.4.0). New `CloudinaryProperties` (`app.cloudinary.*`, same shape as `BrevoProperties`/`FirebaseProperties`). `AvatarStorageService.store()` now uploads to Cloudinary (folder `kazilink/avatars`) when `CLOUDINARY_CLOUD_NAME` is set, built lazily on first use exactly like `PushNotificationService.messagingOrNull()`; falls back to the previous local-disk write otherwise, so local dev/CI need no Cloudinary account. Its 3 callers (`UserService`, `AdminCategoryService`, `ProviderProfileService`) needed no changes at all.
+
+**Mobile**: new `ApiClient.resolveMediaUrl()` - a Cloudinary URL is already absolute (`https://res.cloudinary.com/...`), unlike the old `/uploads/avatars/...` relative path, so every place that used to do `'${ApiClient.mediaBaseUrl}$imageUrl'` would have double-prefixed a Cloudinary URL. Updated all 6 call sites (`provider_card.dart`, `profile_screen.dart`, `provider_detail_screen.dart`, `provider_profile_screen.dart`, `category_icon_badge.dart`) to go through it instead, so both URL shapes (old local-disk rows still in the database, and new Cloudinary rows) resolve correctly.
+
+Verified the backend compiles and the existing `UserServiceTest`/`FileSignatureTest` suites still pass (`AvatarStorageService` is mocked in tests, so its internals changing doesn't touch them) - not yet verified against a real Cloudinary account, since that needs credentials only the project owner can create. See `NEXT_SESSION.md` for the setup checklist.
+
 ## ❌ Not started
 
 | Item | Notes |

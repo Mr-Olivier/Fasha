@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../services/domain/category.dart';
 import '../domain/admin_category.dart';
@@ -45,5 +46,22 @@ class AdminCategoryApi {
 
   Future<void> delete(String categoryId) {
     return _dio.delete('/admin/categories/$categoryId');
+  }
+
+  /// [file] becomes this category's icon everywhere it's shown in the app -
+  /// see Category.imageUrl's doc comment. Same multipart shape as every
+  /// other image upload in this app (ChatApi.sendAttachment, ProviderApi's
+  /// photo upload).
+  Future<AdminCategory> uploadImage({required String categoryId, required XFile file}) async {
+    final bytes = await file.readAsBytes();
+    final formData = FormData.fromMap({'file': MultipartFile.fromBytes(bytes, filename: file.name)});
+    final response = await _dio.post<Map<String, dynamic>>('/admin/categories/$categoryId/image', data: formData);
+    return AdminCategory.fromJson(response.data!);
+  }
+
+  /// Resets this category back to its default icon (CategoryStyle).
+  Future<AdminCategory> removeImage(String categoryId) async {
+    final response = await _dio.delete<Map<String, dynamic>>('/admin/categories/$categoryId/image');
+    return AdminCategory.fromJson(response.data!);
   }
 }

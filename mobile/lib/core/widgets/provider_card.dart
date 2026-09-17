@@ -33,14 +33,14 @@ class ProviderCard extends StatelessWidget {
                 radius: 26,
                 backgroundColor: colorScheme.primary,
                 foregroundColor: colorScheme.onPrimary,
-                // StaticResourceConfig serves this at the backend's plain
-                // host, not under "/api" - see ApiClient.mediaBaseUrl's doc
-                // comment. Only the initial shows while a real photo is
-                // still loading (or if the provider never uploaded one) -
-                // CircleAvatar's own child is masked out once
-                // backgroundImage successfully paints over it.
+                // See ApiClient.resolveMediaUrl's doc comment for why this
+                // isn't a plain string concatenation. Only the initial
+                // shows while a real photo is still loading (or if the
+                // provider never uploaded one) - CircleAvatar's own child
+                // is masked out once backgroundImage successfully paints
+                // over it.
                 backgroundImage: provider.profileImageUrl != null
-                    ? NetworkImage('${ApiClient.mediaBaseUrl}${provider.profileImageUrl}')
+                    ? NetworkImage(ApiClient.resolveMediaUrl(provider.profileImageUrl!))
                     : null,
                 child: provider.profileImageUrl == null
                     ? Text(

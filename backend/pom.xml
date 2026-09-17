@@ -121,7 +121,11 @@
 		<dependency>
 			<groupId>com.google.firebase</groupId>
 			<artifactId>firebase-admin</artifactId>
-			<version>9.4.3</version>
+			<!-- 9.4.x double-decompresses gzip FCM responses when a newer
+			     httpclient5 is on the classpath, throwing
+			     "ZipException: Not in GZIP format" on every send - fixed
+			     upstream in 9.8.0+. -->
+			<version>9.9.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

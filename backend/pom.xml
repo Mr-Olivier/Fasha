@@ -127,6 +127,16 @@
 			     upstream in 9.8.0+. -->
 			<version>9.9.0</version>
 		</dependency>
+		<!-- Uploads avatars/category icons/provider photos to Cloudinary
+		     (AvatarStorageService) instead of local disk, so they survive a
+		     redeploy and get served through Cloudinary's CDN. -http5 is the
+		     current recommended artifact (uses Apache HttpClient5, same as
+		     firebase-admin above already pulls in). -->
+		<dependency>
+			<groupId>com.cloudinary</groupId>
+			<artifactId>cloudinary-http5</artifactId>
+			<version>2.4.0</version>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa-test</artifactId>

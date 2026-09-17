@@ -39,14 +39,25 @@ Same shape as Google Sign-In above, built 2026-09-14 - see `PROJECT_STATUS.md`'s
 - Backend: `FIREBASE_CREDENTIALS_PATH` in `backend/.env` (see `.env.example`) - the absolute path to wherever you saved the downloaded service-account JSON file.
 - Mobile: the four `--dart-define`s, e.g. `flutter run -d chrome --dart-define=FIREBASE_API_KEY=xxx --dart-define=FIREBASE_APP_ID=xxx --dart-define=FIREBASE_MESSAGING_SENDER_ID=xxx --dart-define=FIREBASE_PROJECT_ID=xxx` (same values, every platform - Firebase's web/Android configs for one project share the same messagingSenderId/projectId; apiKey/appId can differ per platform app if you registered more than one).
 
-## 3. Deployment (needs a decision before code)
+## 3. Cloudinary — code is done, needs YOUR Cloudinary account before it actually works
+
+Same shape as Google Sign-In/push notifications above. `AvatarStorageService` (shared by user avatars, admin category icons, and provider business photos) now uploads to Cloudinary when configured, and falls back to saving on local disk otherwise - so everything already works today with no Cloudinary account, it just won't survive a redeploy on most hosts until this is set up.
+
+**What YOU need to do at cloudinary.com:**
+1. Sign up for the free tier (25GB storage/bandwidth per month - plenty for avatars/category icons/provider photos; see the "Cloudinary" conversation for the full limits breakdown).
+2. Go to the dashboard (console.cloudinary.com) and copy the three values shown under "API Keys": **Cloud name**, **API Key**, **API Secret**.
+
+**Where the values go:**
+- Backend only: `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` in `backend/.env` (see `.env.example`). Nothing needed on the mobile side - uploads go through our own backend, never straight from the app to Cloudinary.
+
+## 4. Deployment (needs a decision before code)
 
 Progress so far: the backend is containerized (`backend/Dockerfile`, `docker-compose.yml --profile full`) and CI (`.github/workflows/ci.yml`) runs the full test suite plus a Docker build check on every push - both verified green on real GitHub Actions. What's still missing:
 
 - **Backend hosting** — Render, Railway, Fly.io, or a plain VPS all fit a small Spring Boot + Postgres + Redis app; the existing `backend/Dockerfile` should work as-is on any of them.
 - **Database/Redis hosting** — managed Postgres + Redis from the same provider, or self-hosted alongside the backend.
 - **Flutter target** — ship as a web build (simplest to demo via a link), an Android APK, or both.
-- **Secrets** — how `JWT_SECRET`, `DB_PASSWORD`, the Brevo API key, and (once set up) the Google/Firebase credentials above reach the hosted backend without landing in git.
+- **Secrets** — how `JWT_SECRET`, `DB_PASSWORD`, the Brevo API key, and (once set up) the Google/Firebase/Cloudinary credentials above reach the hosted backend without landing in git.
 - **CD** — once a host is picked, add a deploy step to `ci.yml` (or a separate workflow) that ships a green `main` build automatically, rather than deploying by hand.
 
 Once those are picked, the concrete tasks are: wire environment variables for the chosen host, and (if shipping Flutter web) point its API base URL at the deployed backend instead of `localhost:8081`.

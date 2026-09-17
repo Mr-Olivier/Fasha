@@ -40,7 +40,7 @@ class CategoryIconBadge extends StatelessWidget {
       return ClipRRect(
         borderRadius: BorderRadius.circular(AppRadii.field),
         child: Image.network(
-          '${ApiClient.mediaBaseUrl}$imageUrl',
+          ApiClient.resolveMediaUrl(imageUrl),
           fit: BoxFit.cover,
           // A broken/unreachable upload falls back to the same default
           // icon a category with no upload at all would show, rather than

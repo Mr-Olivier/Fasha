@@ -72,7 +72,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ApiError> handleUploadTooLarge(MaxUploadSizeExceededException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiError.of(HttpStatus.BAD_REQUEST.value(), "Bad Request", "That file is too large (max 100MB)."));
+                .body(ApiError.of(HttpStatus.BAD_REQUEST.value(), "Bad Request", "That file is too large (max 500MB)."));
     }
 
     /**

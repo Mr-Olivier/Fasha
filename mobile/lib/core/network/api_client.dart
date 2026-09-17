@@ -126,6 +126,18 @@ class ApiClient {
   /// ProfileScreen prepends this to build a full, loadable image URL.
   static String get mediaBaseUrl => _baseUrl.replaceFirst('/api', '');
 
+  /// Turns a [path] the backend returned (an avatar/category-icon/provider-photo
+  /// URL) into one [NetworkImage] can actually load. AvatarStorageService
+  /// now returns an already-absolute Cloudinary URL
+  /// ("https://res.cloudinary.com/...") for anything uploaded after that
+  /// switch, but older rows saved before it - or a local dev backend with
+  /// no Cloudinary account configured - still return a relative path like
+  /// "/uploads/avatars/xyz.jpg" that needs [mediaBaseUrl] prepended. Every
+  /// caller must go through this rather than prepending mediaBaseUrl
+  /// itself, or a Cloudinary URL would come out as
+  /// "http://localhost:8081https://res.cloudinary.com/...".
+  static String resolveMediaUrl(String path) => path.startsWith('http') ? path : '$mediaBaseUrl$path';
+
   /// Same host again, as a "ws://" URL with no path - ChatSocket appends
   /// "/ws/chat" itself. WebSocket connections use their own "ws"/"wss"
   /// scheme rather than "http"/"https", even though it's the same host and

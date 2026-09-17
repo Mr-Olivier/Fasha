@@ -11,6 +11,7 @@ class AdminCategory {
     required this.active,
     required this.providerCount,
     required this.bookingCount,
+    this.imageUrl,
   });
 
   final String id;
@@ -20,6 +21,9 @@ class AdminCategory {
   final int providerCount;
   final int bookingCount;
 
+  /// Null until an admin uploads one - see [Category.imageUrl]'s doc comment.
+  final String? imageUrl;
+
   factory AdminCategory.fromJson(Map<String, dynamic> json) => AdminCategory(
         id: json['id'] as String,
         name: json['name'] as String,
@@ -27,5 +31,6 @@ class AdminCategory {
         active: json['active'] as bool,
         providerCount: (json['providerCount'] as num).toInt(),
         bookingCount: (json['bookingCount'] as num).toInt(),
+        imageUrl: json['imageUrl'] as String?,
       );
 }

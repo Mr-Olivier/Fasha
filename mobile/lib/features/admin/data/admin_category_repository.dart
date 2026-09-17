@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../services/domain/category.dart';
@@ -45,6 +46,22 @@ class AdminCategoryRepository {
   Future<void> delete(String categoryId) async {
     try {
       await _api.delete(categoryId);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<AdminCategory> uploadImage({required String categoryId, required XFile file}) async {
+    try {
+      return await _api.uploadImage(categoryId: categoryId, file: file);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<AdminCategory> removeImage(String categoryId) async {
+    try {
+      return await _api.removeImage(categoryId);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

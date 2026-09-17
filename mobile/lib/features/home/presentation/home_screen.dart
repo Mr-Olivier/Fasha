@@ -345,8 +345,11 @@ class _SearchProvidersBar extends StatelessWidget {
 }
 
 /// Matches the "Admin Overview" screen from the project's design reference
-/// (E1): a 2x2 stat row backed by GET /api/admin/stats, then a "Needs your
-/// action" queue of pending provider applications. The design also shows a
+/// (E1): a hero card + icon-based stat grid (the same visual language
+/// ProviderDashboardScreen's own hero/_StatTile pair uses, so all three
+/// role dashboards read as one deliberate design system rather than the
+/// admin one looking like an afterthought), then a "Needs your action"
+/// queue of pending provider applications. The design also shows a
 /// reported-review item in that queue - left out here since nothing in the
 /// app yet lets anyone report a review (a separate feature, not an admin
 /// screen restyle - see PROJECT_STATUS.md).
@@ -369,51 +372,49 @@ class _AdminHome extends ConsumerWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(AppSpacing.gutter),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'ADMIN',
-              style: textTheme.labelSmall?.copyWith(
-                color: colorScheme.onSurface.withValues(alpha: 0.6),
-                letterSpacing: 1.2,
-              ),
-            ),
-            Text('Overview', style: textTheme.headlineSmall),
+            _AdminHeroCard(pendingApprovals: statsState.valueOrNull?.pendingApprovals),
             const SizedBox(height: AppSpacing.gutter),
+            Text('Platform pulse', style: textTheme.titleLarge),
+            const SizedBox(height: AppSpacing.sm),
             statsState.when(
               loading: () => const SizedBox(
                 height: 160,
                 child: Center(child: CircularProgressIndicator()),
               ),
               error: (error, _) => const Text('Could not load stats.'),
-              data: (stats) => Column(
+              data: (stats) => GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: AppSpacing.md,
+                crossAxisSpacing: AppSpacing.md,
+                childAspectRatio: 2.1,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StatCard(
-                          value: '${stats.pendingApprovals}',
-                          label: 'Pending approvals',
-                          color: colorScheme.secondary,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: _StatCard(
-                          value: '${stats.activeProviders}',
-                          label: 'Active providers',
-                          color: colorScheme.primary,
-                        ),
-                      ),
-                    ],
+                  _StatTile(
+                    value: '${stats.pendingApprovals}',
+                    label: 'Pending approvals',
+                    icon: Icons.inbox_outlined,
+                    color: colorScheme.secondary,
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    children: [
-                      Expanded(child: _StatCard(value: '${stats.totalCustomers}', label: 'Customers')),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(child: _StatCard(value: '${stats.bookingsLast30Days}', label: 'Bookings (30d)')),
-                    ],
+                  _StatTile(
+                    value: '${stats.activeProviders}',
+                    label: 'Active providers',
+                    icon: Icons.storefront_outlined,
+                    color: colorScheme.primary,
+                  ),
+                  _StatTile(
+                    value: '${stats.totalCustomers}',
+                    label: 'Customers',
+                    icon: Icons.group_outlined,
+                    color: colorScheme.tertiary,
+                  ),
+                  _StatTile(
+                    value: '${stats.bookingsLast30Days}',
+                    label: 'Bookings (30d)',
+                    icon: Icons.calendar_month_outlined,
+                    color: colorScheme.secondary,
                   ),
                 ],
               ),
@@ -472,37 +473,112 @@ class _AdminHome extends ConsumerWidget {
   }
 }
 
-/// One cell of the admin Overview's 2x2 stat row. [color] tints the card
-/// like the design's amber "Pending approvals" / green "Active providers"
-/// cells; leaving it null gives the plain surface card the other two cells
-/// use, matching the design's flat white "Customers"/"Bookings" cells.
-class _StatCard extends StatelessWidget {
-  const _StatCard({required this.value, required this.label, this.color});
+/// The admin Overview's colour-blocked header, same treatment
+/// ProviderDashboardScreen's own hero card gives a provider's business name
+/// - here it's the platform itself, with a badge surfacing whether
+/// anything actually needs the admin's attention right now instead of
+/// making them scan the stat grid below to find out.
+class _AdminHeroCard extends StatelessWidget {
+  const _AdminHeroCard({required this.pendingApprovals});
 
-  final String value;
-  final String label;
-  final Color? color;
+  final int? pendingApprovals;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final tint = color;
+    final hasPending = (pendingApprovals ?? 0) > 0;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(color: colorScheme.primary, borderRadius: BorderRadius.circular(AppRadii.card)),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.gutter),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Fasha platform',
+                    style: textTheme.bodySmall?.copyWith(color: colorScheme.onPrimary.withValues(alpha: 0.8)),
+                  ),
+                  const SizedBox(height: 4),
+                  Text('Admin dashboard', style: textTheme.headlineSmall?.copyWith(color: colorScheme.onPrimary)),
+                ],
+              ),
+            ),
+            if (pendingApprovals != null)
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colorScheme.onPrimary.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(AppRadii.chip),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+                  child: Text(
+                    hasPending ? '$pendingApprovals TO REVIEW' : 'ALL CLEAR',
+                    style: textTheme.labelSmall?.copyWith(color: colorScheme.onPrimary, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One cell of the admin Overview's stat grid - identical shape to
+/// ProviderDashboardScreen's own private _StatTile (an icon in a tinted
+/// circle + value/label), kept as its own copy here rather than extracted
+/// into a shared widget since each screen's tile count/colours are
+/// different enough that a shared version would need almost as many
+/// parameters as just having two small private classes.
+class _StatTile extends StatelessWidget {
+  const _StatTile({required this.value, required this.label, required this.icon, required this.color});
+
+  final String value;
+  final String label;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: tint != null ? tint.withValues(alpha: 0.14) : colorScheme.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(AppRadii.card),
-        border: Border.all(color: tint != null ? tint.withValues(alpha: 0.3) : colorScheme.outline),
+        border: Border.all(color: colorScheme.outline),
       ),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Text(value, style: textTheme.headlineSmall?.copyWith(color: tint ?? colorScheme.onSurface)),
-            const SizedBox(height: 2),
-            Text(label, style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7))),
+            DecoratedBox(
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.14), shape: BoxShape.circle),
+              child: Padding(padding: const EdgeInsets.all(8), child: Icon(icon, size: 18, color: color)),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(value, style: textTheme.titleLarge),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

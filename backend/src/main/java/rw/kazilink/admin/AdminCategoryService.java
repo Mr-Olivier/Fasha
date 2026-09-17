@@ -3,6 +3,7 @@ package rw.kazilink.admin;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import rw.kazilink.booking.BookingRepository;
 import rw.kazilink.category.Category;
 import rw.kazilink.category.CategoryInUseException;
@@ -14,6 +15,7 @@ import rw.kazilink.provider.ProviderProfileRepository;
 import rw.kazilink.provider.VerificationStatus;
 import rw.kazilink.service.ServiceListing;
 import rw.kazilink.service.ServiceListingRepository;
+import rw.kazilink.user.AvatarStorageService;
 
 import java.util.List;
 import java.util.UUID;
@@ -27,6 +29,7 @@ public class AdminCategoryService {
     private final ProviderProfileRepository providerProfileRepository;
     private final BookingRepository bookingRepository;
     private final AdminAuditService adminAuditService;
+    private final AvatarStorageService avatarStorageService;
 
     @Transactional
     public CategoryResponse create(UUID adminUserId, String name, String description) {
@@ -65,6 +68,34 @@ public class AdminCategoryService {
         return categoryRepository.findAllByOrderByNameAsc().stream().map(this::toAdminResponse).toList();
     }
 
+    /**
+     * Replaces this category's icon with an uploaded image - reuses
+     * AvatarStorageService rather than the private SecureFileStorageService
+     * KYC documents use, since a category icon is meant to be publicly
+     * visible in the app, same trust level as an avatar or a provider's
+     * business photo. A category id (not a user id) is just the prefix
+     * AvatarStorageService.store uses to name the file on disk - it has no
+     * other meaning to that method.
+     */
+    @Transactional
+    public AdminCategoryResponse uploadImage(UUID adminUserId, UUID id, MultipartFile file) {
+        Category category = categoryRepository.findById(id).orElseThrow(CategoryNotFoundException::new);
+        category.setImageUrl(avatarStorageService.store(id, file));
+        AdminCategoryResponse response = toAdminResponse(categoryRepository.save(category));
+        adminAuditService.record(adminUserId, "CATEGORY_IMAGE_UPLOADED", "CATEGORY", id, category.getName());
+        return response;
+    }
+
+    /** Resets a category back to CategoryStyle's default icon - see Category.imageUrl's doc comment. */
+    @Transactional
+    public AdminCategoryResponse removeImage(UUID adminUserId, UUID id) {
+        Category category = categoryRepository.findById(id).orElseThrow(CategoryNotFoundException::new);
+        category.setImageUrl(null);
+        AdminCategoryResponse response = toAdminResponse(categoryRepository.save(category));
+        adminAuditService.record(adminUserId, "CATEGORY_IMAGE_REMOVED", "CATEGORY", id, category.getName());
+        return response;
+    }
+
     @Transactional
     public AdminCategoryResponse setActive(UUID adminUserId, UUID id, boolean active) {
         Category category = categoryRepository.findById(id).orElseThrow(CategoryNotFoundException::new);
@@ -75,7 +106,7 @@ public class AdminCategoryService {
     }
 
     private CategoryResponse toResponse(Category category) {
-        return new CategoryResponse(category.getId(), category.getName(), category.getDescription());
+        return new CategoryResponse(category.getId(), category.getName(), category.getDescription(), category.getImageUrl());
     }
 
     /**
@@ -96,7 +127,8 @@ public class AdminCategoryService {
         long bookingCount = serviceIds.isEmpty() ? 0 : bookingRepository.countByServiceListingIdIn(serviceIds);
 
         return new AdminCategoryResponse(
-                category.getId(), category.getName(), category.getDescription(), category.isActive(), providerCount, bookingCount
+                category.getId(), category.getName(), category.getDescription(), category.isActive(),
+                providerCount, bookingCount, category.getImageUrl()
         );
     }
 }

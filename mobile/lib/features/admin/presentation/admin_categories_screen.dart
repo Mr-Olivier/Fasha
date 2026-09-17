@@ -101,7 +101,12 @@ class _AdminCategoriesScreenState extends ConsumerState<AdminCategoriesScreen> {
                     onToggle: () => _toggleVisibility(category),
                     onTap: () => context.push(
                       '/admin/categories/form',
-                      extra: Category(id: category.id, name: category.name, description: category.description),
+                      extra: Category(
+                        id: category.id,
+                        name: category.name,
+                        description: category.description,
+                        imageUrl: category.imageUrl,
+                      ),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
@@ -148,7 +153,7 @@ class _CategoryRow extends StatelessWidget {
                   width: 44,
                   height: 44,
                   child: CategoryIconBadge(
-                    category: Category(id: category.id, name: category.name),
+                    category: Category(id: category.id, name: category.name, imageUrl: category.imageUrl),
                     iconSize: 22,
                   ),
                 ),

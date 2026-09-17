@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../services/domain/category.dart';
+import '../../services/presentation/category_icon_badge.dart';
 import 'admin_category_controller.dart';
 
 /// Shared by both "add a category" and "edit a category" - [existing] being
@@ -40,10 +42,20 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
     final description = _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim();
 
     if (widget.existing == null) {
-      await controller.addCategory(name: name, description: description);
-    } else {
-      await controller.updateCategory(categoryId: widget.existing!.id, name: name, description: description);
+      final created = await controller.addCategory(name: name, description: description);
+      final state = ref.read(adminCategoryControllerProvider);
+      if (state.hasError || created == null) return;
+      if (!mounted) return;
+      AppToast.success(context, 'Category added.');
+      // Straight into editing the category just created - that's where
+      // the icon-upload UI lives (see _CategoryImageSection's doc
+      // comment), so adding a custom icon is the natural next step
+      // instead of a separate trip back into the list to find it again.
+      context.pushReplacement('/admin/categories/form', extra: created);
+      return;
     }
+
+    await controller.updateCategory(categoryId: widget.existing!.id, name: name, description: description);
 
     // Only pop back to the list on success - if the save failed, the
     // listener below shows the error and the form stays open so the user
@@ -51,8 +63,37 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
     final state = ref.read(adminCategoryControllerProvider);
     if (state.hasError) return;
     if (!mounted) return;
-    AppToast.success(context, widget.existing == null ? 'Category added.' : 'Category updated.');
+    AppToast.success(context, 'Category updated.');
     context.pop();
+  }
+
+  /// Same direct-to-gallery pattern ProfileScreen's own avatar upload uses
+  /// (no bottom sheet - an admin picking a category icon isn't the "snap a
+  /// photo of a problem" scenario chat's camera option exists for). Only
+  /// reachable once [widget.existing] is non-null (see build()'s "editing
+  /// only" guard) - a category needs to exist server-side before there's
+  /// an id to upload against, same as an avatar needing an account first.
+  Future<void> _pickAndUploadImage() async {
+    final categoryId = widget.existing?.id;
+    if (categoryId == null) return;
+
+    final image = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 1024, imageQuality: 85);
+    if (image == null || !mounted) return;
+
+    await ref.read(adminCategoryControllerProvider.notifier).uploadImage(categoryId: categoryId, file: image);
+    final state = ref.read(adminCategoryControllerProvider);
+    if (state.hasError || !mounted) return;
+    AppToast.success(context, 'Icon updated.');
+  }
+
+  Future<void> _removeImage() async {
+    final categoryId = widget.existing?.id;
+    if (categoryId == null) return;
+
+    await ref.read(adminCategoryControllerProvider.notifier).removeImage(categoryId);
+    final state = ref.read(adminCategoryControllerProvider);
+    if (state.hasError || !mounted) return;
+    AppToast.success(context, 'Reset to the default icon.');
   }
 
   Future<void> _delete() async {
@@ -114,6 +155,15 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
                 maxLines: 3,
                 decoration: const InputDecoration(labelText: 'Description (optional)'),
               ),
+              if (isEditing) ...[
+                const SizedBox(height: 24),
+                _CategoryImageSection(
+                  category: widget.existing!,
+                  isBusy: isSaving,
+                  onUpload: _pickAndUploadImage,
+                  onRemove: _removeImage,
+                ),
+              ],
               const SizedBox(height: 24),
               FilledButton(
                 onPressed: isSaving ? null : _submit,
@@ -140,6 +190,82 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The icon an admin sets for this category - shows what customers
+/// actually see today (falling back through to CategoryStyle's default the
+/// same way CategoryIconBadge does everywhere else) rather than assuming
+/// [category]'s own possibly-stale imageUrl, since a controller
+/// upload/remove call updates the LIST this screen was opened from, not
+/// this widget's original constructor argument.
+class _CategoryImageSection extends ConsumerWidget {
+  const _CategoryImageSection({
+    required this.category,
+    required this.isBusy,
+    required this.onUpload,
+    required this.onRemove,
+  });
+
+  final Category category;
+  final bool isBusy;
+  final VoidCallback onUpload;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final categories = ref.watch(adminCategoryControllerProvider).valueOrNull ?? const [];
+    final matches = categories.where((c) => c.id == category.id);
+    final currentImageUrl = matches.isEmpty ? category.imageUrl : matches.first.imageUrl;
+    final preview = Category(id: category.id, name: category.name, imageUrl: currentImageUrl);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Category icon', style: textTheme.titleMedium),
+        const SizedBox(height: 4),
+        Text(
+          'Shown everywhere this category appears in the app. Leave it '
+          'unset to use the default icon instead.',
+          style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Row(
+          children: [
+            InkWell(
+              onTap: isBusy ? null : onUpload,
+              borderRadius: BorderRadius.circular(AppRadii.field),
+              child: SizedBox(
+                width: 72,
+                height: 72,
+                child: CategoryIconBadge(category: preview, iconSize: 32),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  OutlinedButton(
+                    onPressed: isBusy ? null : onUpload,
+                    child: Text(currentImageUrl == null ? 'Upload icon' : 'Change icon'),
+                  ),
+                  if (currentImageUrl != null)
+                    TextButton(
+                      onPressed: isBusy ? null : onRemove,
+                      child: const Text('Reset to default'),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

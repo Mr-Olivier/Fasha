@@ -65,8 +65,8 @@ spring:
       # MaxUploadSizeExceededException past this is turned into a clean 400
       # by GlobalExceptionHandler instead of the raw 500 Spring would
       # otherwise send.
-      max-file-size: 100MB
-      max-request-size: 100MB
+      max-file-size: 500MB
+      max-request-size: 500MB
 
 server:
   # 8081, not the default 8080: something else on this machine already

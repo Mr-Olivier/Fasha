@@ -87,10 +87,11 @@ app:
     expiration-ms: 900000 # 15 minutes, in milliseconds
     refresh-expiration-ms: 2592000000 # 30 days, in milliseconds
 
-  # Where AvatarStorageService writes uploaded avatar files, and where
-  # StaticResourceConfig serves them back from. Relative to wherever the
-  # backend process is started from - fine for local dev; a real deployment
-  # would point this at a persistent volume or object storage instead.
+  # Where AvatarStorageService writes uploaded avatar files when Cloudinary
+  # (below) isn't configured, and where StaticResourceConfig serves them
+  # back from. Relative to wherever the backend process is started from -
+  # fine for local dev; a real deployment should have app.cloudinary set
+  # instead, since local disk doesn't survive a redeploy on most hosts.
   uploads-dir: uploads
 
   # Where SecureFileStorageService writes KYC documents and booking photos -
@@ -132,6 +133,17 @@ app:
     # Firebase project at all - same "optional third-party integration"
     # pattern as app.brevo/app.google above.
     credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+
+  cloudinary:
+    # From https://console.cloudinary.com/settings/api-keys (free tier is
+    # plenty for avatars/category icons/provider photos - see
+    # NEXT_SESSION.md). Leave cloud-name unset and AvatarStorageService just
+    # writes to local disk instead, so local dev and CI work with no
+    # Cloudinary account at all - same "optional third-party integration"
+    # pattern as app.brevo/app.google/app.firebase above.
+    cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+    api-key: ${CLOUDINARY_API_KEY:}
+    api-secret: ${CLOUDINARY_API_SECRET:}
 
 logging:
   level:

@@ -1,0 +1,12 @@
+-- An admin-uploaded icon for a category, shown instead of CategoryStyle's
+-- hardcoded name-matched icon/colour wherever a category appears in the
+-- app (Home's grid, "browse all categories", the provider category
+-- picker). Nullable on purpose: a category with no upload falls back to
+-- CategoryStyle's default exactly as before - this column only ever
+-- overrides that default, it never replaces the fallback logic itself.
+--
+-- Public storage (same tier as avatars/provider photos, see
+-- AvatarStorageService), not the private secure-uploads directory KYC
+-- documents and chat attachments use - a category icon is meant to be
+-- visible to every customer browsing the app, not access-controlled.
+ALTER TABLE categories ADD COLUMN image_url VARCHAR(500);

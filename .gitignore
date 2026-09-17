@@ -46,6 +46,8 @@ backend/secure-uploads/
 *.env
 **/application-local.yml
 **/application-local.properties
+mobile/dart_defines.json
+backend/firebase-service-account*.json
 
 # ---- Docker ----
 docker/volumes/

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../domain/category.dart';
 import 'category_style.dart';
@@ -34,8 +35,35 @@ class CategoryIconBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageUrl = category.imageUrl;
+    if (imageUrl != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadii.field),
+        child: Image.network(
+          '${ApiClient.mediaBaseUrl}$imageUrl',
+          fit: BoxFit.cover,
+          // A broken/unreachable upload falls back to the same default
+          // icon a category with no upload at all would show, rather than
+          // Flutter's own broken-image glyph - see this class's own doc
+          // comment on why that fallback has to always be available.
+          errorBuilder: (context, error, stackTrace) => _DefaultIcon(category: category, iconSize: iconSize),
+        ),
+      );
+    }
+    return _DefaultIcon(category: category, iconSize: iconSize);
+  }
+}
+
+class _DefaultIcon extends StatelessWidget {
+  const _DefaultIcon({required this.category, required this.iconSize});
+
+  final Category category;
+  final double iconSize;
+
+  @override
+  Widget build(BuildContext context) {
     final style = CategoryStyle.of(category.name);
-    final color = _legibleOn(style.color, Theme.of(context).brightness);
+    final color = CategoryIconBadge._legibleOn(style.color, Theme.of(context).brightness);
 
     return DecoratedBox(
       decoration: BoxDecoration(

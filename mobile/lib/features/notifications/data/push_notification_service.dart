@@ -5,10 +5,11 @@ import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import '../../../core/config/app_config.dart';
 import 'device_token_api.dart';
 
-/// Registers/unregisters this install for push notifications - called from
-/// FashaApp's `ref.listen(authControllerProvider, ...)` whenever the user
-/// logs in or out (see main.dart), not from AuthController itself, so the
-/// auth feature doesn't need to know push notifications exist.
+/// Registers/unregisters this install for push notifications - called
+/// directly from AuthController (`_registerPushTokenIfSignedIn` after
+/// register/login/Google sign-in, and the start of `logout()`), the same
+/// place it already calls GoogleAuthService.signOut() for equivalent
+/// session-lifecycle cleanup.
 ///
 /// Every method here is deliberately fail-silent (logs, never throws):
 /// push notifications are a nice-to-have, and a Firebase hiccup (or, during

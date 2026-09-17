@@ -4,7 +4,7 @@
          doesn't explicitly declare it wants network access at all. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="FASHA APP"
+        android:label="FashaApp"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
@@ -40,6 +40,20 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Without these, a push notification (see PushNotificationService,
+             backend and mobile) falls back to a plain white square in the
+             status bar - Android notification icons MUST be a flat white
+             silhouette on a transparent background (any colour is
+             stripped), which is exactly what ic_notification.png is,
+             generated from the real logo. default_notification_color tints
+             that silhouette with the brand teal instead of leaving it a
+             flat white blob in the expanded notification. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_color" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

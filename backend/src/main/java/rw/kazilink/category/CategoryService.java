@@ -13,7 +13,7 @@ public class CategoryService {
 
     public List<CategoryResponse> listAll() {
         return categoryRepository.findByActiveTrueOrderByNameAsc().stream()
-                .map(category -> new CategoryResponse(category.getId(), category.getName(), category.getDescription()))
+                .map(category -> new CategoryResponse(category.getId(), category.getName(), category.getDescription(), category.getImageUrl()))
                 .toList();
     }
 }

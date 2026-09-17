@@ -35,6 +35,10 @@ public class Category {
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
+    /** Null until an admin uploads one - see V36's doc comment. Public storage path (AvatarStorageService), never a private one. */
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
     public Category(String name, String description) {
         this.name = name;
         this.description = description;
@@ -47,5 +51,9 @@ public class Category {
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }

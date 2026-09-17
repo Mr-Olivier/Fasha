@@ -15,6 +15,7 @@ public record AdminCategoryResponse(
         String description,
         boolean active,
         long providerCount,
-        long bookingCount
+        long bookingCount,
+        String imageUrl
 ) {
 }

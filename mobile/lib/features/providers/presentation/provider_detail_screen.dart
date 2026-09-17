@@ -63,7 +63,7 @@ class _ProviderDetailScreenState extends ConsumerState<ProviderDetailScreen> {
                           backgroundColor: colorScheme.primary,
                           foregroundColor: colorScheme.onPrimary,
                           backgroundImage: profile.profileImageUrl != null
-                              ? NetworkImage('${ApiClient.mediaBaseUrl}${profile.profileImageUrl}')
+                              ? NetworkImage(ApiClient.resolveMediaUrl(profile.profileImageUrl!))
                               : null,
                           child: profile.profileImageUrl == null
                               ? Text(

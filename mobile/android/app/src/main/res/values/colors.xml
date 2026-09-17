@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The app's Kigali Green primary (see AppTheme in Dart) - tints the
+         monochrome notification icon (ic_notification) instead of it
+         showing as plain white-on-grey, matching the brand everywhere
+         else in the app. -->
+    <color name="notification_color">#0F766E</color>
+</resources>

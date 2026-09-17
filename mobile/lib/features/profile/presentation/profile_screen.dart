@@ -230,9 +230,9 @@ class _Avatar extends StatelessWidget {
       radius: 48,
       backgroundColor: colorScheme.primary,
       foregroundColor: colorScheme.onPrimary,
-      // StaticResourceConfig serves this at the backend's plain host, not
-      // under "/api" - see ApiClient.mediaBaseUrl's doc comment.
-      backgroundImage: imageUrl != null ? NetworkImage('${ApiClient.mediaBaseUrl}$imageUrl') : null,
+      // See ApiClient.resolveMediaUrl's doc comment for why this isn't a
+      // plain string concatenation.
+      backgroundImage: imageUrl != null ? NetworkImage(ApiClient.resolveMediaUrl(imageUrl)) : null,
       child: imageUrl == null
           ? Text(
               user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',

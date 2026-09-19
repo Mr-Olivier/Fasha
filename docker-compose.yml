@@ -22,18 +22,18 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: kazilink-postgres
+    container_name: fasha-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: kazilink
-      POSTGRES_USER: kazilink
-      POSTGRES_PASSWORD: kazilink
+      POSTGRES_DB: fasha
+      POSTGRES_USER: fasha
+      POSTGRES_PASSWORD: fasha
     ports:
       - "5433:5432"
     volumes:
-      - kazilink_pgdata:/var/lib/postgresql/data
+      - fasha_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kazilink -d kazilink"]
+      test: ["CMD-SHELL", "pg_isready -U fasha -d fasha"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -47,12 +47,12 @@ services:
   # unlike Postgres, so this keeps the default 6379).
   redis:
     image: redis:7-alpine
-    container_name: kazilink-redis
+    container_name: fasha-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
-      - kazilink_redisdata:/data
+      - fasha_redisdata:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -68,7 +68,7 @@ services:
     profiles: ["full"]
     build:
       context: ./backend
-    container_name: kazilink-backend
+    container_name: fasha-backend
     restart: unless-stopped
     depends_on:
       postgres:
@@ -82,8 +82,8 @@ services:
       # matters for something connecting from outside this Compose network.
       DB_HOST: postgres
       DB_PORT: "5432"
-      DB_USERNAME: kazilink
-      DB_PASSWORD: kazilink
+      DB_USERNAME: fasha
+      DB_PASSWORD: fasha
       REDIS_HOST: redis
       # A real deployment MUST override this (e.g. via a `.env` file next to
       # this compose file, or your hosting platform's own secrets manager) -
@@ -92,7 +92,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me-please-make-me-long-and-random}
       BREVO_API_KEY: ${BREVO_API_KEY:-}
       BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL:-no-reply@kazilink.rw}
-      BREVO_SENDER_NAME: ${BREVO_SENDER_NAME:-KaziLink Rwanda}
+      BREVO_SENDER_NAME: ${BREVO_SENDER_NAME:-Fasha}
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
     ports:
       - "8081:8081"
@@ -100,16 +100,16 @@ services:
       # Uploaded files live on named volumes, not the container's writable
       # layer - `docker compose down` (without `-v`) recreates the
       # container but keeps everything already uploaded.
-      - kazilink_uploads:/app/uploads
-      - kazilink_secure_uploads:/app/secure-uploads
+      - fasha_uploads:/app/uploads
+      - fasha_secure_uploads:/app/secure-uploads
 
 volumes:
-  kazilink_pgdata:
+  fasha_pgdata:
     # Named volume so your data survives "docker compose down" (but not "-v").
-  kazilink_redisdata:
+  fasha_redisdata:
     # Redis persists to disk periodically (its own default RDB snapshotting) -
     # this volume is what that snapshot survives a container recreate in.
     # Losing it is low-stakes either way (rate-limit counters and lockouts
     # are short-TTL, throwaway data), unlike the Postgres volume above.
-  kazilink_uploads:
-  kazilink_secure_uploads:
+  fasha_uploads:
+  fasha_secure_uploads:

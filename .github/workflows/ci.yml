@@ -23,13 +23,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: kazilink
-          POSTGRES_USER: kazilink
-          POSTGRES_PASSWORD: kazilink
+          POSTGRES_DB: fasha
+          POSTGRES_USER: fasha
+          POSTGRES_PASSWORD: fasha
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U kazilink -d kazilink"
+          --health-cmd "pg_isready -U fasha -d fasha"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -64,8 +64,8 @@ jobs:
           # localhost (see the "ports" mappings above).
           DB_HOST: localhost
           DB_PORT: '5432'
-          DB_USERNAME: kazilink
-          DB_PASSWORD: kazilink
+          DB_USERNAME: fasha
+          DB_PASSWORD: fasha
           REDIS_HOST: localhost
           REDIS_PORT: '6379'
           # Any value works here - CI never issues a real login a user

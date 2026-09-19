@@ -29,8 +29,8 @@ WORKDIR /app
 # Runs as a dedicated non-root user rather than the container default
 # (root) - if the app were ever compromised, it can't touch anything
 # outside its own working directory.
-RUN addgroup -S kazilink && adduser -S kazilink -G kazilink
-USER kazilink
+RUN addgroup -S fasha && adduser -S fasha -G fasha
+USER fasha
 
 COPY --from=build /app/target/*.jar app.jar
 

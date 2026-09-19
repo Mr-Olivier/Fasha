@@ -8,11 +8,11 @@
 		<version>4.1.1</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>rw.kazilink</groupId>
+	<groupId>rw.fasha</groupId>
 	<artifactId>backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>backend</name>
-	<description>KaziLink Rwanda backend API</description>
+	<description>Fasha backend API</description>
 	<url/>
 	<licenses>
 		<license/>

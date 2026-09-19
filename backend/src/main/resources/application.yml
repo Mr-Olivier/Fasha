@@ -9,7 +9,7 @@
 
 spring:
   application:
-    name: kazilink-backend
+    name: fasha-backend
 
   datasource:
     # DB_HOST defaults to localhost for local dev (running the backend
@@ -25,9 +25,9 @@ spring:
     # docker-compose Postgres is mapped there on the HOST to avoid
     # clashing with any native PostgreSQL already installed on the
     # machine. Override with DB_PORT if your setup differs.
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/kazilink
-    username: ${DB_USERNAME:kazilink}
-    password: ${DB_PASSWORD:kazilink}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/fasha
+    username: ${DB_USERNAME:fasha}
+    password: ${DB_PASSWORD:fasha}
 
   data:
     redis:
@@ -108,7 +108,7 @@ app:
     # so local dev works fully without a Brevo account.
     api-key: ${BREVO_API_KEY:}
     sender-email: ${BREVO_SENDER_EMAIL:no-reply@kazilink.rw}
-    sender-name: ${BREVO_SENDER_NAME:KaziLink Rwanda}
+    sender-name: ${BREVO_SENDER_NAME:Fasha}
 
   google:
     # The OAuth "Web application" client ID from Google Cloud Console - see
@@ -147,4 +147,4 @@ app:
 
 logging:
   level:
-    rw.kazilink: DEBUG
+    rw.fasha: DEBUG

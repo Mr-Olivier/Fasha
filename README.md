@@ -18,10 +18,6 @@
 
 ---
 
-> The repository, Java package (`rw.kazilink`), and some internal identifiers predate a rebrand from the project's original name, KaziLink, to **Fasha**. This README reflects the current name and product throughout.
-
----
-
 ## Table of Contents
 
 1. [Overview](#1-overview)
@@ -151,7 +147,7 @@ flowchart TB
 ## 6. Repository Structure
 
 ```
-KaziLink_Rwanda/                     # repo name predates the Fasha rebrand
+Fasha/
 ├── mobile/                          # Flutter application
 │   └── lib/
 │       ├── core/                    # router (role-aware shell), theme, network client, shared widgets
@@ -171,7 +167,7 @@ KaziLink_Rwanda/                     # repo name predates the Fasha rebrand
 │
 ├── backend/                         # Spring Boot application
 │   ├── Dockerfile                   # multi-stage build → non-root JRE runtime
-│   └── src/main/java/rw/kazilink/
+│   └── src/main/java/rw/fasha/
 │       ├── auth/                    # register/login/logout/refresh, JWT + Google issuing
 │       ├── otp/                     # OTP generation/validation (verification + password reset)
 │       ├── email/                   # Brevo integration

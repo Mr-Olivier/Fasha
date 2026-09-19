@@ -15,7 +15,7 @@ All the code is written and compiles/analyzes clean, and everything except the f
 2. Configure the OAuth consent screen (External is fine for testing; add your own Google account as a test user while the app is unpublished).
 3. Create an OAuth 2.0 Client ID of type **"Web application"**. For local dev, add `http://localhost:5000` (or whatever port `flutter run -d chrome` picks) under **Authorized JavaScript origins** - this is the client ID that matters; copy it, it's the one value used everywhere (see below).
 4. Create a second OAuth 2.0 Client ID of type **"Android"**:
-   - Package name: `com.kazilink.kazilink_rwanda`
+   - Package name: `rw.fasha.app`
    - SHA-1 (debug keystore, already generated on this machine): `3E:93:27:22:33:A0:E5:D7:CF:96:7F:84:5E:5F:EC:E9:08:36:F5:BB`
    - This client ID itself is never used in code - Android just needs it registered against that package name + fingerprint for sign-in to be allowed at all. Before ever shipping a signed release build, add the **release keystore's** SHA-1 here too (or Android sign-in will fail on real release builds even though it works in debug).
    - (No iOS client needed - this project has no `ios/` folder.)
@@ -32,7 +32,7 @@ Same shape as Google Sign-In above, built 2026-09-14 - see `PROJECT_STATUS.md`'s
 1. Create a project (or use an existing one - can be the SAME Google Cloud project as Google Sign-In above, Firebase projects and GCP projects are the same underlying thing).
 2. Add an app for each platform you want push on:
    - **Web app**: register app nickname, Firebase gives you back `apiKey`/`appId`/`messagingSenderId`/`projectId` - copy all four.
-   - **Android app**: package name `com.kazilink.kazilink_rwanda`. You do NOT need to download `google-services.json` or add the Google Services Gradle plugin - this project deliberately reads the same four config values via `--dart-define` instead (see AppConfig's doc comment for why: the usual `google-services.json` approach makes the Android **build itself** fail without it, which would break `flutter build`/`flutter run` for anyone before this is set up).
+   - **Android app**: package name `rw.fasha.app`. You do NOT need to download `google-services.json` or add the Google Services Gradle plugin - this project deliberately reads the same four config values via `--dart-define` instead (see AppConfig's doc comment for why: the usual `google-services.json` approach makes the Android **build itself** fail without it, which would break `flutter build`/`flutter run` for anyone before this is set up).
 3. **Service account key** (for the BACKEND to send pushes, separate from the app config above): Project Settings > Service Accounts > "Generate new private key" - downloads a JSON file. Keep this file secret (it's a real credential, same sensitivity as a database password) and never commit it.
 
 **Where the values go:**

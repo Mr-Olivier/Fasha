@@ -1,4 +1,4 @@
-# Running KaziLink Rwanda Locally
+# Running Fasha Locally
 
 Everything you need to go from "laptop just started, everything is off" to
 "the app is running on my phone." Written for **PowerShell** (Windows'
@@ -19,13 +19,13 @@ wait until it says "Docker Desktop is running" (check the system tray icon).
 
 **2. Terminal 1 - start the database:**
 ```powershell
-cd D:\FLUTTER\KaziLink_Rwanda
+cd D:\FLUTTER\Fasha
 docker compose up -d
 ```
 
 **3. Terminal 2 - start the backend:**
 ```powershell
-cd D:\FLUTTER\KaziLink_Rwanda\backend
+cd D:\FLUTTER\Fasha\backend
 .\mvnw.cmd spring-boot:run
 ```
 Wait for `Started BackendApplication` in the log before moving on. **Leave
@@ -33,7 +33,7 @@ this terminal open** - closing it stops the API.
 
 **4. Plug in your phone via USB**, then in Terminal 3:
 ```powershell
-cd D:\FLUTTER\KaziLink_Rwanda\mobile
+cd D:\FLUTTER\Fasha\mobile
 flutter devices
 ```
 Find your phone in the list and note its device id (a string of digits,
@@ -69,7 +69,7 @@ connection error.
 ```powershell
 docker compose up -d
 ```
-This starts (or resumes) the `kazilink-postgres` container in the
+This starts (or resumes) the `fasha-postgres` container in the
 background. Your data persists between restarts (it's stored in a Docker
 volume) unless you explicitly run `docker compose down -v`, which wipes it.
 
@@ -77,7 +77,7 @@ Verify it's actually up:
 ```powershell
 docker ps
 ```
-You should see `kazilink-postgres` in the list, healthy.
+You should see `fasha-postgres` in the list, healthy.
 
 ### 3. Start the backend
 ```powershell
@@ -144,7 +144,7 @@ needs steps 1-3 above (Docker + backend) - no phone, no `adb reverse`.
 
 - In the `flutter run` terminal: press `q`, or `Ctrl+C`
 - In the backend terminal: `Ctrl+C`
-- Database: you can just leave `kazilink-postgres` running (it's cheap and
+- Database: you can just leave `fasha-postgres` running (it's cheap and
   idle in the background), or stop it with:
   ```powershell
   docker compose down
@@ -162,7 +162,7 @@ from the top.
 | Symptom | Likely cause / fix |
 |---|---|
 | `docker compose up -d` fails / connection error | Docker Desktop isn't actually running yet - open it and wait for the tray icon to settle |
-| Backend fails to start with a DB connection error | Same as above, or `docker ps` doesn't show `kazilink-postgres` healthy yet - give it a few seconds and retry |
+| Backend fails to start with a DB connection error | Same as above, or `docker ps` doesn't show `fasha-postgres` healthy yet - give it a few seconds and retry |
 | `adb devices` shows nothing at all | Check the phone's notification shade for the USB mode - switch it to **File Transfer**, not "charging only." Try a different cable (some are charge-only) |
 | `adb devices` shows `unauthorized` | The "Allow USB debugging?" popup is waiting on the phone's screen - unlock it and tap Allow |
 | App installs but can't reach the backend (network errors on every screen) | You forgot to re-run `adb reverse tcp:8081 tcp:8081` after reconnecting the phone |

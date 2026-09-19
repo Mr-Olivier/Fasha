@@ -1,4 +1,4 @@
-/// Mirrors the backend's VerificationStatus enum (rw.kazilink.provider).
+/// Mirrors the backend's VerificationStatus enum (rw.fasha.provider).
 /// A provider can never set this themselves - it only ever comes FROM the
 /// server as part of their own profile. The one exception is the admin
 /// approval screen, which needs toWire() to send `?status=PENDING` back.

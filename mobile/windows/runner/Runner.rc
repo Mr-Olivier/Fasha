@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.kazilink" "\0"
-            VALUE "FileDescription", "kazilink_rwanda" "\0"
+            VALUE "CompanyName", "rw.fasha" "\0"
+            VALUE "FileDescription", "fasha" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "kazilink_rwanda" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.kazilink. All rights reserved." "\0"
-            VALUE "OriginalFilename", "kazilink_rwanda.exe" "\0"
-            VALUE "ProductName", "kazilink_rwanda" "\0"
+            VALUE "InternalName", "fasha" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 rw.fasha. All rights reserved." "\0"
+            VALUE "OriginalFilename", "fasha.exe" "\0"
+            VALUE "ProductName", "fasha" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

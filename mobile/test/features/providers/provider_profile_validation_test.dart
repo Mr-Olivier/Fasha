@@ -3,14 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'package:kazilink_rwanda/features/providers/data/provider_profile_repository.dart';
-import 'package:kazilink_rwanda/features/providers/domain/provider_detail.dart';
-import 'package:kazilink_rwanda/features/providers/domain/provider_profile.dart';
-import 'package:kazilink_rwanda/features/providers/presentation/provider_profile_controller.dart';
-import 'package:kazilink_rwanda/features/providers/presentation/provider_profile_screen.dart';
-import 'package:kazilink_rwanda/features/services/data/category_repository.dart';
-import 'package:kazilink_rwanda/features/services/domain/category.dart';
-import 'package:kazilink_rwanda/features/services/presentation/category_controller.dart';
+import 'package:fasha/features/providers/data/provider_profile_repository.dart';
+import 'package:fasha/features/providers/domain/provider_detail.dart';
+import 'package:fasha/features/providers/domain/provider_profile.dart';
+import 'package:fasha/features/providers/presentation/provider_profile_controller.dart';
+import 'package:fasha/features/providers/presentation/provider_profile_screen.dart';
+import 'package:fasha/features/services/data/category_repository.dart';
+import 'package:fasha/features/services/domain/category.dart';
+import 'package:fasha/features/services/presentation/category_controller.dart';
 
 /// ProviderProfileScreen now shows a category dropdown (D6) - without this
 /// override, categoriesProvider would try a real network call that never

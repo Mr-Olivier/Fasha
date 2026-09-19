@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:kazilink_rwanda/features/auth/data/auth_session_storage.dart';
-import 'package:kazilink_rwanda/features/auth/domain/auth_user.dart';
-import 'package:kazilink_rwanda/features/auth/presentation/login_screen.dart';
-import 'package:kazilink_rwanda/features/auth/presentation/register_screen.dart';
+import 'package:fasha/features/auth/data/auth_session_storage.dart';
+import 'package:fasha/features/auth/domain/auth_user.dart';
+import 'package:fasha/features/auth/presentation/login_screen.dart';
+import 'package:fasha/features/auth/presentation/register_screen.dart';
 
 /// A fully in-memory stand-in for AuthSessionStorage. `implements` only
 /// requires covering AuthSessionStorage's PUBLIC members (save/read/clear) -

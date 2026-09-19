@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:kazilink_rwanda/features/services/data/category_repository.dart';
-import 'package:kazilink_rwanda/features/services/data/service_listing_repository.dart';
-import 'package:kazilink_rwanda/features/services/domain/category.dart';
-import 'package:kazilink_rwanda/features/services/domain/service_duration.dart';
-import 'package:kazilink_rwanda/features/services/domain/service_listing.dart';
-import 'package:kazilink_rwanda/features/services/presentation/category_controller.dart';
-import 'package:kazilink_rwanda/features/services/presentation/service_form_screen.dart';
-import 'package:kazilink_rwanda/features/services/presentation/service_listing_controller.dart';
+import 'package:fasha/features/services/data/category_repository.dart';
+import 'package:fasha/features/services/data/service_listing_repository.dart';
+import 'package:fasha/features/services/domain/category.dart';
+import 'package:fasha/features/services/domain/service_duration.dart';
+import 'package:fasha/features/services/domain/service_listing.dart';
+import 'package:fasha/features/services/presentation/category_controller.dart';
+import 'package:fasha/features/services/presentation/service_form_screen.dart';
+import 'package:fasha/features/services/presentation/service_listing_controller.dart';
 
 class _FakeCategoryRepository implements CategoryRepository {
   @override

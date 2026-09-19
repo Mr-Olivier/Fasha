@@ -1,4 +1,4 @@
-/// Mirrors the backend's BookingStatus enum (rw.kazilink.booking). See that
+/// Mirrors the backend's BookingStatus enum (rw.fasha.booking). See that
 /// enum's doc comment for the full state diagram this represents.
 enum BookingStatus { requested, accepted, rejected, inProgress, completed, cancelled, reviewed }
 

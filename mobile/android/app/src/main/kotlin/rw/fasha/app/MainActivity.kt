@@ -1,4 +1,4 @@
-package com.kazilink.kazilink_rwanda
+package rw.fasha.app
 
 import io.flutter.embedding.android.FlutterActivity
 

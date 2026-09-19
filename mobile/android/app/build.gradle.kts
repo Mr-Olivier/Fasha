@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.kazilink.kazilink_rwanda"
+    namespace = "rw.fasha.app"
     compileSdk = flutter.compileSdkVersion
     // Pinned above Flutter's own bundled default - firebase_core/
     // firebase_messaging (and every other native plugin already in this
@@ -27,7 +27,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.kazilink.kazilink_rwanda"
+        applicationId = "rw.fasha.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

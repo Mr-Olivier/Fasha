@@ -1,4 +1,4 @@
-/// Mirrors the backend's UserStatus enum (rw.kazilink.user). SUSPENDED
+/// Mirrors the backend's UserStatus enum (rw.fasha.user). SUSPENDED
 /// blocks the account from logging in (AuthService.login) and, for a
 /// provider, drops them out of public search too - see
 /// ProviderProfileService.excludeSuspendedOwners.

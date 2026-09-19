@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kazilink_rwanda/core/utils/validators.dart';
+import 'package:fasha/core/utils/validators.dart';
 
 void main() {
   group('Validators.email', () {

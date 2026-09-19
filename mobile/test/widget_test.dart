@@ -2,9 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:kazilink_rwanda/features/auth/data/auth_session_storage.dart';
-import 'package:kazilink_rwanda/features/auth/domain/auth_user.dart';
-import 'package:kazilink_rwanda/main.dart';
+import 'package:fasha/features/auth/data/auth_session_storage.dart';
+import 'package:fasha/features/auth/domain/auth_user.dart';
+import 'package:fasha/main.dart';
 
 /// See the matching fake in test/features/auth/auth_form_validation_test.dart
 /// for why this exists: the real AuthSessionStorage needs the

@@ -1,4 +1,4 @@
-/// Mirrors the backend's `Role` enum (rw.kazilink.user.Role).
+/// Mirrors the backend's `Role` enum (rw.fasha.user.Role).
 ///
 /// Dart convention is lowerCamelCase enum values, but the backend sends
 /// "CUSTOMER"/"PROVIDER"/"ADMIN" over the wire (that's how Java enum names
